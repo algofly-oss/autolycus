@@ -1,0 +1,43 @@
+version: "3.8"
+
+services:
+  api:
+    build:
+      context: ./api
+      dockerfile: Dockerfile
+    image: autolycus_api
+    container_name: autolycus_api
+    ports:
+      - 8080:8080
+    env_file:
+      - ./.env
+    volumes:
+      - ./api:/app
+      - ./downloads:/downloads
+    restart: always
+    depends_on:
+      - redis
+      - mongodb
+
+  mongodb:
+    image: mongo:5.0
+    container_name: autolycus_mongodb
+    ports:
+      - 27017:27017
+    env_file:
+      - ./.env
+    volumes:
+      - ./data/mongodb:/data/db
+    restart: always
+
+  redis:
+    image: redis:6.2-alpine
+    container_name: autolycus_redis
+    command: redis-server --save 20 1 --loglevel warning --requirepass ${REDIS_PASSWORD}
+    env_file:
+      - ./.env
+    volumes:
+      - ./data/redis:/data
+    # ports:
+    #   - 6379:6379
+    restart: always

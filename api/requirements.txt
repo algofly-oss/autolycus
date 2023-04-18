@@ -1,0 +1,8 @@
+motor==2.5.1
+bcrypt==3.2.0
+pymongo==3.12.3
+redis==4.1.4
+fastapi==0.79.0
+uvicorn==0.18.2
+python-multipart==0.0.5
+requests==2.27.1
