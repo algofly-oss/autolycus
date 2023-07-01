@@ -6,7 +6,7 @@ from .account_info import router as account_info_router
 from .delete import router as delete_router
 
 router = APIRouter(
-    prefix="/api/auth",
+    prefix="/auth",
     tags=["Authentication"],
 )
 

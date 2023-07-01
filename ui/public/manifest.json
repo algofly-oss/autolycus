@@ -1,0 +1,17 @@
+{
+    "name": "Autolycus",
+    "short_name": "Autolycus",
+    "start_url": "/",
+    "display": "standalone",
+    "background_color": "#ffffff",
+    "theme_color": "#ffffff",
+    "orientation": "portrait-primary",
+    "icons": [
+      {
+        "src": "favicon.ico",
+        "sizes": "512x512 384x384 192x192 152x152 144x144 128x128 96x96 72x72 64x64 32x32 24x24 16x16",
+        "type": "image/png",
+        "purpose": "any"
+      }
+    ]
+  }

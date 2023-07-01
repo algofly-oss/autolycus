@@ -23,13 +23,13 @@ async def signin(user: UserSigninDto, request: Request, response: Response):
 
     # Check if user is already logged in
     if redis.get(request.cookies.get("session_token", "")):
-        return {"msg": "user already signed in"}
+        return {"msg": "success"}
 
     # Check if user exists
     existing_user = await db.users.find_one({"username": user.username})
 
     if not existing_user:
-        raise HTTPException(status_code=400, detail="User does not exist")
+        raise HTTPException(status_code=400, detail="incorrect username")
 
     # Check if password is correct
     if bcrypt.checkpw(user.password.encode("utf-8"), existing_user["password"]):
@@ -37,6 +37,6 @@ async def signin(user: UserSigninDto, request: Request, response: Response):
         session_token = str(uuid.uuid4())
         redis.set(session_token, str(existing_user.get("_id")))
         response.set_cookie(key="session_token", value=session_token, httponly=True)
-        return {"msg": "user signed in"}
+        return {"msg": "success"}
 
-    raise HTTPException(status_code=400, detail="Password is incorrect")
+    raise HTTPException(status_code=400, detail="incorrect password")

@@ -2,9 +2,7 @@ from fastapi import APIRouter
 import requests
 import time
 
-router = APIRouter(
-    prefix="/api",
-)
+router = APIRouter()
 
 
 @router.get("/ping")

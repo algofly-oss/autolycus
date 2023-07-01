@@ -13,6 +13,7 @@ ENV PYTHONPATH="/usr/lib/python3/dist-packages":$PYTHONPATH
 RUN pip install -r /app/requirements.txt --no-cache-dir
 
 # Install libtorrentx from source
+RUN pip install setuptools==68.0.0
 RUN pip install git+https://github.com/imneonizer/libtorrentx.git
 
 CMD chmod +x /app/entrypoint.sh && /app/entrypoint.sh

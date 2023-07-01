@@ -1,24 +1,6 @@
 version: "3.8"
 
 services:
-  api:
-    build:
-      context: ./api
-      dockerfile: Dockerfile
-    image: autolycus_api
-    container_name: autolycus_api
-    ports:
-      - 8080:8080
-    env_file:
-      - ./.env
-    volumes:
-      - ./api:/app
-      - ./downloads:/downloads
-    restart: always
-    depends_on:
-      - redis
-      - mongodb
-
   mongodb:
     image: mongo:5.0
     container_name: autolycus_mongodb
@@ -38,6 +20,59 @@ services:
       - ./.env
     volumes:
       - ./data/redis:/data
-    # ports:
-    #   - 6379:6379
     restart: always
+
+  api:
+    build:
+      context: ./api
+      dockerfile: Dockerfile
+    image: autolycus_api
+    container_name: autolycus_api
+    env_file:
+      - ./.env
+    ports:
+      - 8080:8080
+    volumes:
+      - ./api:/app
+      - ./downloads:/downloads
+    restart: always
+    depends_on:
+      - redis
+      - mongodb
+
+  ui:
+    build:
+      context: ./ui
+    image: autolycus_ui
+    container_name: autolycus_ui
+    env_file:
+      - ./.env
+    ports:
+      - 3000:${UI_PORT}
+    environment:
+      - PORT=${UI_PORT}
+      - BUILD_ENV=dev
+    volumes:
+      - ./ui:/app
+    restart: always
+    depends_on:
+      - api
+
+  proxy:
+    image: nginx:1.19-alpine
+    container_name: autolycus_proxy
+    environment:
+      - API_ADDRESS=api:8080
+      - UI_ADDRESS=ui:${UI_PORT}
+    env_file:
+      - ./.env
+    ports:
+      - 80:80
+      - 443:443
+    volumes:
+      - ./proxy/nginx.conf:/etc/nginx/templates/default.conf.template
+      - ./proxy/certificate/server.crt:/etc/ssl/certs/server.crt
+      - ./proxy/certificate/server.key:/etc/ssl/certs/server.key
+    restart: always
+    depends_on:
+      - ui
