@@ -9,8 +9,10 @@ const NavBarItem = ({ tab, setTab, Icon, IconFilled, text }) => {
   return (
     <div
       className={
-        "md:pl-4 p-3 rounded-md cursor-pointer flex items-center md:space-x-4 hover:md:bg-white hover:md:dark:bg-zinc-900 " +
-        (tab === text ? "md:bg-white md:dark:bg-zinc-900" : "md:bg-transparent")
+        "md:pl-4 p-3 rounded-md cursor-pointer flex items-center md:space-x-4 hover:md:bg-zinc-200 hover:md:dark:bg-zinc-900 " +
+        (tab === text
+          ? "md:bg-zinc-200 md:dark:bg-zinc-900"
+          : "md:bg-transparent")
       }
       onClick={() => {
         setTab(text);

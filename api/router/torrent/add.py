@@ -12,18 +12,20 @@ def update_to_db(props, user_id):
     props = props.asdict()
     props["user_id"] = user_id
     db.torrents.update_one({"info_hash": props["info_hash"]}, {"$set": props})
-
+    redis.set(props["info_hash"], props["progress"])
+    redis.expire(props["info_hash"], 60)
 
 @router.post("/add")
 async def add_torrent(dto: MagnetDto, request: Request):
     user_id = authenticate_user(request.cookies.get("session_token"))
 
     # extract info_hash from magnet
-    info_hash = magnet_utils._clean_magnet_uri(dto.magnet).split(":")[3]
+    info_hash = magnet_utils._clean_magnet_uri(dto.magnet).split(":")[3][:40]
 
     # add torrent to db
-    if not (await db.torrents.find_one({"info_hash": info_hash})):
-        await db.torrents.insert_one({"info_hash": info_hash})
+    already_exists = await db.torrents.find_one({"info_hash": info_hash})
+    if not already_exists:
+        await db.torrents.insert_one({"info_hash": info_hash, "user_id": ObjectId(user_id.decode("utf-8"))})
 
     handle = lt_session.add_torrent(dto.magnet, "/downloads")
     handle.set_callback(
@@ -31,4 +33,4 @@ async def add_torrent(dto: MagnetDto, request: Request):
         callback_interval=1,
     )
 
-    return {"message": "Magnet Added"}
+    return {"message": "Magnet Exists" if already_exists else "Magnet Added"}

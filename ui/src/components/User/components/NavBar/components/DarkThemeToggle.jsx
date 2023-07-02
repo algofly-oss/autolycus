@@ -7,9 +7,9 @@ export default function DarkThemeToggle() {
   const theme = useTheme();
 
   return (
-    <div className="flex bg-white dark:bg-zinc-900 p-4 rounded-lg text-sm mt-2 justify-center">
+    <div className="flex bg-zinc-200 dark:bg-zinc-900 p-4 rounded-lg text-sm mt-2 justify-center">
       <div
-        className="flex space-x-4 py-2 px-3 items-center border-2 border-zinc-200 dark:border-neutral-700 bg-white dark:bg-black rounded-full cursor-pointer"
+        className="flex space-x-4 py-2 px-3 items-center border-2 border-zinc-300 dark:border-neutral-700 bg-zinc-100 dark:bg-black rounded-full cursor-pointer"
         onClick={() => theme.toggleColorScheme()}
       >
         <FiSun />

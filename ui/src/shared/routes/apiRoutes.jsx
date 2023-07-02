@@ -6,6 +6,9 @@ let apiRoutes = {
   signIn: "/auth/signin",
   signOut: "/auth/signout",
   accountInfo: "/auth/me",
+
+  // torrents
+  addMagnet: "/torrent/add",
 };
 
 Object.entries(apiRoutes).forEach(([key, value]) => {

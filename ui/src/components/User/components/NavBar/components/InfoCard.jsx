@@ -6,7 +6,7 @@ import {
 
 export default function InfoCard() {
   return (
-    <div className="bg-white dark:bg-zinc-900 p-4 rounded-lg text-sm">
+    <div className="bg-zinc-200 dark:bg-zinc-900 p-4 rounded-lg text-sm">
       <div className="flex items-center space-x-2">
         <MdDownloading size={20} />
         <p className="py-0.5">{4} Active</p>

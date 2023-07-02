@@ -10,6 +10,7 @@ import {
 import { useHotkeys, useLocalStorage } from "@mantine/hooks";
 import store from "../redux/store";
 import { socket, SocketContext } from "../shared/contexts/socket";
+import toast, { Toaster } from "react-hot-toast";
 
 export default function App({ Component, pageProps }: AppProps) {
   const [colorScheme, setColorScheme] = useLocalStorage<ColorScheme>({
@@ -23,6 +24,7 @@ export default function App({ Component, pageProps }: AppProps) {
 
   return (
     <div className={colorScheme}>
+      <Toaster />
       <Head>
         <title>Autolycus</title>
         <link rel="preconnect" href="https://fonts.googleapis.com" />

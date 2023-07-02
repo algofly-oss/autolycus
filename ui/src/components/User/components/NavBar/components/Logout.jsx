@@ -35,7 +35,7 @@ export default function Logout() {
           </div>
         </div>
         <div
-          className="flex items-center space-x-4 bg-white dark:bg-zinc-900 p-4 rounded-lg text-sm mt-2 justify-center cursor-pointer"
+          className="flex items-center space-x-4 bg-zinc-200 dark:bg-zinc-900 p-4 rounded-lg text-sm mt-2 justify-center cursor-pointer"
           onClick={() => auth.signOut({ redirect: true })}
         >
           <BiLogOut size={20} />

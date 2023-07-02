@@ -7,11 +7,11 @@ router = APIRouter()
 
 
 @router.post("/get")
-async def add_torrent(dto: MagnetDto, request: Request):
+async def get_torrent(dto: MagnetDto, request: Request):
     user_id = authenticate_user(request.cookies.get("session_token"))
 
     # extract info_hash from magnet
-    info_hash = magnet_utils._clean_magnet_uri(dto.magnet).split(":")[3]
+    info_hash = magnet_utils._clean_magnet_uri(dto.magnet).split(":")[3][:40]
 
     # add torrent to db
     torrent = await db.torrents.find_one({"info_hash": info_hash})
