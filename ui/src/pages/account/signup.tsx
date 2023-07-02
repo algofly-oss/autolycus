@@ -1,13 +1,14 @@
 import { useEffect } from "react";
 import Carousel from "@/components/Account/Carousel";
-import SignIn from "@/components/Account/SignIn";
+import SignUp from "@/components/Account/SignUp";
 import useAuth from "@/shared/hooks/useAuth";
+import uiRoutes from "@/shared/routes/uiRoutes";
 
 export default function App(props: any) {
   const auth = useAuth();
 
   useEffect(() => {
-    auth.autoRoute();
+    auth.autoRoute(uiRoutes.signUp);
   }, []);
 
   return (
@@ -16,7 +17,7 @@ export default function App(props: any) {
         <Carousel />
       </div>
       <div className="w-screen md:h-screen md:pb-0 md:w-1/2 grid place-items-center">
-        <SignIn />
+        <SignUp />
       </div>
     </div>
   );

@@ -9,16 +9,23 @@ import { useRouter } from "next/router";
 import { MdLockOutline, MdOutlineMailOutline } from "react-icons/md";
 import { FcGoogle } from "react-icons/fc";
 
-export default function SignIn() {
+export default function SignUp() {
   const auth = useAuth();
 
   const router = useRouter();
   const data = reactState();
   const error = reactState();
-  const [signInProgress, setSignInProgress] = useState(false);
+  const [signUpProgress, setSignUpProgress] = useState(false);
 
   const validateAllInputs = () => {
     let allOk = true;
+
+    if (!data.get("name")) {
+      error.set("name", "Please enter your name");
+      allOk = false;
+    } else {
+      error.set("name", "");
+    }
 
     if (!data.get("username")) {
       error.set("username", "Please enter your email");
@@ -53,7 +60,7 @@ export default function SignIn() {
     return allOk;
   };
 
-  const handleSignIn = async () => {
+  const handleSignUp = async () => {
     if (!validateAllInputs()) {
       return;
     }
@@ -61,39 +68,43 @@ export default function SignIn() {
     auth.signOut();
     error.set("username", "");
     error.set("password", "");
-    setSignInProgress(true);
+    setSignUpProgress(true);
 
-    const msg = await auth.signIn(data.get("username"), data.get("password"));
+    const msg = await auth.signUp(
+      data.get("name"),
+      data.get("username"),
+      data.get("password")
+    );
 
     switch (msg) {
       case "success":
-        setSignInProgress(false);
+        setSignUpProgress(false);
         auth.autoRoute();
         break;
-      case "incorrect username":
-        setSignInProgress(false);
-        error.set("username", "Please check your email");
-        break;
-      case "incorrect password":
-        setSignInProgress(false);
-        error.set("password", "Incorrect password");
-        break;
       default:
-        setSignInProgress(false);
+        setSignUpProgress(false);
     }
   };
 
   const handleKeyPress = (e) => {
     if (e.code === "Enter") {
-      handleSignIn();
+      handleSignUp();
     }
   };
 
   return (
     <div className="rounded-lg p-6 lg:p-16 w-full 2xl:w-[45rem]">
       <GoBack />
-      <p className="text-3xl font-bold">Welcome back</p>
+      <p className="text-3xl font-bold">Create Account</p>
       <p className="mb-6">Please enter your details</p>
+      <TextBox
+        label="Name"
+        icon={<MdOutlineMailOutline size={20} />}
+        placeholder="Enter your name"
+        value={data.get("name")}
+        setValue={(val) => data.set("name", val)}
+        error={error.get("name")}
+      />
       <TextBox
         label="Email"
         icon={<MdOutlineMailOutline size={20} />}
@@ -120,9 +131,9 @@ export default function SignIn() {
       </Link> */}
       <button
         className="flex items-center justify-center bg-blue-500 dark:bg-blue-700 text-white w-full p-3 rounded-md text-sm md:text-base mt-3"
-        onClick={handleSignIn}
+        onClick={handleSignUp}
       >
-        {signInProgress ? (
+        {signUpProgress ? (
           <div role="status">
             <svg
               aria-hidden="true"
@@ -142,19 +153,19 @@ export default function SignIn() {
             </svg>
           </div>
         ) : null}
-        <p>{signInProgress ? "Signing in..." : "Sign in"}</p>
+        <p>{signUpProgress ? "Signing up..." : "Sign up"}</p>
       </button>
       {/* <div
         className="flex space-x-3 items-center justify-center w-full my-4 p-3.5 rounded-md cursor-pointer border border-neutral-200 dark:border-0 bg-white dark:bg-neutral-700 text-sm md:text-base"
         onClick={() => auth.login()}
       >
         <FcGoogle size={25} />
-        <button>Sign in with Google</button>
+        <button>Sign up with Google</button>
       </div> */}
       <div className="flex space-x-2 justify-center mt-4">
-        <p>Don&apos;t have an account?</p>
-        <Link href={uiRoutes.signUp} passHref>
-          <p className="text-blue-500 font-medium cursor-pointer">Sign up</p>
+        <p>Already have an account?</p>
+        <Link href={uiRoutes.signIn} passHref>
+          <p className="text-blue-500 font-medium cursor-pointer">Sign in</p>
         </Link>
       </div>
     </div>

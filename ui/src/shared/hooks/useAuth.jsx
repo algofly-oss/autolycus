@@ -40,6 +40,22 @@ export default function useAuth() {
       .catch((err) => {});
   };
 
+  const signUp = async (name, username, password) => {
+    try {
+      const response = await axios.post(apiRoutes.signUp, {
+        name,
+        username,
+        password,
+      });
+      if (response?.data?.msg === "success") {
+        await getAccountInfo();
+      }
+      return response?.data?.msg;
+    } catch (error) {
+      return error?.response?.data?.detail;
+    }
+  };
+
   const signIn = async (username, password) => {
     try {
       const response = await axios.post(apiRoutes.signIn, {
@@ -69,23 +85,9 @@ export default function useAuth() {
       });
   };
 
-  const autoRoute = async () => {
-    if (!user?.username) {
-      await getAccountInfo().then((data) => {
-        switch (data?.role) {
-          case "admin":
-            router.push(uiRoutes.home);
-            break;
-          case "user":
-            router.push(uiRoutes.home);
-            break;
-          default:
-            router.push(uiRoutes.signIn);
-            break;
-        }
-      });
-    } else {
-      switch (user?.role) {
+  const autoRoute = async (redirectUrl) => {
+    await getAccountInfo().then((data) => {
+      switch (data?.role) {
         case "admin":
           router.push(uiRoutes.home);
           break;
@@ -93,14 +95,15 @@ export default function useAuth() {
           router.push(uiRoutes.home);
           break;
         default:
-          router.push(uiRoutes.signIn);
+          router.push(redirectUrl || uiRoutes.signIn);
           break;
       }
-    }
+    });
   };
 
   return {
     user,
+    signUp,
     signIn,
     signOut,
     getAccountInfo,

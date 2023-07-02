@@ -7,7 +7,7 @@ export default function App(props: any) {
 
   useEffect(() => {
     auth.autoRoute();
-  }, [auth]);
+  }, []);
 
   return <UserHome />;
 }

@@ -26,7 +26,7 @@ async def signup(user: UserSignupDto, response: Response):
 
     # Check if user already exists
     if await db.users.find_one({"username": user.username}):
-        raise HTTPException(status_code=400, detail="User already exists")
+        return {"msg": "user already exists"}
 
     # Create a new user
     salt = bcrypt.gensalt()
@@ -50,4 +50,4 @@ async def signup(user: UserSignupDto, response: Response):
     redis.set(session_token, user_id)
     response.set_cookie(key="session_token", value=session_token, httponly=True)
 
-    return {"msg": "user created"}
+    return {"msg": "success"}
