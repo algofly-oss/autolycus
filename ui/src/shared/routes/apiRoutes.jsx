@@ -9,6 +9,10 @@ let apiRoutes = {
 
   // torrents
   addMagnet: "/torrent/add",
+  listTorrents: "/torrent/all",
+
+  //files
+  browseFiles: '/files/browse'
 };
 
 Object.entries(apiRoutes).forEach(([key, value]) => {
