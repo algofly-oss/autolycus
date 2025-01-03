@@ -1,13 +1,53 @@
 import apiRoutes from '@/shared/routes/apiRoutes';
 import axios from 'axios';
 import React, { useEffect, useState } from 'react';
-import { FiFolder, FiFile, FiArrowLeft, FiLoader, FiFilm, FiMusic, FiImage, FiFileText } from 'react-icons/fi';
-import { getFileType } from '@/shared/utils/fileUtils';
+import { FiFolder, FiFile, FiArrowLeft, FiLoader, FiFilm, FiMusic, FiImage, FiFileText, FiCopy, FiMove, FiTrash2, FiDownload } from 'react-icons/fi';
+import { formatFileSize, getFileType } from '@/shared/utils/fileUtils';
+import { GoKebabHorizontal } from "react-icons/go";
+import { Menu, Modal, Button, Text } from '@mantine/core';
+import useToast from '@/shared/hooks/useToast';
+
+function FileMenu({ item, onAction }) {
+  const actions = [
+    { name: 'Copy', icon: FiCopy, action: 'copy' },
+    { name: 'Move', icon: FiMove, action: 'move' },
+    { name: 'Delete', icon: FiTrash2, action: 'delete' },
+    { name: 'Download', icon: FiDownload, action: 'download' },
+  ];
+
+  return (
+    <Menu shadow="md" width={200} position="bottom-end" withinPortal>
+      <Menu.Target>
+        <button className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full" onClick={(e) => e.stopPropagation()}>
+          <GoKebabHorizontal className="w-4 h-4 rotate-90" />
+        </button>
+      </Menu.Target>
+
+      <Menu.Dropdown>
+        {actions.map((action) => (
+          <Menu.Item
+            key={action.name}
+            icon={<action.icon size={14} />}
+            onClick={(e) => {
+              e.stopPropagation();
+              onAction(action.action, item);
+            }}
+          >
+            {action.name}
+          </Menu.Item>
+        ))}
+      </Menu.Dropdown>
+    </Menu>
+  );
+}
 
 export default function FileExplorer({ initialPath, onPathChange }) {
   const [items, setItems] = useState([]);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [videoPlayer, setVideoPlayer] = useState({ open: false, url: '', name: '' });
+  const [deleteDialog, setDeleteDialog] = useState({ open: false, item: null });
+  const toast = useToast();
 
   useEffect(() => {
     const fetchData = async () => {
@@ -19,6 +59,7 @@ export default function FileExplorer({ initialPath, onPathChange }) {
           const encodedPath = encodeURIComponent(initialPath.replace(/^\/downloads\/*/, ''));
           const response = await axios.get(`${apiRoutes.browseFiles}?path=${encodedPath}`);
           setItems(response.data);
+          console.log("Items information: ", response.data)
         } catch (err) {
           setError(err.message);
         } finally {
@@ -34,8 +75,15 @@ export default function FileExplorer({ initialPath, onPathChange }) {
     if (item.is_directory) {
       onPathChange(`${initialPath}/${item.name}`);
     } else {
-      // Handle file click if needed
-      alert(`Clicked file: ${item.name}`);
+      const fileType = getFileType(item.name);
+      if (fileType === 'video') {
+        // Construct the video URL using the current path and filename
+        const videoPath = encodeURIComponent(`${initialPath}/${item.name}`.replace(/^\/downloads\/*/, ''));
+        const videoUrl = `${apiRoutes.streamFile}?path=${videoPath}`;
+        setVideoPlayer({ open: true, url: videoUrl, name: item.name });
+      } else {
+        toast.error("Can not read this file...")
+      }
     }
   }
 
@@ -77,8 +125,103 @@ export default function FileExplorer({ initialPath, onPathChange }) {
     return { name: part, path: fullPath };
   });
 
+  const handleFileAction = async (action, item) => {
+    switch (action) {
+      case 'copy':
+        // TODO: Implement copy functionality
+        console.log('Copy', item);
+        break;
+      case 'move':
+        // TODO: Implement move functionality
+        console.log('Move', item);
+        break;
+      case 'delete':
+        setDeleteDialog({ open: true, item });
+        break;
+      case 'download':
+        try {
+          const path = `${initialPath}/${item.name}`.replace(/^\/downloads\/*/, '');
+          const downloadUrl = `${apiRoutes.streamFile}?path=${encodeURIComponent(path)}&download=true`;
+          
+          // Create a temporary link element and trigger download
+          const link = document.createElement('a');
+          link.href = downloadUrl;
+          link.download = item.name; // Set the download filename
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+          
+          toast.success('Download started');
+        } catch (err) {
+          toast.error('Failed to start download');
+        }
+        break;
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!deleteDialog.item) return;
+    
+    try {
+      const path = `${initialPath}/${deleteDialog.item.name}`.replace(/^\/downloads\/*/, '');
+      await axios.delete(`${apiRoutes.deleteFile}?path=${encodeURIComponent(path)}`);
+      
+      // Remove the item from the list
+      setItems(items.filter(item => item.name !== deleteDialog.item.name));
+      
+      // Show success notification
+      toast.success(`${deleteDialog.item.name} has been deleted`)
+    } catch (err) {
+      // Show error notification
+      toast.error(err.message)
+    } finally {
+      setDeleteDialog({ open: false, item: null });
+    }
+  };
+
   return (
     <div className="mt-6">
+      {/* Delete Confirmation Dialog */}
+      <Modal
+        opened={deleteDialog.open}
+        onClose={() => setDeleteDialog({ open: false, item: null })}
+        title="Confirm Delete"
+        size="sm"
+        centered
+      >
+        <Text size="sm" mb="lg">
+          Are you sure you want to delete{' '}
+          <strong>{deleteDialog.item?.name}</strong>?
+          {deleteDialog.item?.is_directory && ' This will delete all contents inside the folder.'}
+        </Text>
+        <div className="flex justify-end gap-4">
+          <Button variant="default" onClick={() => setDeleteDialog({ open: false, item: null })}>
+            Cancel
+          </Button>
+          <Button color="red" onClick={handleDelete}>
+            Delete
+          </Button>
+        </div>
+      </Modal>
+
+      {/* Video Player Modal */}
+      <Modal
+        opened={videoPlayer.open}
+        onClose={() => setVideoPlayer({ open: false, url: '', name: '' })}
+        title={videoPlayer.name}
+        size="xl"
+        centered
+      >
+        <video
+          className="w-full"
+          controls
+          autoPlay
+          src={videoPlayer.url}
+        >
+          Your browser does not support the video tag.
+        </video>
+      </Modal>
+
       {/* Navigation header */}
       <div className="flex items-center gap-4 mb-6">
         <button
@@ -124,17 +267,18 @@ export default function FileExplorer({ initialPath, onPathChange }) {
           <div
             key={item.name}
             onClick={() => handleItemClick(item)}
-            className="p-4 rounded-lg border dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800 cursor-pointer transition-colors"
+            className="py-4 px-4 rounded-lg border dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800 cursor-pointer transition-colors"
           >
             <div className="flex items-center gap-3">
               {getFileIcon(item)}
-              <div className="truncate flex w-full justify-between">
-                <div className="font-medium">{item.name}</div>
-                {!item.is_directory && (
-                  <div className="text-sm text-gray-500">
-                    {(item.size / 1024 / 1024).toFixed(2)} MB
-                  </div>
-                )}
+              <div className="truncate flex w-full items-center justify-between">
+                <div className="flex flex-col">
+                  <div className="font-medium">{item.name}</div>
+                    <div className="text-sm text-gray-500">
+                      {formatFileSize(item.size)}
+                    </div>
+                </div>
+                <FileMenu item={item} onAction={handleFileAction} />
               </div>
             </div>
           </div>

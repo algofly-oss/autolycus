@@ -11,7 +11,7 @@ class FileItem(BaseModel):
     name: str
     last_modified: datetime
     is_directory: bool
-    size: Optional[int]
+    size: Optional[int]  # Size for files, None for directories
 
 @router.get("/browse", response_model=List[FileItem])
 async def browse_directory(path: str = ""):
@@ -33,11 +33,17 @@ async def browse_directory(path: str = ""):
         # List directory contents
         files = []
         for item in abs_path.iterdir():
+            if item.is_dir():
+                # Calculate the size of the directory
+                dir_size = sum(f.stat().st_size for f in item.glob('**/*') if f.is_file())
+            else:
+                dir_size = None  # Size is only relevant for files
+            
             files.append(FileItem(
                 name=item.name,
                 last_modified=datetime.fromtimestamp(item.stat().st_mtime),
                 is_directory=item.is_dir(),
-                size=item.stat().st_size if item.is_file() else None
+                size=dir_size if item.is_dir() else item.stat().st_size
             ))
 
         print("files", files)

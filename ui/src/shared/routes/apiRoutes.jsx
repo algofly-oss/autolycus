@@ -12,7 +12,9 @@ let apiRoutes = {
   listTorrents: "/torrent/all",
 
   //files
-  browseFiles: '/files/browse'
+  browseFiles: '/files/browse',
+  streamFile: '/files/stream',
+  deleteFile: '/files/delete'
 };
 
 Object.entries(apiRoutes).forEach(([key, value]) => {
