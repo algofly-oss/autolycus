@@ -8,3 +8,4 @@ python-socketio==5.8.0
 fastapi-socketio==0.0.10
 python-multipart==0.0.5
 requests==2.27.1
+libtorrent==2.0.7

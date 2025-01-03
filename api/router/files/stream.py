@@ -1,72 +1,93 @@
-from fastapi import APIRouter, HTTPException
-from fastapi.responses import StreamingResponse
+from fastapi import APIRouter, HTTPException, Request
+from fastapi.responses import FileResponse
+from starlette.responses import Response as StreamingResponse
 from pathlib import Path
 import os
-from typing import BinaryIO
 import mimetypes
+import re
+import contextlib
+import mmap
 
 router = APIRouter()
 
-def file_iterator(file_obj: BinaryIO, chunk_size: int = 1024 * 1024) -> bytes:
-    """Stream file in chunks to prevent memory overload"""
-    while True:
-        chunk = file_obj.read(chunk_size)
-        if not chunk:
-            break
-        yield chunk
+def get_chunk(full_path, byte1=None, byte2=None):
+    file_size = os.stat(full_path).st_size
+    start = 0
+    length = 1024
 
-def get_content_type(file_path: Path) -> str:
-    """Get the content type based on file extension"""
-    content_type, _ = mimetypes.guess_type(str(file_path))
-    if not content_type:
-        if file_path.suffix.lower() in ['.mkv', '.webm']:
-            return "video/webm"
-        elif file_path.suffix.lower() in ['.avi']:
-            return "video/x-msvideo"
-        return "application/octet-stream"
-    return content_type
+    if byte1 < file_size:
+        start = byte1
+    if byte2:
+        length = byte2 + 1 - byte1
+    else:
+        length = file_size - start
+
+    with open(full_path, 'rb') as f:
+        with contextlib.closing(mmap.mmap(f.fileno(), length=0, access=mmap.ACCESS_READ)) as m:
+            m.seek(start)
+            chunk = m.read(length)
+            m.flush()
+
+    return chunk, start, length, file_size
 
 @router.get("/stream")
-async def stream_file(path: str = "", download: bool = False):
+async def stream_file(request: Request, path: str = "", download: bool = False):
     try:
         # Convert the relative path to absolute path
         base_path = Path(os.getenv("DOWNLOAD_PATH", "/downloads"))
         abs_path = base_path / path
-        
+
         # Ensure the path exists and is a file
         if not abs_path.exists():
             raise HTTPException(status_code=404, detail="File not found")
         if not abs_path.is_file():
             raise HTTPException(status_code=400, detail="Not a file")
-        
+
         # Ensure the path is within the base directory
         if not str(abs_path.resolve()).startswith(str(base_path.resolve())):
             raise HTTPException(status_code=403, detail="Access denied")
-        
-        # Open file in binary mode
-        file = open(abs_path, mode="rb")
-        
-        # Get file size for Content-Length header
-        file_size = abs_path.stat().st_size
-        
-        # Get content type
-        content_type = get_content_type(abs_path)
-        
-        headers = {
-            "Content-Length": str(file_size),
-            "Accept-Ranges": "bytes"
-        }
-        
-        # If download is requested, add Content-Disposition header
+
         if download:
-            headers["Content-Disposition"] = f'attachment; filename="{abs_path.name}"'
-        
-        # Return streaming response
-        return StreamingResponse(
-            file_iterator(file),
-            media_type=content_type,
-            headers=headers
-        )
-        
+            return FileResponse(
+                path=abs_path,
+                media_type='application/octet-stream',
+                filename=os.path.basename(abs_path),
+                headers={"Content-Disposition": f"attachment; filename={os.path.basename(abs_path)}"}
+            )
+
+        # Handle byte range requests
+        range_header = request.headers.get('Range', None)
+        byte1, byte2 = 0, None
+        if range_header:
+            match = re.search(r'(\d+)-(\d*)', range_header)
+            groups = match.groups()
+
+            if groups[0]:
+                byte1 = int(groups[0])
+            if groups[1]:
+                byte2 = int(groups[1])
+
+        try:
+            mimetype = mimetypes.guess_type(abs_path)[0]
+            if mimetype is None:
+                mimetype = 'text/plain'
+            elif mimetype.startswith('video'):
+                mimetype = 'video/mp4'
+        except:
+            return FileResponse(
+                path=path,
+                media_type='application/octet-stream',
+                filename=os.path.basename(abs_path),
+                headers={"Content-Disposition": f"attachment; filename={os.path.basename(abs_path)}"}
+            )
+
+        chunk, start, length, file_size = get_chunk(abs_path, byte1, byte2)
+        headers = {
+            'Content-Range': f'bytes {start}-{start + length - 1}/{file_size}',
+            'Accept-Ranges': 'bytes'
+        }
+
+        return StreamingResponse(chunk, status_code=206, headers=headers, media_type=mimetype)
+
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e)) 
+        raise HTTPException(status_code=500, detail=str(e))
