@@ -22,7 +22,7 @@ export default function FileList({
 
   async function fetchTorrents() {
     try {
-      const response = await axios.post(apiRoutes.listTorrents);
+      const response = await axios.get(apiRoutes.listTorrents);
       const torrents = Array.isArray(response.data)
         ? response.data
         : Array.isArray(response.data.data)

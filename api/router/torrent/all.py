@@ -5,7 +5,7 @@ from ..auth.common import authenticate_user
 
 router = APIRouter()
 
-@router.post("/all")
+@router.get("/all")
 async def all_torrent(request: Request):
     user_id = authenticate_user(request.cookies.get("session_token"))
     torrents = await db.torrents.find({"user_id": ObjectId(user_id.decode("utf-8"))}).to_list(length=None)

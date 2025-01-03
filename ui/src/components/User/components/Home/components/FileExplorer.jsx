@@ -268,7 +268,7 @@ export default function FileExplorer({ initialPath, onPathChange }) {
         </button>
 
         {/* Path breadcrumb */}
-        <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400 overflow-x-auto">
+        <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400 overflow-x-auto no-scrollbar">
           <span>/</span>
           {breadcrumbs.map((crumb, index) => (
             <React.Fragment key={crumb.path}>
@@ -281,6 +281,16 @@ export default function FileExplorer({ initialPath, onPathChange }) {
               </span>
             </React.Fragment>
           ))}
+          <div
+            ref={(el) =>
+              el &&
+              el.scrollIntoView({
+                behavior: "smooth",
+                block: "end",
+                inline: "end",
+              })
+            }
+          ></div>
         </div>
       </div>
 

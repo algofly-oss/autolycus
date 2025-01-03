@@ -1,7 +1,7 @@
 import os
 
 # Load API secret key
-API_SECRET_KEY = os.environ.get("API_SECRET_KEY", None)
+API_SECRET_KEY = os.environ.get("API_SECRET_KEY", "8d1f3e4d46d04f5fac089a8f980f1951")
 if API_SECRET_KEY is None:
     raise BaseException("Missing API_SECRET_KEY")
 

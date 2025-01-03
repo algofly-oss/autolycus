@@ -23,12 +23,17 @@ export default function Logout() {
           ) : (
             <div className="flex items-center justify-center h-12 w-12 rounded-full bg-blue-500 dark:bg-blue-700">
               <p className="text-2xl text-white">
-                {(auth?.user?.name || " ").slice(0, 1)}
+                {(auth?.user?.name || " ").slice(0, 1).toUpperCase()}
               </p>
             </div>
           )}
           <div>
-            <p className="text-sm font-bold">{auth?.user?.name}</p>
+            <p className="text-sm font-bold">
+              {auth?.user?.name
+                ?.split(" ")
+                .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+                .join(" ")}
+            </p>
             <p className="text-xs text-neutral-500 dark:text-neutral-400">
               {auth?.user?.username}
             </p>

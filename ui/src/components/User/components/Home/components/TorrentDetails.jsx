@@ -2,23 +2,34 @@ import React from "react";
 import { formatFileSize, getQuality } from "@/shared/utils/fileUtils";
 import { formatTimeRemaining } from "@/shared/utils/timeUtils";
 import { FiDownload } from "react-icons/fi";
+import { MdContentCopy } from "react-icons/md";
+import useToast from "@/shared/hooks/useToast";
 
 export default function TorrentDetails({ torrent }) {
   if (!torrent) {
     return null;
   }
-
+  const toast = useToast();
   const { resolution, source } = getQuality(torrent.name);
   const remainingBytes = torrent.total_bytes - torrent.downloaded_bytes;
   const timeLeftSeconds =
     torrent.download_speed > 0 ? remainingBytes / torrent.download_speed : 0;
-  // const progress = (
-  //   (torrent.downloaded_bytes / torrent.total_bytes) *
-  //   100
-  // ).toFixed(1);
+
+  const copyMagnetToClipBoard = () => {
+    if (torrent?.magnet) {
+      const el = document.createElement("textarea");
+      el.value = torrent?.magnet;
+      document.body.appendChild(el);
+      el.select();
+      document.execCommand("copy");
+      document.body.removeChild(el);
+      toast.success("Magnet copied to clipboard");
+    }
+  };
 
   return (
     <div className="p-6 text-gray-800 dark:text-gray-200">
+      <toast.Toaster />
       <h2 className="text-xl font-bold mb-6 break-words">{torrent.name}</h2>
 
       {/* Progress Bar for downloading torrents */}
@@ -61,9 +72,16 @@ export default function TorrentDetails({ torrent }) {
 
       {/* Transfer Information */}
       <div className="mb-6">
-        <h3 className="text-sm font-semibold text-gray-500 dark:text-gray-400 mb-2">
-          Transfer Info
-        </h3>
+        <div className="flex items-center space-x-2 mb-2">
+          <h3 className="text-sm font-semibold text-gray-500 dark:text-gray-400">
+            Magnet URI
+          </h3>
+          <MdContentCopy
+            size={15}
+            className="cursor-pointer active:translate-y-0.5"
+            onClick={copyMagnetToClipBoard}
+          />
+        </div>
         <div className="grid grid-cols-2 gap-4">
           <div>
             <span className="text-sm text-gray-500 dark:text-gray-400">
