@@ -1,6 +1,6 @@
 from pydantic import BaseModel
-from libtorrentx import LibTorrentSession
-from libtorrentx.magnet import MagnetUtils
+from shared.modules.libtorrentx import LibTorrentSession
+from shared.modules.libtorrentx import MagnetUtils
 
 
 class MagnetDto(BaseModel):
