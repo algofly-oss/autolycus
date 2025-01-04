@@ -21,7 +21,7 @@ def copy_if_already_exists(info_hash, user_id):
     existing_directories = glob.glob(f"/downloads/*/{info_hash}")
     current_user_directory = os.path.join(f"/downloads/{user_id}/{info_hash}")
 
-    if len(existing_directories) > 1:
+    if len(existing_directories):
         try:
             other_user_directories = [directory for directory in existing_directories if str(user_id) not in directory]
             if other_user_directories:
