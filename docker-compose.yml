@@ -34,7 +34,7 @@ services:
       - ./.env
     volumes:
       - ./api:/app
-      - ./downloads:/downloads
+      - ./volumes/downloads:/downloads
     restart: always
     depends_on:
       - redis
