@@ -29,12 +29,11 @@ async def add_torrent(dto: MagnetDto, request: Request):
         {"info_hash": info_hash, "user_id": ObjectId(user_id)}, {"_id": True, "is_paused": True, "is_finished": True}
     )
     if already_exists:
-        if already_exists.get("is_paused") and (not already_exists.get("is_finished")):
-            await db.torrents.update_one(
-                {"_id": already_exists.get("_id")},
-                {"$set": {"is_paused": False, "is_finished": False}},
-            )
-            lt_session_eligible = True
+        await db.torrents.update_one(
+            {"_id": already_exists.get("_id")},
+            {"$set": {"is_paused": False, "is_finished": False}},
+        )
+        lt_session_eligible = True
     else:
         await db.torrents.insert_one(
             {
