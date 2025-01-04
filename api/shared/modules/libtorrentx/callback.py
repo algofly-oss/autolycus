@@ -10,13 +10,14 @@ class TorrentCallBack:
         self.lock = threading.Lock()
         self.stop_event = asyncio.Event()
 
-    def set_callback(self, callback, callback_interval=1):
+    def set_callback(self, callback, callback_interval=1, user_id=None):
         """Set callback function
 
         Args:
             callback (function): callback function
             callback_interval (int, optional): callback interval in seconds. Defaults to 1.
         """
+        self.user_id = user_id
         self.callback = callback
         self.callback_interval = callback_interval
         self.start_callback()
@@ -45,7 +46,7 @@ class TorrentCallBack:
                 time.sleep(1)
                 continue
 
-            key = f"{self.info_hash}/stop"
+            key = f"{self.user_id}/{self.info_hash}/stop"
             if self.session.redis.get(key) == b"1":
                 self.session.redis.delete(key)
                 self.callback(self.props(paused=True))
