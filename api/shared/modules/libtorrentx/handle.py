@@ -78,9 +78,8 @@ class TorrentHandleWrapper(TorrentCallBack, Utils):
 
         self.callback = callback
         self.callback_interval = callback_interval
-        self.start_callback()
 
-    def props(self):
+    def props(self, paused=None):
         """Get torrent properties
 
         Returns:
@@ -96,10 +95,10 @@ class TorrentHandleWrapper(TorrentCallBack, Utils):
         return TorrentProps(
             name=name,
             info_hash=self.info_hash,
-            download_speed=s.download_rate + 1,
+            download_speed=(0 if paused else (s.download_rate + 1)),
             downloaded_bytes=s.total_wanted_done,
             is_finished=self.handle.is_finished(),
-            is_paused=s.paused,
+            is_paused=(paused or s.paused),
             num_connections=s.num_connections,
             num_peers=s.num_peers,
             num_seeds=s.num_seeds,
@@ -121,7 +120,7 @@ class TorrentHandleWrapper(TorrentCallBack, Utils):
 
         self.stop_callback()
         time.sleep(max((self.callback_interval or 1), 1))
-        return self.session._stop(self.info_hash)
+        self.session._stop(self.info_hash)
 
     def start(self):
         """Start torrent download
@@ -131,7 +130,7 @@ class TorrentHandleWrapper(TorrentCallBack, Utils):
         """
 
         self.handle = self.session._restart(self.magnet, self.save_dir, self.sequential)
-        self.start_callback()
+        # self.start_callback()
 
         if self.info_hash not in self.session.handles:
             self.session.handles[self.info_hash] = self

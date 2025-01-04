@@ -4,7 +4,7 @@ import { formatFileSize, getQuality } from "@/shared/utils/fileUtils";
 import { formatTimeRemaining } from "@/shared/utils/timeUtils";
 import InfoBlock from "./InfoBlock";
 import ProgressBar from "@/shared/components/ProgressBar/ProgressBar";
-import { RxResume } from "react-icons/rx";
+import { RxResume, RxPause } from "react-icons/rx";
 import axios from "axios";
 import apiRoutes from "@/shared/routes/apiRoutes";
 
@@ -25,11 +25,20 @@ const TorrentCard = ({ torrentData }) => {
   const timeLeftSeconds =
     download_speed > 0 ? remainingBytes / download_speed : 0;
 
-  const resumeTorrentDownload = () => {
+  const resumeTorrent = () => {
     axios
       .post(apiRoutes.resumeTorrent + `?info_hash=${info_hash}`)
       .then((res) => {
-        console.log(res);
+        // console.log(res);
+      })
+      .catch((err) => {});
+  };
+
+  const pauseTorrent = () => {
+    axios
+      .post(apiRoutes.pauseTorrent + `?info_hash=${info_hash}`)
+      .then((res) => {
+        // console.log(res);
       })
       .catch((err) => {});
   };
@@ -60,7 +69,7 @@ const TorrentCard = ({ torrentData }) => {
             {is_paused ? (
               <button
                 className="flex-1 bg-green-500 dark:bg-green-700 rounded-lg p- cursor-pointer active:opacity-80"
-                onClick={resumeTorrentDownload}
+                onClick={resumeTorrent}
               >
                 <div className="flex items-center justify-center space-x-2 w-full h-full text-neutral-100 dark:text-neutral-200">
                   <RxResume size={22} />
@@ -68,19 +77,25 @@ const TorrentCard = ({ torrentData }) => {
                 </div>
               </button>
             ) : (
-              <InfoBlock
-                title="Speed"
-                value={`${formatFileSize(download_speed)}/s`}
-              />
+              <button
+                className="flex-1 bg-rose-500 dark:bg-rose-800 rounded-lg p- cursor-pointer active:opacity-80"
+                onClick={pauseTorrent}
+              >
+                <div className="flex items-center justify-center space-x-1 w-full h-full text-neutral-100 dark:text-neutral-200">
+                  <RxPause size={22} />
+                  <p className="text-lg">Pause</p>
+                </div>
+              </button>
             )}
+
+            <InfoBlock
+              title="Speed"
+              value={`${formatFileSize(download_speed)}/s`}
+            />
 
             <InfoBlock
               title="Downloaded"
               value={formatFileSize(downloaded_bytes)}
-            />
-            <InfoBlock
-              title="Remaining"
-              value={formatFileSize(remainingBytes)}
             />
             <InfoBlock
               title="Time Remaining"

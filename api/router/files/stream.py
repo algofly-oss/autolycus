@@ -10,6 +10,7 @@ import mmap
 
 router = APIRouter()
 
+
 def get_chunk(full_path, byte1=None, byte2=None):
     file_size = os.stat(full_path).st_size
     start = 0
@@ -22,13 +23,16 @@ def get_chunk(full_path, byte1=None, byte2=None):
     else:
         length = file_size - start
 
-    with open(full_path, 'rb') as f:
-        with contextlib.closing(mmap.mmap(f.fileno(), length=0, access=mmap.ACCESS_READ)) as m:
+    with open(full_path, "rb") as f:
+        with contextlib.closing(
+            mmap.mmap(f.fileno(), length=0, access=mmap.ACCESS_READ)
+        ) as m:
             m.seek(start)
             chunk = m.read(length)
             m.flush()
 
     return chunk, start, length, file_size
+
 
 @router.get("/stream")
 async def stream_file(request: Request, path: str = "", download: bool = False):
@@ -50,16 +54,18 @@ async def stream_file(request: Request, path: str = "", download: bool = False):
         if download:
             return FileResponse(
                 path=abs_path,
-                media_type='application/octet-stream',
+                media_type="application/octet-stream",
                 filename=os.path.basename(abs_path),
-                headers={"Content-Disposition": f"attachment; filename={os.path.basename(abs_path)}"}
+                headers={
+                    "Content-Disposition": f"attachment; filename={os.path.basename(abs_path)}"
+                },
             )
 
         # Handle byte range requests
-        range_header = request.headers.get('Range', None)
+        range_header = request.headers.get("Range", None)
         byte1, byte2 = 0, None
         if range_header:
-            match = re.search(r'(\d+)-(\d*)', range_header)
+            match = re.search(r"(\d+)-(\d*)", range_header)
             groups = match.groups()
 
             if groups[0]:
@@ -70,24 +76,28 @@ async def stream_file(request: Request, path: str = "", download: bool = False):
         try:
             mimetype = mimetypes.guess_type(abs_path)[0]
             if mimetype is None:
-                mimetype = 'text/plain'
-            elif mimetype.startswith('video'):
-                mimetype = 'video/mp4'
+                mimetype = "text/plain"
+            elif mimetype.startswith("video"):
+                mimetype = "video/mp4"
         except:
             return FileResponse(
                 path=path,
-                media_type='application/octet-stream',
+                media_type="application/octet-stream",
                 filename=os.path.basename(abs_path),
-                headers={"Content-Disposition": f"attachment; filename={os.path.basename(abs_path)}"}
+                headers={
+                    "Content-Disposition": f"attachment; filename={os.path.basename(abs_path)}"
+                },
             )
 
         chunk, start, length, file_size = get_chunk(abs_path, byte1, byte2)
         headers = {
-            'Content-Range': f'bytes {start}-{start + length - 1}/{file_size}',
-            'Accept-Ranges': 'bytes'
+            "Content-Range": f"bytes {start}-{start + length - 1}/{file_size}",
+            "Accept-Ranges": "bytes",
         }
 
-        return StreamingResponse(chunk, status_code=206, headers=headers, media_type=mimetype)
+        return StreamingResponse(
+            chunk, status_code=206, headers=headers, media_type=mimetype
+        )
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

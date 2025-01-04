@@ -26,13 +26,21 @@ export const getFileType = (filename) => {
 export const getQuality = (filename) => {
   const result = {
     resolution: null,
-    source: null
+    source: null,
   };
 
-  const resolutions = ['480p', '720p', '1080p', '2160p', '4K', 'HD'];
-  const sources = ['BluRay', 'WEBRip', 'WEB-DL', 'HDRip', 'DVDRip', 'BRRip', 'HDTV'];
+  const resolutions = ["480p", "720p", "1080p", "2160p", "4K", "HD"];
+  const sources = [
+    "BluRay",
+    "WEBRip",
+    "WEB-DL",
+    "HDRip",
+    "DVDRip",
+    "BRRip",
+    "HDTV",
+  ];
 
-  const upperName = filename.toUpperCase();
+  const upperName = (filename || "Unknown")?.toUpperCase();
 
   for (const res of resolutions) {
     if (upperName.includes(res.toUpperCase())) {

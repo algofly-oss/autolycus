@@ -2,7 +2,7 @@ from fastapi import FastAPI, WebSocket
 from fastapi.responses import RedirectResponse
 from fastapi.middleware.cors import CORSMiddleware
 from router import ping, torrent, auth, files
-from sockets import sio_app
+# from sockets import sio_app
 
 API_ROOT = "/api"
 app = FastAPI(
@@ -23,6 +23,7 @@ app.add_middleware(
     allow_headers=["*"],
     allow_credentials=True,
 )
+
 
 # Redirect root to docs
 @app.get(API_ROOT, include_in_schema=False)

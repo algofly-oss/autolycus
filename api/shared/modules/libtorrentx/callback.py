@@ -1,12 +1,14 @@
 import threading
 import traceback
 import time
+import asyncio
 
 
 class TorrentCallBack:
     def __init__(self):
         self.callback_thread_running = False
         self.lock = threading.Lock()
+        self.stop_event = asyncio.Event()
 
     def set_callback(self, callback, callback_interval=1):
         """Set callback function
@@ -27,8 +29,9 @@ class TorrentCallBack:
     def start_callback(self):
         if self.callback and (not self.callback_thread_running):
             self.callback_thread_running = True
-            t = threading.Thread(target=self.handle_callback)
-            t.start()
+            thread = threading.Thread(target=self.handle_callback)
+            thread.daemon = True
+            thread.start()
 
     def stop_callback(self):
         self.callback_thread_running = False
@@ -41,6 +44,13 @@ class TorrentCallBack:
             if not props.ok:
                 time.sleep(1)
                 continue
+
+            key = f"{self.info_hash}/stop"
+            if self.session.redis.get(key) == b"1":
+                self.session.redis.delete(key)
+                self.callback(self.props(paused=True))
+                self.stop()
+                break
 
             try:
                 with self.lock:

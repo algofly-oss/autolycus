@@ -6,9 +6,10 @@ from .handle import TorrentHandleWrapper
 
 
 class LibTorrentSession(MagnetUtils):
-    def __init__(self):
+    def __init__(self, redis=None):
         super(LibTorrentSession, self).__init__()
         self.session = lt.session()
+        self.redis = redis
 
         settings = self.session.get_settings()
         settings.update(
@@ -20,9 +21,11 @@ class LibTorrentSession(MagnetUtils):
             }
         )
 
-        self.session.apply_settings(settings) if hasattr(
-            self.session, "apply_settings"
-        ) else self.session.set_settings(settings)
+        (
+            self.session.apply_settings(settings)
+            if hasattr(self.session, "apply_settings")
+            else self.session.set_settings(settings)
+        )
 
         self.handles = {}
 

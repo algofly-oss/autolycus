@@ -7,11 +7,13 @@ from pydantic import BaseModel
 
 router = APIRouter()
 
+
 class FileItem(BaseModel):
     name: str
     last_modified: datetime
     is_directory: bool
     size: Optional[int]  # Size for files, None for directories
+
 
 @router.get("/browse", response_model=List[FileItem])
 async def browse_directory(path: str = ""):
@@ -35,23 +37,23 @@ async def browse_directory(path: str = ""):
         for item in abs_path.iterdir():
             if item.is_dir():
                 # Calculate the size of the directory
-                dir_size = sum(f.stat().st_size for f in item.glob('**/*') if f.is_file())
+                dir_size = sum(
+                    f.stat().st_size for f in item.glob("**/*") if f.is_file()
+                )
             else:
                 dir_size = None  # Size is only relevant for files
 
-            files.append(FileItem(
-                name=item.name,
-                last_modified=datetime.fromtimestamp(item.stat().st_mtime),
-                is_directory=item.is_dir(),
-                size=dir_size if item.is_dir() else item.stat().st_size
-            ))
-
+            files.append(
+                FileItem(
+                    name=item.name,
+                    last_modified=datetime.fromtimestamp(item.stat().st_mtime),
+                    is_directory=item.is_dir(),
+                    size=dir_size if item.is_dir() else item.stat().st_size,
+                )
+            )
 
         # Sort files: directories first, then by name
-        return sorted(
-            files,
-            key=lambda x: (not x.is_directory, x.name.lower())
-        )
+        return sorted(files, key=lambda x: (not x.is_directory, x.name.lower()))
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
