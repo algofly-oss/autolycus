@@ -5,6 +5,7 @@ from ..auth.common import authenticate_user
 from .common import MagnetDto, lt_session, magnet_utils
 from bson import ObjectId
 import asyncio
+import datetime
 
 router = APIRouter()
 
@@ -37,7 +38,7 @@ async def add_torrent(dto: MagnetDto, request: Request):
             await db.torrents.update_one({"_id": already_exists.get("_id")}, {"$set": {"is_paused": False, "is_finished": False}})
             lt_session_eligible = True
     else:
-        await db.torrents.insert_one({"info_hash": info_hash, "user_id": ObjectId(user_id.decode("utf-8")), "magnet": dto.magnet})
+        await db.torrents.insert_one({"info_hash": info_hash, "user_id": ObjectId(user_id.decode("utf-8")), "magnet": dto.magnet, "created_at": datetime.datetime.now()})
         lt_session_eligible = True
 
     if lt_session_eligible:
