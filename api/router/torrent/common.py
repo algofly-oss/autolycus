@@ -40,6 +40,10 @@ def update_to_db(props, user_id):
 
     props = props.asdict()
     copy_if_already_exists(props.get("info_hash"), user_id)
+
+    if props.get("is_finished") or props.get("is_paused"):
+        redis.delete(f"{user_id}/{props['info_hash']}/copied_from_existing")
+
     db.torrents.update_one({"info_hash": props["info_hash"], "user_id": user_id}, {"$set": props})
 
 async def pause_unfinished_torrents():
