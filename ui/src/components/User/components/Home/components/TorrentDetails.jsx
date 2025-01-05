@@ -70,17 +70,13 @@ export default function TorrentDetails({ torrent }) {
 
   const copyMagnetToClipBoard = async () => {
     if (torrent?.magnet) {
-      try {
-        await navigator.clipboard.writeText(torrent.magnet);
-        toast.success("Magnet copied to clipboard");
-        setCopied(true);
-        setTimeout(() => setCopied(false), 2000);
-      } catch (error) {
-        console.error("Failed to copy magnet to clipboard:", error);
-        toast.error("Failed to copy magnet to clipboard");
-      }
-    } else {
-      toast.warning("No magnet link available to copy");
+      const el = document.createElement("textarea");
+      el.value = torrent?.magnet;
+      document.body.appendChild(el);
+      el.select();
+      document.execCommand("copy");
+      document.body.removeChild(el);
+      toast.success("Magnet copied to clipboard");
     }
   };
 
