@@ -1,4 +1,5 @@
 from fastapi import APIRouter, HTTPException, Request
+from ..auth.common import authenticate_user
 from fastapi.responses import FileResponse
 from starlette.responses import Response as StreamingResponse
 from pathlib import Path
@@ -36,6 +37,7 @@ def get_chunk(full_path, byte1=None, byte2=None):
 
 @router.get("/stream")
 async def stream_file(request: Request, path: str = "", download: bool = False):
+    user_id = authenticate_user(request.cookies.get("session_token"))
     try:
         # Convert the relative path to absolute path
         base_path = Path(os.getenv("DOWNLOAD_PATH", "/downloads"))

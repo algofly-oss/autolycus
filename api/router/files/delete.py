@@ -1,4 +1,5 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Request
+from ..auth.common import authenticate_user
 from pathlib import Path
 import os
 import shutil
@@ -7,7 +8,8 @@ router = APIRouter()
 
 
 @router.delete("/delete")
-async def delete_file(path: str = ""):
+async def delete_file(path: str, request: Request):
+    user_id = authenticate_user(request.cookies.get("session_token"))
     try:
         # Convert the relative path to absolute path
         base_path = Path(os.getenv("DOWNLOAD_PATH", "/downloads"))
