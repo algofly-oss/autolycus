@@ -13,15 +13,18 @@ export default function TorrentDetails({ torrent }) {
     return null;
   }
 
-
   const torrentState = reactState({
     remainingBytes: torrent.total_bytes - torrent.downloaded_bytes,
-    timeLeftSeconds: torrent.download_speed > 0 ? (torrent.total_bytes - torrent.downloaded_bytes) / torrent.download_speed : 0,
+    timeLeftSeconds:
+      torrent.download_speed > 0
+        ? (torrent.total_bytes - torrent.downloaded_bytes) /
+          torrent.download_speed
+        : 0,
     torrentProgress: torrent?.progress,
     latestTorrentData: {},
     downloadedBytes: torrent?.downloaded_bytes,
-    downloadSpeed: torrent?.download_speed
-  })
+    downloadSpeed: torrent?.download_speed,
+  });
 
   // const [latestTorrentData, setLatestTorrentData] = useState()
   const toast = useToast();
@@ -37,17 +40,20 @@ export default function TorrentDetails({ torrent }) {
       return () => clearInterval(interval);
     }
   }, [torrent?.is_finished]);
-  
+
   const fetchTorrentDetail = async () => {
     try {
       const response = await axios.post(apiRoutes.getTorrentInfo, {
         magnet: torrent.magnet,
       });
       const data = response.data;
-  
+
       // Update state with latest torrent details
       torrentState.set("latestTorrentData", data);
-      torrentState.set("remainingBytes", torrent.total_bytes - data.downloaded_bytes);
+      torrentState.set(
+        "remainingBytes",
+        torrent.total_bytes - data.downloaded_bytes
+      );
       torrentState.set(
         "timeLeftSeconds",
         data.download_speed > 0
@@ -61,8 +67,6 @@ export default function TorrentDetails({ torrent }) {
       console.error("Error fetching torrent details:", error);
     }
   };
-  
-
 
   const copyMagnetToClipBoard = async () => {
     if (torrent?.magnet) {
@@ -80,10 +84,8 @@ export default function TorrentDetails({ torrent }) {
     }
   };
 
-
   return (
     <div className="p-6 text-gray-800 dark:text-gray-200">
-      <toast.Toaster />
       <h2 className="text-xl font-bold mb-6 break-words">{torrent.name}</h2>
 
       {/* Progress Bar for downloading torrents */}
@@ -95,7 +97,9 @@ export default function TorrentDetails({ torrent }) {
               style={{ width: `${torrent?.progress}%` }}
             ></div>
           </div>
-          <div className="text-sm text-center mt-2">{torrentState.get("torrentProgress")}%</div>
+          <div className="text-sm text-center mt-2">
+            {torrentState.get("torrentProgress")}%
+          </div>
         </div>
       )}
 
@@ -150,7 +154,6 @@ export default function TorrentDetails({ torrent }) {
           )}
         </div>
       </div>
-
 
       {/* Transfer Information */}
       <div className="mb-6">
