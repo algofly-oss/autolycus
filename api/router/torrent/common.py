@@ -30,6 +30,7 @@ def copy_if_already_exists(info_hash, user_id):
                 # shutil.copytree(largest_directory, current_user_directory, dirs_exist_ok=True)
                 os.system(f"rsync -a {largest_directory}/ {current_user_directory}/")
                 redis.set(f"{user_id}/{info_hash}/copied_from_existing", 1)
+                redis.expire(f"{user_id}/{info_hash}/copied_from_existing", 60*60)
         except Exception as error:
             print(error)
 
