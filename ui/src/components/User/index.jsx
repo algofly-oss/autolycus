@@ -1,20 +1,25 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import UserNavBar from "./components/NavBar";
 import { BiMeteor } from "react-icons/bi";
 import Home from "./components/Home";
 import TorrentDetails from "./components/Home/components/TorrentDetails";
-import { useRouter } from "next/router";
-import uiRoutes from "@/shared/routes/uiRoutes";
 import reactState from "@/shared/hooks/reactState";
+import Search from "./components/Search";
 
 export default function UserHome() {
-  const router = useRouter();
   const [tab, setTab] = useState("Home");
   const state = reactState({
     hoveredTorrent: null,
     selectedTorrent: null,
     isFileView: false
   });
+
+  useEffect(() => {
+    if (tab !== "Home") {
+      state.set('selectedTorrent', null)
+      state.set('hoveredTorrent', null)
+    }
+  }, [tab])
 
   return (
     <div className="flex">
@@ -36,10 +41,11 @@ export default function UserHome() {
 
       <div className="w-full md:h-screen md:overflow-y-auto md:light-scrollbar dark:md:dark-scrollbar">
         {tab === "Home" && <Home state={state} />}
+        {tab === "Search" && <Search />}
       </div>
       <div className="hidden lg:block w-[26rem] 2xl:w-[25%]- 2xl:w-[30rem] h-screen bg-neutral-100 dark:bg-black overflow-y-auto md:light-scrollbar dark:md:dark-scrollbar">
-        <TorrentDetails 
-          torrent={state.get('selectedTorrent') || state.get('hoveredTorrent')} 
+        <TorrentDetails
+          torrent={state.get('selectedTorrent') || state.get('hoveredTorrent')}
           isFileView={state.get('isFileView')}
         />
       </div>

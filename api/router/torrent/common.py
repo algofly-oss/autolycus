@@ -30,6 +30,7 @@ def copy_if_already_exists(info_hash, user_id):
                 # shutil.copytree(largest_directory, current_user_directory, dirs_exist_ok=True)
                 os.system(f"rsync -a {largest_directory}/ {current_user_directory}/")
                 redis.set(f"{user_id}/{info_hash}/copied_from_existing", 1)
+                redis.expire(f"{user_id}/{info_hash}/copied_from_existing", 60*60)
         except Exception as error:
             print(error)
 
@@ -39,6 +40,10 @@ def update_to_db(props, user_id):
 
     props = props.asdict()
     copy_if_already_exists(props.get("info_hash"), user_id)
+
+    if props.get("is_finished") or props.get("is_paused"):
+        redis.delete(f"{user_id}/{props['info_hash']}/copied_from_existing")
+
     db.torrents.update_one({"info_hash": props["info_hash"], "user_id": user_id}, {"$set": props})
 
 async def pause_unfinished_torrents():

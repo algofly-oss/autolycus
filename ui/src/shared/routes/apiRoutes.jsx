@@ -12,6 +12,7 @@ let apiRoutes = {
   pauseTorrent: "/torrent/pause",
   resumeTorrent: "/torrent/resume",
   listTorrents: "/torrent/all",
+  getTorrentInfo: "/torrent/get",
 
   //files
   browseFiles: "/files/browse",

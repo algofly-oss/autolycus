@@ -114,9 +114,16 @@ export default function FileExplorer({ initialPath, onPathChange }) {
   }
 
   function handleGoBack() {
-    if (!initialPath.includes("/")) return;
-    const newPath = initialPath.substring(0, initialPath.lastIndexOf("/"));
-    onPathChange(newPath || "/downloads");
+    // Split the path into parts
+    const pathParts = initialPath.split("/");
+
+    if (pathParts.length === 4 && pathParts[1] === 'downloads') {
+      onPathChange('/downloads');
+    } else {
+      // Go back one level
+      const newPath = initialPath.substring(0, initialPath.lastIndexOf("/"));
+      onPathChange(newPath || "/downloads");
+    }
   }
 
   // Get appropriate icon based on file type
@@ -140,16 +147,17 @@ export default function FileExplorer({ initialPath, onPathChange }) {
     }
   }
 
-  // Create breadcrumb items from the path, excluding /downloads/{id}
-  const pathParts = initialPath.split("/").filter(Boolean);
-  // Find the index after "downloads" to start showing breadcrumbs
-  const startIndex = pathParts.findIndex((part) => part === "downloads") + 1;
-  const visibleParts = pathParts.slice(startIndex);
-  const breadcrumbs = visibleParts.map((part, index) => {
-    // Reconstruct the full path for navigation while showing only the visible part
-    const fullPath = "/" + pathParts.slice(0, startIndex + index + 1).join("/");
-    return { name: part, path: fullPath };
-  });
+// Create breadcrumb items from the path, excluding /downloads/{id}
+const pathParts = initialPath.split("/").filter(Boolean);
+// Find the index after "downloads" to start showing breadcrumbs
+const startIndex = pathParts.findIndex((part) => part === "downloads") + 3;
+const visibleParts = pathParts.slice(startIndex);
+const rootPath = "/" + pathParts.slice(0, startIndex).join("/");
+const breadcrumbs = [{ name: "home", path: rootPath }, ...visibleParts.map((part, index) => {
+  // Reconstruct the full path for navigation while showing only the visible part
+  const fullPath = "/" + pathParts.slice(0, startIndex + index + 1).join("/");
+  return { name: part, path: fullPath };
+})];
 
   const handleFileAction = async (action, item) => {
     switch (action) {
@@ -170,9 +178,8 @@ export default function FileExplorer({ initialPath, onPathChange }) {
             /^\/downloads\/*/,
             ""
           );
-          const downloadUrl = `${
-            apiRoutes.streamFile
-          }?path=${encodeURIComponent(path)}&download=true`;
+          const downloadUrl = `${apiRoutes.streamFile
+            }?path=${encodeURIComponent(path)}&download=true`;
 
           // Create a temporary link element and trigger download
           const link = document.createElement("a");
