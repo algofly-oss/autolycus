@@ -31,17 +31,21 @@ export default function TorrentDetails({ torrent }) {
   const { resolution, source } = getQuality(torrent.name);
   const [copied, setCopied] = React.useState(false);
 
-  useEffect(() => {
-    if (!torrent || torrent.is_finished) {
-      return;
-    }
-    if (torrent.is_finished === false) {
-      const interval = setInterval(fetchTorrentDetail, 1000);
-      return () => clearInterval(interval);
-    }
-  }, [torrent?.is_finished]);
+  // TODO: interval is not automatically cleared after torrent finish, will fix later
+  // useEffect(() => {
+  //   if (torrent && !torrent.is_finished && !torrent.is_paused) {
+  //     const interval = setInterval(fetchTorrentDetail, 1000);
+  //     return () => clearInterval(interval);
+  //   }
+  // }, [torrent?.is_finished, torrent?.is_paused]);
 
   const fetchTorrentDetail = async () => {
+    console.log(`fetchTorrentDetail called for ${torrent?.info_hash}`);
+
+    if (torrent?.is_finished || torrent?.is_paused) {
+      return;
+    }
+
     try {
       const response = await axios.post(apiRoutes.getTorrentInfo, {
         magnet: torrent.magnet,
