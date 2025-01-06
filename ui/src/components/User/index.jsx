@@ -10,16 +10,15 @@ export default function UserHome() {
   const [tab, setTab] = useState("Home");
   const state = reactState({
     hoveredTorrent: null,
-    selectedTorrent: null,
-    isFileView: false
+    isFileView: false,
   });
 
   useEffect(() => {
     if (tab !== "Home") {
-      state.set('selectedTorrent', null)
-      state.set('hoveredTorrent', null)
+      state.set("selectedTorrent", null);
+      state.set("hoveredTorrent", null);
     }
-  }, [tab])
+  }, [tab]);
 
   return (
     <div className="flex">
@@ -45,8 +44,8 @@ export default function UserHome() {
       </div>
       <div className="hidden lg:block w-[26rem] 2xl:w-[25%]- 2xl:w-[30rem] h-screen bg-neutral-100 dark:bg-black overflow-y-auto md:light-scrollbar dark:md:dark-scrollbar">
         <TorrentDetails
-          torrent={state.get('selectedTorrent') || state.get('hoveredTorrent')}
-          isFileView={state.get('isFileView')}
+          torrent={state.get("hoveredTorrent")}
+          isFileView={state.get("isFileView")}
         />
       </div>
     </div>

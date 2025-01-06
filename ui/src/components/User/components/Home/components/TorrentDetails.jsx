@@ -2,10 +2,7 @@ import React, { useEffect, useState } from "react";
 import { formatFileSize, getQuality } from "@/shared/utils/fileUtils";
 import { formatTimeRemaining } from "@/shared/utils/timeUtils";
 import { FiDownload } from "react-icons/fi";
-import { MdCheckCircle, MdContentCopy } from "react-icons/md";
 import useToast from "@/shared/hooks/useToast";
-import axios from "axios";
-import apiRoutes from "@/shared/routes/apiRoutes";
 import reactState from "@/shared/hooks/reactState";
 
 export default function TorrentDetails({ torrent }) {
@@ -13,64 +10,25 @@ export default function TorrentDetails({ torrent }) {
     return null;
   }
 
-  const torrentState = reactState({
-    remainingBytes: torrent.total_bytes - torrent.downloaded_bytes,
-    timeLeftSeconds:
-      torrent.download_speed > 0
-        ? (torrent.total_bytes - torrent.downloaded_bytes) /
-          torrent.download_speed
-        : 0,
-    torrentProgress: torrent?.progress,
-    latestTorrentData: {},
-    downloadedBytes: torrent?.downloaded_bytes,
-    downloadSpeed: torrent?.download_speed,
-  });
+  const torrentState = reactState({});
 
-  // const [latestTorrentData, setLatestTorrentData] = useState()
+  useEffect(() => {
+    torrentState.set({
+      remainingBytes: torrent.total_bytes - torrent.downloaded_bytes,
+      timeLeftSeconds:
+        torrent.download_speed > 0
+          ? (torrent.total_bytes - torrent.downloaded_bytes) /
+            torrent.download_speed
+          : 0,
+      torrentProgress: torrent?.progress,
+      latestTorrentData: {},
+      downloadedBytes: torrent?.downloaded_bytes,
+      downloadSpeed: torrent?.download_speed,
+    });
+  }, [torrent]);
+
   const toast = useToast();
   const { resolution, source } = getQuality(torrent.name);
-  const [copied, setCopied] = React.useState(false);
-
-  // TODO: interval is not automatically cleared after torrent finish, will fix later
-  // useEffect(() => {
-  //   if (torrent && !torrent.is_finished && !torrent.is_paused) {
-  //     const interval = setInterval(fetchTorrentDetail, 1000);
-  //     return () => clearInterval(interval);
-  //   }
-  // }, [torrent?.is_finished, torrent?.is_paused]);
-
-  const fetchTorrentDetail = async () => {
-    console.log(`fetchTorrentDetail called for ${torrent?.info_hash}`);
-
-    if (torrent?.is_finished || torrent?.is_paused) {
-      return;
-    }
-
-    try {
-      const response = await axios.post(apiRoutes.getTorrentInfo, {
-        magnet: torrent.magnet,
-      });
-      const data = response.data;
-
-      // Update state with latest torrent details
-      torrentState.set("latestTorrentData", data);
-      torrentState.set(
-        "remainingBytes",
-        torrent.total_bytes - data.downloaded_bytes
-      );
-      torrentState.set(
-        "timeLeftSeconds",
-        data.download_speed > 0
-          ? (torrent.total_bytes - data.downloaded_bytes) / data.download_speed
-          : 0
-      );
-      torrentState.set("torrentProgress", data.progress);
-      torrentState.set("downloadedBytes", data.downloaded_bytes);
-      torrentState.set("downloadSpeed", data.download_speed);
-    } catch (error) {
-      console.error("Error fetching torrent details:", error);
-    }
-  };
 
   const copyMagnetToClipBoard = async () => {
     if (torrent?.magnet) {
@@ -140,18 +98,6 @@ export default function TorrentDetails({ torrent }) {
           >
             {torrent.magnet}
           </span>
-          {copied ? (
-            <MdCheckCircle
-              size={15}
-              className="cursor-pointer active:translate-y-0.5 text-green-400"
-            />
-          ) : (
-            <MdContentCopy
-              size={15}
-              className="cursor-pointer active:translate-y-0.5"
-              onClick={copyMagnetToClipBoard}
-            />
-          )}
         </div>
       </div>
 
