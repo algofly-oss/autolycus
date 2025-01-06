@@ -15,7 +15,6 @@ export default function UserHome() {
 
   useEffect(() => {
     if (tab !== "Home") {
-      state.set("selectedTorrent", null);
       state.set("hoveredTorrent", null);
     }
   }, [tab]);
