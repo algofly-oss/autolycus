@@ -3,11 +3,7 @@ import axios from "axios";
 import apiRoutes from "@/shared/routes/apiRoutes";
 import TorrentCard from "./TorrentCard";
 
-export default function FileList({
-  onFileExplore,
-  onTorrentHover,
-  onTorrentSelect,
-}) {
+export default function TorrentList({ state, onPathChange }) {
   const [torrentList, setTorrentList] = useState([]);
 
   useEffect(() => {
@@ -15,8 +11,6 @@ export default function FileList({
     const interval = setInterval(fetchTorrents, 1000);
     return () => {
       clearInterval(interval);
-      // Clear hover state when component unmounts
-      onTorrentHover(null);
     };
   }, []);
 
@@ -43,10 +37,21 @@ export default function FileList({
 
   const handleTorrentClick = (torrent) => {
     if (torrent.is_finished) {
-      onTorrentSelect(torrent);
-      onFileExplore(torrent.save_dir);
+      state.set("hoveredTorrentInfoHash", torrent?.info_hash);
+      onPathChange(torrent.save_dir);
     }
   };
+
+  useEffect(() => {
+    if (state.get("hoveredTorrentInfoHash")) {
+      let hoveredTorrent = torrentList.find(
+        (torrent) => torrent.info_hash === state.get("hoveredTorrentInfoHash")
+      );
+      state.set("hoveredTorrent", hoveredTorrent || null);
+    } else {
+      state.set("hoveredTorrent", null);
+    }
+  }, [state.get("hoveredTorrentInfoHash"), torrentList]);
 
   return (
     <div className="mt-5 flex flex-col gap-1.5">
@@ -54,8 +59,10 @@ export default function FileList({
         <div
           key={torrent.id}
           onClick={() => handleTorrentClick(torrent)}
-          onMouseEnter={() => onTorrentHover(torrent)}
-          onMouseLeave={() => onTorrentHover(null)}
+          onMouseEnter={() =>
+            state.set("hoveredTorrentInfoHash", torrent?.info_hash)
+          }
+          onMouseLeave={() => state.set("hoveredTorrentInfoHash", null)}
           className={`${
             torrent.is_finished ? "cursor-pointer" : ""
           } hover:bg-gray-50 dark:hover:bg-gray-900 rounded-xl transition-colors`}
