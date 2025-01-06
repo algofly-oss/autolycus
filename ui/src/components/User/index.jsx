@@ -11,11 +11,13 @@ export default function UserHome() {
   const state = reactState({
     hoveredTorrent: null,
     isFileView: false,
+    hoveredTorrentInfoHash: null
   });
 
   useEffect(() => {
     if (tab !== "Home") {
-      state.set("hoveredTorrent", null);
+      state.set("hoveredTorrent", null); 
+      state.set("hoveredTorrentInfoHash", null)
     }
   }, [tab]);
 
