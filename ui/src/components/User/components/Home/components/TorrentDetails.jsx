@@ -4,6 +4,7 @@ import { formatTimeRemaining } from "@/shared/utils/timeUtils";
 import { FiDownload } from "react-icons/fi";
 import useToast from "@/shared/hooks/useToast";
 import reactState from "@/shared/hooks/reactState";
+import { MdContentCopy } from "react-icons/md";
 
 export default function TorrentDetails({ torrent }) {
   if (!torrent) {
@@ -18,7 +19,7 @@ export default function TorrentDetails({ torrent }) {
       timeLeftSeconds:
         torrent.download_speed > 0
           ? (torrent.total_bytes - torrent.downloaded_bytes) /
-            torrent.download_speed
+          torrent.download_speed
           : 0,
       torrentProgress: torrent?.progress,
       latestTorrentData: {},
@@ -98,6 +99,7 @@ export default function TorrentDetails({ torrent }) {
           >
             {torrent.magnet}
           </span>
+          <MdContentCopy onClick={copyMagnetToClipBoard} className="cursor-pointer"/>
         </div>
       </div>
 
