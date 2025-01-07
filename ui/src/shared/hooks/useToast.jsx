@@ -11,6 +11,7 @@ export default function useToast() {
       background: theme.isDarkTheme ? "#333" : "#fff",
       color: theme.isDarkTheme ? "#fff" : "#333",
       fontSize: isMobile ? "0.75rem" : "0.875rem",
+      wordWrap: "true"
     },
   };
 
