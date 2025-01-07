@@ -64,7 +64,7 @@ export default function FileExplorer({ initialPath, onPathChange }) {
   const [items, setItems] = useState([]);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
-  const [archiving, setArchiving] = useState(true);
+  const [archiving, setArchiving] = useState(false);
 
   const [videoPlayer, setVideoPlayer] = useState({
     open: false,
