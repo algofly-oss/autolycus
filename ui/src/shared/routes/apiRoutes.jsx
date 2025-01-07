@@ -18,6 +18,7 @@ let apiRoutes = {
   browseFiles: "/files/browse",
   streamFile: "/files/stream",
   deleteFile: "/files/delete",
+  archiveDir: "/files/archive",
 };
 
 Object.entries(apiRoutes).forEach(([key, value]) => {

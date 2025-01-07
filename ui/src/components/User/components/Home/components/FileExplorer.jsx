@@ -15,17 +15,20 @@ import {
   FiTrash2,
   FiDownload,
 } from "react-icons/fi";
+import { FaRegFileArchive } from "react-icons/fa";
 import { formatFileSize, getFileType } from "@/shared/utils/fileUtils";
 import { GoKebabHorizontal } from "react-icons/go";
 import { Menu, Modal, Button, Text } from "@mantine/core";
 import useToast from "@/shared/hooks/useToast";
+import { BsFileZip } from "react-icons/bs";
 
 function FileMenu({ item, onAction }) {
   const actions = [
     { name: "Copy", icon: FiCopy, action: "copy" },
     { name: "Move", icon: FiMove, action: "move" },
     { name: "Delete", icon: FiTrash2, action: "delete" },
-    { name: "Download", icon: FiDownload, action: "download" },
+    ...(item.is_directory ? [{ name: "Archive", icon: FaRegFileArchive, action: "archive" }] : [{ name: "Download", icon: FiDownload, action: "download" }])
+
   ];
 
   return (
@@ -61,6 +64,8 @@ export default function FileExplorer({ initialPath, onPathChange }) {
   const [items, setItems] = useState([]);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [archiving, setArchiving] = useState(false);
+
   const [videoPlayer, setVideoPlayer] = useState({
     open: false,
     url: "",
@@ -70,30 +75,31 @@ export default function FileExplorer({ initialPath, onPathChange }) {
   const toast = useToast();
 
   useEffect(() => {
-    const fetchData = async () => {
-      setLoading(true);
-      setError("");
-      if (initialPath) {
-        try {
-          // console.log("initialPath", initialPath);
-          const encodedPath = encodeURIComponent(
-            initialPath.replace(/^\/downloads\/*/, "")
-          );
-          const response = await axios.get(
-            `${apiRoutes.browseFiles}?path=${encodedPath}`
-          );
-          setItems(response.data);
-          // console.log("Items information: ", response.data)
-        } catch (err) {
-          setError(err.message);
-        } finally {
-          setLoading(false);
-        }
-      }
-    };
-
     fetchData();
   }, [initialPath]);
+
+
+  const fetchData = async () => {
+    setLoading(true);
+    setError("");
+    if (initialPath) {
+      try {
+        // console.log("initialPath", initialPath);
+        const encodedPath = encodeURIComponent(
+          initialPath.replace(/^\/downloads\/*/, "")
+        );
+        const response = await axios.get(
+          `${apiRoutes.browseFiles}?path=${encodedPath}`
+        );
+        setItems(response.data);
+        // console.log("Items information: ", response.data)
+      } catch (err) {
+        setError(err.message);
+      } finally {
+        setLoading(false);
+      }
+    }
+  };
 
   function handleItemClick(item) {
     if (item.is_directory) {
@@ -142,22 +148,24 @@ export default function FileExplorer({ initialPath, onPathChange }) {
         return <FiImage size={24} className="text-pink-500" />;
       case "document":
         return <FiFileText size={24} className="text-orange-500" />;
+      case "compressed":
+        return <BsFileZip size={24} className="text-purple-500" />;
       default:
         return <FiFile size={24} className="text-gray-500" />;
     }
   }
 
-// Create breadcrumb items from the path, excluding /downloads/{id}
-const pathParts = initialPath.split("/").filter(Boolean);
-// Find the index after "downloads" to start showing breadcrumbs
-const startIndex = pathParts.findIndex((part) => part === "downloads") + 3;
-const visibleParts = pathParts.slice(startIndex);
-const rootPath = "/" + pathParts.slice(0, startIndex).join("/");
-const breadcrumbs = [{ name: "home", path: rootPath }, ...visibleParts.map((part, index) => {
-  // Reconstruct the full path for navigation while showing only the visible part
-  const fullPath = "/" + pathParts.slice(0, startIndex + index + 1).join("/");
-  return { name: part, path: fullPath };
-})];
+  // Create breadcrumb items from the path, excluding /downloads/{id}
+  const pathParts = initialPath.split("/").filter(Boolean);
+  // Find the index after "downloads" to start showing breadcrumbs
+  const startIndex = pathParts.findIndex((part) => part === "downloads") + 3;
+  const visibleParts = pathParts.slice(startIndex);
+  const rootPath = "/" + pathParts.slice(0, startIndex).join("/");
+  const breadcrumbs = [{ name: "home", path: rootPath }, ...visibleParts.map((part, index) => {
+    // Reconstruct the full path for navigation while showing only the visible part
+    const fullPath = "/" + pathParts.slice(0, startIndex + index + 1).join("/");
+    return { name: part, path: fullPath };
+  })];
 
   const handleFileAction = async (action, item) => {
     switch (action) {
@@ -194,6 +202,27 @@ const breadcrumbs = [{ name: "home", path: rootPath }, ...visibleParts.map((part
           toast.error("Failed to start download");
         }
         break;
+      case "archive":
+        try {
+          setArchiving(true);
+          const path = `${initialPath}/${item.name}`.replace(
+            /^\/downloads\/*/,
+            ""
+          );
+
+          console.log("Path:", path)
+
+          await axios.post(
+            `${apiRoutes.archiveDir}?path=${encodeURIComponent(path)}`
+          );
+          toast.success("Directory archived successfully");
+        } catch (err) {
+          toast.error("Failed to archive directory");
+        } finally {
+          setArchiving(false);
+          fetchData()
+        }
+        break;
     }
   };
 
@@ -224,6 +253,16 @@ const breadcrumbs = [{ name: "home", path: rootPath }, ...visibleParts.map((part
 
   return (
     <div className="mt-6">
+      {archiving && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          <div className="absolute inset-0 bg-black opacity-80 z-40"></div>
+          <div className="relative z-50 flex gap-3 items-center bg-transparent p-4">
+            <p className="text-lg font-semibold">Archiving, Please wait...</p>
+            <FiLoader className="animate-spin w-8 h-8" />
+          </div>
+        </div>
+      )}
+
       {/* Delete Confirmation Dialog */}
       <Modal
         opened={deleteDialog.open}
@@ -234,7 +273,7 @@ const breadcrumbs = [{ name: "home", path: rootPath }, ...visibleParts.map((part
       >
         <Text size="sm" mb="lg">
           Are you sure you want to delete{" "}
-          <strong>{deleteDialog.item?.name}</strong>?
+          <strong className="break-all">{deleteDialog.item?.name}</strong>?
           {deleteDialog.item?.is_directory &&
             " This will delete all contents inside the folder."}
         </Text>
