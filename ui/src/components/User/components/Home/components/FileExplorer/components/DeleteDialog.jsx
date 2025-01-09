@@ -20,7 +20,7 @@ export default function DeleteDialog({ open, item, onClose, onDelete }) {
         <Button variant="default" onClick={onClose}>
           Cancel
         </Button>
-        <Button color="red" onClick={onDelete}>
+        <Button color="red" onClick={onDelete} className="text-red-500 hover:text-white">
           Delete
         </Button>
       </div>
