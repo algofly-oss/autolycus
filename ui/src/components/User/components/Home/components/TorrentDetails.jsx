@@ -63,7 +63,7 @@ export default function TorrentDetails({ torrent }) {
       )}
 
       {/* Quality Information */}
-      <div className="mb-6">
+      {resolution && source && <div className="mb-6">
         <h3 className="text-sm font-semibold text-gray-500 dark:text-gray-400 mb-2">
           Quality Info
         </h3>
@@ -85,7 +85,7 @@ export default function TorrentDetails({ torrent }) {
             </div>
           )}
         </div>
-      </div>
+      </div>}
 
       {/* Magnet URI */}
       <div className="mb-6">
