@@ -68,8 +68,8 @@ export default function FileExplorer({ initialPath, onPathChange }) {
 
   const handleGoBack = () => {
     const pathParts = initialPath.split("/");
-    if (pathParts.length === 4 && pathParts[1] === 'downloads') {
-      onPathChange('/downloads');
+    if (pathParts.length === 4 && pathParts[1] === "downloads") {
+      onPathChange("/downloads");
     } else {
       const newPath = initialPath.substring(0, initialPath.lastIndexOf("/"));
       onPathChange(newPath || "/downloads");
@@ -95,8 +95,9 @@ export default function FileExplorer({ initialPath, onPathChange }) {
             /^\/downloads\/*/,
             ""
           );
-          const downloadUrl = `${apiRoutes.streamFile
-            }?path=${encodeURIComponent(path)}&download=true`;
+          const downloadUrl = `${
+            apiRoutes.streamFile
+          }?path=${encodeURIComponent(path)}&download=true`;
 
           const link = document.createElement("a");
           link.href = downloadUrl;
@@ -146,17 +147,25 @@ export default function FileExplorer({ initialPath, onPathChange }) {
         ""
       );
 
-
       console.log("sourcePath", sourcePath);
       console.log("destinationPath", destinationPath);
 
-      const apiEndpoint = copiedItem.action === "copy" ? apiRoutes.copyFile : apiRoutes.moveFile;
+      const apiEndpoint =
+        copiedItem.action === "copy" ? apiRoutes.copyFile : apiRoutes.moveFile;
       const response = await axios.post(
-        `${apiEndpoint}?source_path=${encodeURIComponent(sourcePath)}&destination_path=${encodeURIComponent(destinationPath)}&is_directory=${copiedItem.is_directory}`
+        `${apiEndpoint}?source_path=${encodeURIComponent(
+          sourcePath
+        )}&destination_path=${encodeURIComponent(
+          destinationPath
+        )}&is_directory=${copiedItem.is_directory}`
       );
 
       if (response.status === 200) {
-        toast.success(`Item ${copiedItem.action}d successfully`);
+        toast.success(
+          `Item ${
+            copiedItem.action === "copy" ? "copied" : "moved"
+          } successfully`
+        );
         setCopiedItem(null);
         fetchData();
       } else {
@@ -230,7 +239,7 @@ export default function FileExplorer({ initialPath, onPathChange }) {
         onClose={() => setVideoPlayer({ open: false, url: "", name: "" })}
       />
 
-      <div className="flex items-center gap-4 mb-6">
+      <div className="flex items-center gap-1 mb-6">
         <button
           onClick={handleGoBack}
           className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full transition-colors"
@@ -241,12 +250,14 @@ export default function FileExplorer({ initialPath, onPathChange }) {
 
         <Breadcrumbs initialPath={initialPath} onPathChange={onPathChange} />
 
-        {copiedItem && !pasting && (
+        {copiedItem && !pasting && initialPath != copiedItem?.sourcePath && (
           <button
             onClick={handlePaste}
-            className="ml-auto p-2 bg-blue-500 dark:bg-blue-700 text-white rounded-lg min-w-fit"
+            className="group ml-auto p-2 px-3 text-center text-xs rounded-full bg-blue-500/20 text-blue-500 dark:bg-blue-700/20 dark:text-blue-500 min-w-fit"
           >
-            {copiedItem.action === "copy" ? "Paste Here" : "Move Here"}
+            <p className="group-hover:drop-shadow-[0_0_10px_rgba(59,130,246,0.5)]">
+              {copiedItem.action === "copy" ? "Paste Here" : "Move Here"}
+            </p>
           </button>
         )}
       </div>
@@ -293,5 +304,3 @@ export default function FileExplorer({ initialPath, onPathChange }) {
     </div>
   );
 }
-
-

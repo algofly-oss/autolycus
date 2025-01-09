@@ -9,7 +9,9 @@ export default function FileMenu({ item, onAction }) {
     { name: "Copy", icon: FiCopy, action: "copy" },
     { name: "Move", icon: FiMove, action: "move" },
     { name: "Delete", icon: FiTrash2, action: "delete" },
-    ...(item.is_directory ? [{ name: "Archive", icon: FaRegFileArchive, action: "archive" }] : [{ name: "Download", icon: FiDownload, action: "download" }])
+    ...(item.is_directory
+      ? [{ name: "Archive", icon: FaRegFileArchive, action: "archive" }]
+      : [{ name: "Download", icon: FiDownload, action: "download" }]),
   ];
 
   return (
@@ -27,13 +29,20 @@ export default function FileMenu({ item, onAction }) {
         {actions.map((action) => (
           <Menu.Item
             key={action.name}
-            icon={<action.icon size={14} />}
+            icon={
+              <action.icon
+                size={14}
+                className={action?.name === "Delete" ? "text-red-500" : ""}
+              />
+            }
             onClick={(e) => {
               e.stopPropagation();
               onAction(action.action, item);
             }}
           >
-            {action.name}
+            <p className={action?.name === "Delete" ? "text-red-500" : ""}>
+              {action.name}
+            </p>
           </Menu.Item>
         ))}
       </Menu.Dropdown>

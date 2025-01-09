@@ -13,7 +13,8 @@ export default function DeleteDialog({ open, item, onClose, onDelete }) {
       <Text size="sm" mb="lg">
         Are you sure you want to delete{" "}
         <strong className="break-all">{item?.name}</strong>?
-        {item?.is_directory && " This will delete all contents inside the folder."}
+        {item?.is_directory &&
+          " This will delete all contents inside the folder."}
       </Text>
       <div className="flex justify-end gap-4">
         <Button variant="default" onClick={onClose}>

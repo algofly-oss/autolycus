@@ -5,10 +5,14 @@ export default function Breadcrumbs({ initialPath, onPathChange }) {
   const startIndex = pathParts.findIndex((part) => part === "downloads") + 3;
   const visibleParts = pathParts.slice(startIndex);
   const rootPath = "/" + pathParts.slice(0, startIndex).join("/");
-  const breadcrumbs = [{ name: "home", path: rootPath }, ...visibleParts.map((part, index) => {
-    const fullPath = "/" + pathParts.slice(0, startIndex + index + 1).join("/");
-    return { name: part, path: fullPath };
-  })];
+  const breadcrumbs = [
+    { name: "home", path: rootPath },
+    ...visibleParts.map((part, index) => {
+      const fullPath =
+        "/" + pathParts.slice(0, startIndex + index + 1).join("/");
+      return { name: part, path: fullPath };
+    }),
+  ];
 
   return (
     <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400 overflow-x-auto no-scrollbar">
