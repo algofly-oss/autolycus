@@ -1,13 +1,14 @@
 import React from "react";
 import { Menu } from "@mantine/core";
 import { GoKebabHorizontal } from "react-icons/go";
-import { FiCopy, FiMove, FiTrash2, FiDownload } from "react-icons/fi";
+import { FiCopy, FiTrash2, FiDownload } from "react-icons/fi";
+import { BsBoxArrowRight } from "react-icons/bs";
 import { FaRegFileArchive } from "react-icons/fa";
 
 export default function FileMenu({ item, onAction }) {
   const actions = [
     { name: "Copy", icon: FiCopy, action: "copy" },
-    { name: "Move", icon: FiMove, action: "move" },
+    { name: "Move", icon: BsBoxArrowRight, action: "move" },
     { name: "Delete", icon: FiTrash2, action: "delete" },
     ...(item.is_directory
       ? [{ name: "Archive", icon: FaRegFileArchive, action: "archive" }]
