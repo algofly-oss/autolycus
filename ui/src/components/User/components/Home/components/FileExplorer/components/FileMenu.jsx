@@ -4,12 +4,14 @@ import { GoKebabHorizontal } from "react-icons/go";
 import { FiCopy, FiTrash2, FiDownload } from "react-icons/fi";
 import { BsBoxArrowRight } from "react-icons/bs";
 import { FaRegFileArchive } from "react-icons/fa";
+import { MdDriveFileRenameOutline } from "react-icons/md";
 
 export default function FileMenu({ item, onAction }) {
   const actions = [
     { name: "Copy", icon: FiCopy, action: "copy" },
     { name: "Move", icon: BsBoxArrowRight, action: "move" },
     { name: "Delete", icon: FiTrash2, action: "delete" },
+    { name: "Rename", icon: MdDriveFileRenameOutline, action: "rename" },
     ...(item.is_directory
       ? [{ name: "Archive", icon: FaRegFileArchive, action: "archive" }]
       : [{ name: "Download", icon: FiDownload, action: "download" }]),
