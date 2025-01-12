@@ -1,4 +1,3 @@
-import React from "react";
 import { BsCircleFill } from "react-icons/bs";
 import { formatFileSize, getQuality } from "@/shared/utils/fileUtils";
 import { formatTimeRemaining } from "@/shared/utils/timeUtils";
@@ -55,7 +54,9 @@ const TorrentCard = ({ torrentData }) => {
             <BsCircleFill className="w-1 h-1 flex-shrink-0" />
           )}
           {source && <span className="text-sm">{source}</span>}
-          <BsCircleFill className="w-1 h-1 flex-shrink-0" />
+          {(resolution || source) && total_bytes && (
+            <BsCircleFill className="w-1 h-1 flex-shrink-0" />
+          )}
           {total_bytes && (
             <span className="text-sm">{formatFileSize(total_bytes)}</span>
           )}

@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Request, Response, HTTPException
 from pydantic import BaseModel
 from shared.factory import db, redis
+from shared.sockets import emit
 from ..auth.common import authenticate_user
 from .common import MagnetDto, magnet_utils, pause_unfinished_torrents, update_to_db, copy_if_already_exists
 from shared.modules.libtorrentx import LibTorrentSession
@@ -22,18 +23,17 @@ async def add_torrent(dto: MagnetDto, request: Request):
     info_hash = magnet_utils._clean_magnet_uri(dto.magnet).split(":")[3][:40]
 
     lt_session = LibTorrentSession(redis=redis)
-    lt_session_eligible = False
 
     # add torrent to db
     already_exists = await db.torrents.find_one(
         {"info_hash": info_hash, "user_id": ObjectId(user_id)}, {"_id": True, "is_paused": True, "is_finished": True}
     )
+
     if already_exists:
         await db.torrents.update_one(
             {"_id": already_exists.get("_id")},
             {"$set": {"is_paused": False, "is_finished": False}},
         )
-        lt_session_eligible = True
     else:
         await db.torrents.insert_one(
             {
@@ -43,19 +43,16 @@ async def add_torrent(dto: MagnetDto, request: Request):
                 "created_at": datetime.datetime.now(),
             }
         )
-        lt_session_eligible = True
+        emit(f"/stc/torrent-added-or-removed", {"action": "added", "info_hash": info_hash}, user_id)
 
-    if lt_session_eligible:
-        redis.delete(f"{user_id}/{info_hash}/stop")
-        redis.delete(f"{user_id}/{info_hash}/copied_from_existing")
+    redis.delete(f"{user_id}/{info_hash}/stop")
+    redis.delete(f"{user_id}/{info_hash}/copied_from_existing")
 
-        handle = lt_session.add_torrent(dto.magnet, f"/downloads/{user_id}")
-        handle.set_callback(
-            lambda props: update_to_db(props, ObjectId(user_id)),
-            callback_interval=1,
-            user_id=user_id,
-        )
+    handle = lt_session.add_torrent(dto.magnet, f"/downloads/{user_id}")
+    handle.set_callback(
+        lambda props: update_to_db(props, ObjectId(user_id)),
+        callback_interval=1,
+        user_id=user_id,
+    )
 
-        return {"message": "Magnet Exists" if already_exists else "Magnet Added"}
-
-    return {"message": "Magnet Exists"}
+    return {"message": "Magnet Exists" if already_exists else "Magnet Added"}

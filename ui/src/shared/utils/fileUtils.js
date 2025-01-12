@@ -14,6 +14,7 @@ export const getFileType = (filename) => {
     audio: ["mp3", "wav", "ogg", "aac", "m4a"],
     image: ["jpg", "jpeg", "png", "gif", "webp"],
     document: ["pdf", "doc", "docx", "txt", "rtf"],
+    compressed: ["zip"]
   };
 
   for (const [type, extensions] of Object.entries(fileTypes)) {

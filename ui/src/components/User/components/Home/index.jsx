@@ -1,42 +1,22 @@
 import { useState, useEffect } from "react";
 import AddTorrent from "./components/AddTorrent";
-import FileList from "./components/FileList";
+import TorrentList from "./components/TorrentList";
 import FileExplorer from "./components/FileExplorer";
 
 export default function Home({ state }) {
   const [currentPath, setCurrentPath] = useState(null);
-  const [currentTorrent, setCurrentTorrent] = useState(null);
 
   const handlePathChange = (newPath) => {
     // If we're navigating to /downloads or an invalid path, clear the current path
-    if (!newPath || newPath === '/downloads') {
+    if (!newPath || newPath === "/downloads") {
       setCurrentPath(null);
-      setCurrentTorrent(null);
-      state.set('selectedTorrent', null);
-      state.set('isFileView', false);
+      state.set("hoveredTorrent", null);
+      state.set("isFileView", false);
       return;
     }
     setCurrentPath(newPath);
-    state.set('isFileView', true);
+    state.set("isFileView", true);
   };
-
-  const handleTorrentHover = (torrent) => {
-    if (!currentPath) {  // Only update hover state when in list view
-      state.set('hoveredTorrent', torrent);
-    }
-  };
-
-  const handleTorrentSelect = (torrent) => {
-    setCurrentTorrent(torrent);
-    state.set('selectedTorrent', torrent);
-  };
-
-  // Keep the selected torrent in details panel when in file browser view
-  useEffect(() => {
-    if (currentPath && currentTorrent) {
-      state.set('selectedTorrent', currentTorrent);
-    }
-  }, [currentPath]);
 
   return (
     <div className="flex justify-center">
@@ -48,11 +28,7 @@ export default function Home({ state }) {
             onPathChange={handlePathChange}
           />
         ) : (
-          <FileList 
-            onFileExplore={handlePathChange}
-            onTorrentHover={handleTorrentHover}
-            onTorrentSelect={handleTorrentSelect}
-          />
+          <TorrentList state={state} onPathChange={handlePathChange} />
         )}
       </div>
     </div>

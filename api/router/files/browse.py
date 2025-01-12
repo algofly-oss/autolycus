@@ -1,4 +1,5 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Request
+from ..auth.common import authenticate_user
 from pathlib import Path
 import os
 from datetime import datetime
@@ -16,7 +17,8 @@ class FileItem(BaseModel):
 
 
 @router.get("/browse", response_model=List[FileItem])
-async def browse_directory(path: str = ""):
+async def browse_directory(path: str, request: Request):
+    user_id = authenticate_user(request.cookies.get("session_token"))
     try:
         # Convert the relative path to absolute path
         base_path = Path(os.getenv("DOWNLOAD_PATH", "/downloads"))

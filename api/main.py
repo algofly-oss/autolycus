@@ -1,8 +1,8 @@
-from fastapi import FastAPI, WebSocket
+from fastapi import FastAPI
 from fastapi.responses import RedirectResponse
 from fastapi.middleware.cors import CORSMiddleware
 from router import ping, torrent, auth, files
-# from sockets import sio_app
+from shared.sockets import sio_app
 
 API_ROOT = "/api"
 app = FastAPI(
@@ -13,7 +13,7 @@ app = FastAPI(
     openapi_url=f"{API_ROOT}/openapi.json",
 )
 
-# app.mount('/socket', app=sio_app)
+app.mount(f"/socket.io", app=sio_app)
 
 # Add CORS middleware
 app.add_middleware(
