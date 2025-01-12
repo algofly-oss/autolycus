@@ -11,6 +11,10 @@ import DeleteDialog from "./components/DeleteDialog";
 import VideoPlayer from "./components/VideoPlayer";
 import { AnimatePresence } from "framer-motion";
 import RenameDialog from "./components/RenameDialog";
+import { FiCopy, FiTrash2, FiDownload } from "react-icons/fi";
+import { BsBoxArrowRight } from "react-icons/bs";
+import { FaRegFileArchive } from "react-icons/fa";
+import { MdDriveFileRenameOutline } from "react-icons/md";
 
 export default function FileExplorer({ initialPath, onPathChange }) {
   const [items, setItems] = useState([]);
@@ -210,9 +214,6 @@ export default function FileExplorer({ initialPath, onPathChange }) {
   const handleRename = async (newName) => {
     if (newName) {
       try {
-        const extension = renameDialog.item.name.split('.').pop();
-        const baseName = newName.split('.').slice(0, -1).join('.');
-        const newFullName = `${baseName}.${extension}`;
         const path = `${initialPath}/${renameDialog.item.name}`.replace(
           /^\/downloads\/*/,
           ""
@@ -220,7 +221,7 @@ export default function FileExplorer({ initialPath, onPathChange }) {
         await axios.post(
           `${apiRoutes.renameFile}?source_path=${encodeURIComponent(
             path
-          )}&new_name=${newFullName}`
+          )}&new_name=${newName}`
         );
         toast.success("Item renamed successfully");
         fetchData();
@@ -316,7 +317,17 @@ export default function FileExplorer({ initialPath, onPathChange }) {
       )}
 
       <div className="flex flex-col gap-2">
-        {items.map((item) => (
+        {items.map((item) => {
+          const actions = [
+            { name: "Copy", icon: FiCopy, action: "copy" },
+            { name: "Move", icon: BsBoxArrowRight, action: "move" },
+            { name: "Delete", icon: FiTrash2, action: "delete" },
+            { name: "Rename", icon: MdDriveFileRenameOutline, action: "rename" },
+            ...(item.is_directory
+              ? [{ name: "Archive", icon: FaRegFileArchive, action: "archive" }]
+              : [{ name: "Download", icon: FiDownload, action: "download" }]),
+          ];
+          return(
           <div
             key={item.name}
             onClick={() => handleItemClick(item)}
@@ -325,17 +336,20 @@ export default function FileExplorer({ initialPath, onPathChange }) {
             <div className="flex items-center gap-3">
               <FileIcon item={item} />
               <div className="truncate flex w-full items-center justify-between">
-                <div className="flex flex-col">
-                  <div className="font-medium">{item.name}</div>
+                <div className="flex flex-col w-[95%]">
+                  <div className="font-medium truncate">{item.name}</div>
                   <div className="text-sm text-gray-500">
                     {formatFileSize(item.size)}
                   </div>
                 </div>
-                <FileMenu item={item} onAction={handleFileAction} />
+                <div className="w-[5%]">
+                <FileMenu item={item} onAction={handleFileAction} actions={actions}/>
+
+                </div>
               </div>
             </div>
           </div>
-        ))}
+        )})}
       </div>
 
       {!loading && !error && items.length === 0 && (

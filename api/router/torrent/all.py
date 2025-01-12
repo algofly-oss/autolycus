@@ -17,6 +17,7 @@ async def all_torrent(request: Request):
 
     # remove _id from each torrent
     for torrent in torrents:
+        # torrent["_id"] = str(torrent["_id"])
         del torrent["_id"]
         del torrent["user_id"]
 

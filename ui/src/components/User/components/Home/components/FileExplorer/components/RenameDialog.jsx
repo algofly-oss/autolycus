@@ -12,8 +12,12 @@ export default function RenameDialog({ open, item, onClose, onRename }) {
       if (item.is_directory) {
         setNewName(item.name);
       } else {
-        const baseName = item.name.split(".").slice(0, -1).join(".");
-        setNewName(baseName);
+        if(item.name.split(".").length <= 1) {
+          setNewName(item.name);
+        } else{
+          const baseName = item.name.split(".").slice(0, -1).join(".");
+          setNewName(baseName);
+        }
       }
     }
   }, [item]);
@@ -41,11 +45,16 @@ export default function RenameDialog({ open, item, onClose, onRename }) {
   }, [newName, item]);
 
   const handleRename = () => {
-    if (item.is_directory) {
-      onRename(newName);
+    if (!item.is_directory) {
+      const nameParts = item.name.split(".");
+      if (nameParts.length > 1) {
+        const extension = nameParts.pop();
+        onRename(`${newName}.${extension}`);
+      } else {
+        onRename(newName);
+      }
     } else {
-      const extension = item.name.split(".").pop();
-      onRename(`${newName}.${extension}`);
+      onRename(newName);
     }
   };
 
@@ -88,12 +97,11 @@ export default function RenameDialog({ open, item, onClose, onRename }) {
                   type="text"
                   value={newName}
                   placeholder="Enter new name"
-                  className={`text-xs md:text-sm border-0 outline-0 focus:ring-0 w-full bg-zinc-100 dark:bg-black pl-4 md:w-80 ${
-                    item.is_directory ? "rounded-lg" : "rounded-l-lg"
-                  }`}
+                  className={`text-xs md:text-sm border-0 outline-0 focus:ring-0 w-full bg-zinc-100 dark:bg-black pl-4 md:w-80 ${item.is_directory || item.name.split(".").length <= 1 ? "rounded-lg" : "rounded-l-lg"
+                    }`}
                   onChange={(e) => setNewName(e.target.value)}
                 />
-                {!item.is_directory && (
+                {!item.is_directory && item.name.split(".").length > 1 && (
                   <input
                     type="text"
                     value={`.${item.name.split(".").pop()}`}
