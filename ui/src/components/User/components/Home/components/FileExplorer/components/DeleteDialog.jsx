@@ -26,9 +26,13 @@ export default function DeleteDialog({ open, item, onClose, onDelete }) {
   return (
     <>
       <motion.div
-
         initial={{ opacity: 0, scale: 0.75, y: -60 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
+        transition={{
+          type: "spring",
+          duration: 0.5,
+          bounce: 0.3,
+        }}
         exit={{ opacity: 0, scale: 0, y: -150 }}
         className="flex justify-center items-center fixed inset-0 z-50 outline-none focus:outline-none"
         onKeyDown={handleKeyDown}
@@ -38,7 +42,7 @@ export default function DeleteDialog({ open, item, onClose, onDelete }) {
           <div
             ref={dialogRef}
             tabIndex={0}
-            className="border-0 rounded-lg shadow-lg relative flex flex-col w-full bg-white dark:bg-[#1A1B1E] outline-none focus:outline-none"
+            className="border dark:border-neutral-800 rounded-lg shadow-lg relative flex flex-col w-full bg-white dark:bg-[#1A1B1E] outline-none focus:outline-none"
           >
             {/*header*/}
             <div className="flex items-center justify-between p-3 border-b border-zinc-200 dark:border-zinc-700 rounded-t">
@@ -65,10 +69,7 @@ export default function DeleteDialog({ open, item, onClose, onDelete }) {
               </div>
 
               <div className="flex items-center justify-end gap-4 w-full md:mt-4">
-                <Button
-                  variant="default"
-                  onClick={onClose}
-                >
+                <Button variant="default" onClick={onClose}>
                   Cancel
                 </Button>
                 <Button
@@ -76,14 +77,13 @@ export default function DeleteDialog({ open, item, onClose, onDelete }) {
                   className="text-red-500 hover:text-white"
                   onClick={onDelete}
                 >
-                  Rename
+                  Delete
                 </Button>
               </div>
             </div>
           </div>
         </div>
       </motion.div>
-
 
       <motion.div
         initial={{ opacity: 0 }}
