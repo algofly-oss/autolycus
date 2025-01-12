@@ -51,17 +51,21 @@ export default function RenameDialog({ open, item, onClose, onRename }) {
 
   return (
     <>
-
       <motion.div
         initial={{ opacity: 0, scale: 0.75, y: -60 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
+        transition={{
+          type: "spring",
+          duration: 0.5,
+          bounce: 0.3,
+        }}
         exit={{ opacity: 0, scale: 0, y: -150 }}
         className="flex justify-center items-center fixed inset-0 z-50 outline-none focus:outline-none"
       >
         <div className="relative w-auto my-6 max-w-xl mx-4">
           <div
             tabIndex={0}
-            className="border-0 rounded-lg shadow-lg relative flex flex-col w-full bg-white dark:bg-[#1A1B1E] outline-none focus:outline-none"
+            className="border dark:border-neutral-800 rounded-lg shadow-lg relative flex flex-col w-full bg-white dark:bg-[#1A1B1E] outline-none focus:outline-none"
           >
             {/* Header */}
             <div className="flex items-center justify-between p-3 border-b border-zinc-200 dark:border-zinc-700 rounded-t">
@@ -84,8 +88,9 @@ export default function RenameDialog({ open, item, onClose, onRename }) {
                   type="text"
                   value={newName}
                   placeholder="Enter new name"
-                  className={`text-xs md:text-sm border-0 outline-0 focus:ring-0 w-full bg-zinc-100 dark:bg-black pl-4 md:w-80 ${item.is_directory ? "rounded-lg" : "rounded-l-lg"
-                    }`}
+                  className={`text-xs md:text-sm border-0 outline-0 focus:ring-0 w-full bg-zinc-100 dark:bg-black pl-4 md:w-80 ${
+                    item.is_directory ? "rounded-lg" : "rounded-l-lg"
+                  }`}
                   onChange={(e) => setNewName(e.target.value)}
                 />
                 {!item.is_directory && (
@@ -93,7 +98,7 @@ export default function RenameDialog({ open, item, onClose, onRename }) {
                     type="text"
                     value={`.${item.name.split(".").pop()}`}
                     disabled
-                    className="text-xs md:text-sm border-0 outline-0 focus:ring-0 rounded-r-lg bg-zinc-300 dark:bg-black/30 pl-2 w-20"
+                    className="text-xs md:text-sm border-0 outline-0 focus:ring-0 rounded-r-lg bg-zinc-300 dark:bg-black/30 pl-2- w-20"
                   />
                 )}
               </div>
@@ -114,7 +119,6 @@ export default function RenameDialog({ open, item, onClose, onRename }) {
           </div>
         </div>
       </motion.div>
-
 
       <motion.div
         initial={{ opacity: 0 }}
