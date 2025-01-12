@@ -1,4 +1,3 @@
-import React from "react";
 import { BsCircleFill } from "react-icons/bs";
 import { formatFileSize, getQuality } from "@/shared/utils/fileUtils";
 import { formatTimeRemaining } from "@/shared/utils/timeUtils";
