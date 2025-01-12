@@ -6,6 +6,8 @@ import shutil
 
 router = APIRouter()
 
+def delete_dir(abs_path: Path):
+    shutil.rmtree(abs_path)
 
 @router.delete("/delete")
 async def delete_file(path: str, request: Request):
@@ -27,8 +29,7 @@ async def delete_file(path: str, request: Request):
         if abs_path.is_file():
             abs_path.unlink()
         elif abs_path.is_dir():
-            # Remove directory and all its contents
-            shutil.rmtree(abs_path)
+            delete_dir(abs_path)
 
         return {"status": "success", "message": "File deleted successfully"}
 
