@@ -1,12 +1,14 @@
-import { useEffect } from "react";
+import { useEffect, useContext } from "react";
 import { useRouter } from "next/router";
 import { useSelector, useDispatch } from "react-redux";
 import { authSelector, authActions } from "../../redux/features/authSlice";
 import axios from "axios";
 import apiRoutes from "../routes/apiRoutes";
 import uiRoutes from "../routes/uiRoutes";
+import { SocketContext } from "../contexts/socket";
 
 export default function useAuth() {
+  const socket = useContext(SocketContext);
   const user = useSelector(authSelector);
   const dispatch = useDispatch();
   const router = useRouter();
@@ -64,6 +66,8 @@ export default function useAuth() {
       });
       if (response?.data?.msg === "success") {
         await getAccountInfo();
+        socket.disconnect();
+        socket.connect();
       }
       return response?.data?.msg;
     } catch (error) {
@@ -76,6 +80,8 @@ export default function useAuth() {
       .post(apiRoutes.signOut, { withCredentials: true })
       .then((res) => {
         clearStorage();
+        socket.disconnect();
+        socket.connect();
         if (args?.redirect) {
           router.push(uiRoutes.root);
         }

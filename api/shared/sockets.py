@@ -17,8 +17,8 @@ async def connect(sid, environ, auth):
     if session_token:
         user_id = redis.get(session_token)
         if user_id:
-            user_id= user_id.decode()
-            redis.set(f"/sid/{user_id}", sid)
+            user_id = user_id.decode()
+            await sio.enter_room(sid, user_id)
 
     print(f"{sid}: connected")
     await sio.emit("join", {"sid": sid})
@@ -26,20 +26,19 @@ async def connect(sid, environ, auth):
 @sio.event
 async def disconnect(sid):
     print(f"{sid}: disconnected")
+    await sio.disconnect(sid)
 
 def emit(event_name, data, user_id):
-    async def _emit(event_name, data, sid):
+    async def _emit(event_name, data, user_id):
         try:
-            await sio.emit(event_name, data=data, to=sid)
+            await sio.emit(event_name, data=data, room=str(user_id))
         except Exception:
             traceback.print_exc()
 
-    sid = redis.get(f"/sid/{user_id}")
-    if sid:
-        try:
-            # If there's a running event loop, use create_task
-            loop = asyncio.get_running_loop()
-            loop.create_task(_emit(event_name, data, sid.decode()))
-        except RuntimeError:
-            # If there's no running event loop, use asyncio.run
-            asyncio.run(_emit(event_name, data, sid.decode()))
+    try:
+        # If there's a running event loop, use create_task
+        loop = asyncio.get_running_loop()
+        loop.create_task(_emit(event_name, data, user_id))
+    except RuntimeError:
+        # If there's no running event loop, use asyncio.run
+        asyncio.run(_emit(event_name, data, user_id))
