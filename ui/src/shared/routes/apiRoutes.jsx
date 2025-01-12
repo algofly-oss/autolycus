@@ -21,6 +21,7 @@ let apiRoutes = {
   archiveDir: "/files/archive",
   copyFile: "/files/copy",
   moveFile: "/files/move",
+  renameFile: "/files/rename",
 };
 
 Object.entries(apiRoutes).forEach(([key, value]) => {

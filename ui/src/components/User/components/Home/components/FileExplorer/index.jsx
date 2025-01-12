@@ -9,6 +9,8 @@ import FileMenu from "./components/FileMenu";
 import FileIcon from "./components/FileIcon";
 import DeleteDialog from "./components/DeleteDialog";
 import VideoPlayer from "./components/VideoPlayer";
+import { AnimatePresence } from "framer-motion";
+import RenameDialog from "./components/RenameDialog";
 
 export default function FileExplorer({ initialPath, onPathChange }) {
   const [items, setItems] = useState([]);
@@ -21,6 +23,7 @@ export default function FileExplorer({ initialPath, onPathChange }) {
     name: "",
   });
   const [deleteDialog, setDeleteDialog] = useState({ open: false, item: null });
+  const [renameDialog, setRenameDialog] = useState({ open: false, item: null });
   const [copiedItem, setCopiedItem] = useState(null);
   const [pasting, setPasting] = useState(false);
   const toast = useToast();
@@ -95,9 +98,8 @@ export default function FileExplorer({ initialPath, onPathChange }) {
             /^\/downloads\/*/,
             ""
           );
-          const downloadUrl = `${
-            apiRoutes.streamFile
-          }?path=${encodeURIComponent(path)}&download=true`;
+          const downloadUrl = `${apiRoutes.streamFile
+            }?path=${encodeURIComponent(path)}&download=true`;
 
           const link = document.createElement("a");
           link.href = downloadUrl;
@@ -129,6 +131,9 @@ export default function FileExplorer({ initialPath, onPathChange }) {
           setArchiving(false);
           fetchData();
         }
+        break;
+      case "rename":
+        setRenameDialog({ open: true, item });
         break;
     }
   };
@@ -162,8 +167,7 @@ export default function FileExplorer({ initialPath, onPathChange }) {
 
       if (response.status === 200) {
         toast.success(
-          `Item ${
-            copiedItem.action === "copy" ? "copied" : "moved"
+          `Item ${copiedItem.action === "copy" ? "copied" : "moved"
           } successfully`
         );
         setCopiedItem(null);
@@ -203,6 +207,31 @@ export default function FileExplorer({ initialPath, onPathChange }) {
     }
   };
 
+  const handleRename = async (newName) => {
+    if (newName) {
+      try {
+        const extension = renameDialog.item.name.split('.').pop();
+        const baseName = newName.split('.').slice(0, -1).join('.');
+        const newFullName = `${baseName}.${extension}`;
+        const path = `${initialPath}/${renameDialog.item.name}`.replace(
+          /^\/downloads\/*/,
+          ""
+        );
+        await axios.post(
+          `${apiRoutes.renameFile}?source_path=${encodeURIComponent(
+            path
+          )}&new_name=${newFullName}`
+        );
+        toast.success("Item renamed successfully");
+        fetchData();
+      } catch (err) {
+        toast.error("Failed to rename item");
+      } finally {
+        setRenameDialog({ open: false, item: null });
+      }
+    }
+  };
+
   return (
     <div className="mt-6">
       {archiving && (
@@ -225,12 +254,16 @@ export default function FileExplorer({ initialPath, onPathChange }) {
         </div>
       )}
 
-      <DeleteDialog
-        open={deleteDialog.open}
-        item={deleteDialog.item}
-        onClose={() => setDeleteDialog({ open: false, item: null })}
-        onDelete={handleDelete}
-      />
+      <AnimatePresence>
+
+        {deleteDialog.open && <DeleteDialog
+          open={deleteDialog.open}
+          item={deleteDialog.item}
+          onClose={() => setDeleteDialog({ open: false, item: null })}
+          onDelete={handleDelete}
+        />}
+      </AnimatePresence>
+
 
       <VideoPlayer
         open={videoPlayer.open}
@@ -238,6 +271,15 @@ export default function FileExplorer({ initialPath, onPathChange }) {
         name={videoPlayer.name}
         onClose={() => setVideoPlayer({ open: false, url: "", name: "" })}
       />
+
+      <AnimatePresence>
+        {renameDialog.open && <RenameDialog
+          open={renameDialog.open}
+          item={renameDialog.item}
+          onClose={() => setRenameDialog({ open: false, item: null })}
+          onRename={handleRename}
+        />}
+      </AnimatePresence>
 
       <div className="flex items-center gap-1 mb-6">
         <button
