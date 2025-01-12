@@ -3,6 +3,8 @@ from ..auth.common import authenticate_user
 from pathlib import Path
 import shutil
 import os
+from .status import get_disk_usage
+from shared.sockets import emit
 
 router = APIRouter()
 
@@ -37,6 +39,7 @@ async def move_file(source_path: str, destination_path: str, is_directory: bool,
                 raise HTTPException(status_code=400, detail="Source is not a file")
             shutil.move(str(abs_source_path), str(abs_destination_path))
 
+        emit(f"/stc/disk-usage", get_disk_usage(user_id.decode()), user_id.decode())
         return {"detail": "Item moved successfully"}
 
     except Exception as e:

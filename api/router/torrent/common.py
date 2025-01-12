@@ -2,6 +2,7 @@ from pydantic import BaseModel
 from shared.modules.libtorrentx import MagnetUtils
 from shared.factory import db, redis
 from shared.sockets import emit
+from ..files.status import get_disk_usage
 import shutil
 import os
 import glob
@@ -47,6 +48,7 @@ def update_to_db(props, user_id):
 
     # Update torrent progress via socket.io
     emit(f"/stc/torrent-props-update/{props.get('info_hash')}", props, user_id)
+    emit(f"/stc/disk-usage", get_disk_usage(str(user_id)), user_id)
 
     db.torrents.update_one({"info_hash": props["info_hash"], "user_id": user_id}, {"$set": props})
 

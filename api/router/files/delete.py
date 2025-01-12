@@ -3,6 +3,8 @@ from ..auth.common import authenticate_user
 from pathlib import Path
 import os
 import shutil
+from .status import get_disk_usage
+from shared.sockets import emit
 
 router = APIRouter()
 
@@ -30,6 +32,7 @@ async def delete_file(path: str, request: Request):
             # Remove directory and all its contents
             shutil.rmtree(abs_path)
 
+        emit(f"/stc/disk-usage", get_disk_usage(user_id.decode()), user_id.decode())
         return {"status": "success", "message": "File deleted successfully"}
 
     except Exception as e:

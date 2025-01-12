@@ -22,6 +22,7 @@ let apiRoutes = {
   copyFile: "/files/copy",
   moveFile: "/files/move",
   renameFile: "/files/rename",
+  diskUsage: "/files/status",
 };
 
 Object.entries(apiRoutes).forEach(([key, value]) => {
