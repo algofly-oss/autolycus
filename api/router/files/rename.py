@@ -6,6 +6,7 @@ import logging
 
 router = APIRouter()
 
+
 @router.post("/rename")
 async def rename_item(source_path: str, new_name: str, request: Request):
     user_id = authenticate_user(request.cookies.get("session_token"))
@@ -25,8 +26,9 @@ async def rename_item(source_path: str, new_name: str, request: Request):
             raise HTTPException(status_code=400, detail="Destination already exists")
 
         # Ensure the paths are within the base directory
-        if not str(abs_source_path.resolve()).startswith(str(base_path.resolve())) or \
-           not str(abs_new_path.resolve()).startswith(str(base_path.resolve())):
+        if not str(abs_source_path.resolve()).startswith(
+            str(base_path.resolve())
+        ) or not str(abs_new_path.resolve()).startswith(str(base_path.resolve())):
             logging.error(f"Access denied for paths: {abs_source_path}, {abs_new_path}")
             raise HTTPException(status_code=403, detail="Access denied")
 
