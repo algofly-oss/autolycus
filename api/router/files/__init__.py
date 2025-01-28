@@ -7,6 +7,7 @@ from .copy import router as copy_router
 from .move import router as move_router
 from .rename import router as rename_router
 from .status import router as disk_status_router
+from .transcode import router as transcode_router
 
 router = APIRouter(prefix="/files", tags=["File Management"])
 router.include_router(browse_router)
@@ -17,3 +18,4 @@ router.include_router(copy_router)
 router.include_router(move_router)
 router.include_router(rename_router)
 router.include_router(disk_status_router)
+router.include_router(transcode_router)

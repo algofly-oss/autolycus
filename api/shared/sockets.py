@@ -4,14 +4,16 @@ import re
 import asyncio
 import traceback
 
-sio = socketio.AsyncServer(async_mode="asgi", cors_allowed_origins=[]) # [] works for all origins, [*] wasn't working
+sio = socketio.AsyncServer(
+    async_mode="asgi", cors_allowed_origins=[]
+)  # [] works for all origins, [*] wasn't working
 sio_app = socketio.ASGIApp(socketio_server=sio, socketio_path="/socket.io")
 
 
 @sio.event
 async def connect(sid, environ, auth):
-    pattern = r'session_token=([^;]+)'
-    match = re.search(pattern, environ.get('HTTP_COOKIE', ''))
+    pattern = r"session_token=([^;]+)"
+    match = re.search(pattern, environ.get("HTTP_COOKIE", ""))
     session_token = match.group(1) if match else None
 
     if session_token:
@@ -23,10 +25,12 @@ async def connect(sid, environ, auth):
     print(f"{sid}: connected")
     await sio.emit("join", {"sid": sid})
 
+
 @sio.event
 async def disconnect(sid):
     print(f"{sid}: disconnected")
     await sio.disconnect(sid)
+
 
 def emit(event_name, data, user_id):
     async def _emit(event_name, data, user_id):

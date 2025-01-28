@@ -11,8 +11,10 @@ from shared.sockets import emit
 
 router = APIRouter()
 
+
 class ArchiveResponse(BaseModel):
     archive_path: str
+
 
 @router.post("/archive")
 async def archive_directory(path: str, request: Request):
@@ -36,13 +38,14 @@ async def archive_directory(path: str, request: Request):
         # archive_name = abs_path.parent / f"{abs_path.name}"
         # archive_path = shutil.make_archive(base_name=archive_name ,base_dir=abs_path, format='zip', root_dir=abs_path)
 
-
         archive_name = abs_path.parent / f"{abs_path.name}.zip"
-        with ZipFile(str(archive_name), 'w') as zipf:
+        with ZipFile(str(archive_name), "w") as zipf:
             for root, dirs, files in os.walk(abs_path):
                 for file in files:
-                    zipf.write(os.path.join(root, file),
-                            os.path.relpath(os.path.join(root, file), abs_path))
+                    zipf.write(
+                        os.path.join(root, file),
+                        os.path.relpath(os.path.join(root, file), abs_path),
+                    )
 
         emit(f"/stc/disk-usage", get_disk_usage(user_id.decode()), user_id.decode())
         return archive_name

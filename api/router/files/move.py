@@ -8,8 +8,11 @@ from shared.sockets import emit
 
 router = APIRouter()
 
+
 @router.post("/move")
-async def move_file(source_path: str, destination_path: str, is_directory: bool, request: Request):
+async def move_file(
+    source_path: str, destination_path: str, is_directory: bool, request: Request
+):
     user_id = authenticate_user(request.cookies.get("session_token"))
     try:
         base_path = Path(os.getenv("DOWNLOAD_PATH", "/downloads"))
@@ -22,11 +25,16 @@ async def move_file(source_path: str, destination_path: str, is_directory: bool,
 
         # Ensure the destination directory exists
         if not abs_destination_path.parent.exists():
-            raise HTTPException(status_code=404, detail="Destination directory not found")
+            raise HTTPException(
+                status_code=404, detail="Destination directory not found"
+            )
 
         # Ensure the paths are within the base directory
-        if not str(abs_source_path.resolve()).startswith(str(base_path.resolve())) or \
-           not str(abs_destination_path.resolve()).startswith(str(base_path.resolve())):
+        if not str(abs_source_path.resolve()).startswith(
+            str(base_path.resolve())
+        ) or not str(abs_destination_path.resolve()).startswith(
+            str(base_path.resolve())
+        ):
             raise HTTPException(status_code=403, detail="Access denied")
 
         # Move the file or directory

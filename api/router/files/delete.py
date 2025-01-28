@@ -8,8 +8,10 @@ from shared.sockets import emit
 
 router = APIRouter()
 
+
 def delete_dir(abs_path: Path):
     shutil.rmtree(abs_path)
+
 
 @router.delete("/delete")
 async def delete_file(path: str, request: Request):

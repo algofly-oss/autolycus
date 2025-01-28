@@ -3,6 +3,7 @@ from fastapi.responses import RedirectResponse
 from fastapi.middleware.cors import CORSMiddleware
 from router import ping, torrent, auth, files
 from shared.sockets import sio_app
+import celery_worker
 
 API_ROOT = "/api"
 app = FastAPI(
@@ -30,6 +31,14 @@ app.add_middleware(
 async def root():
     return RedirectResponse(f"{API_ROOT}/docs")
 
+
+# @app.get("/api/task_status")
+# async def task_status(task_id:str):
+#     result = celery_worker.AsyncResult(task_id, app=celery_worker.app)
+#     if result.ready() and result.successful():
+#         return {"state": result.state, "result": result.result}
+#     else:
+#         return {"state": result.state}
 
 app.include_router(ping.router, prefix=API_ROOT)
 app.include_router(auth.router, prefix=API_ROOT)

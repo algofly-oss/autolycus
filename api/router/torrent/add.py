@@ -3,7 +3,13 @@ from pydantic import BaseModel
 from shared.factory import db, redis
 from shared.sockets import emit
 from ..auth.common import authenticate_user
-from .common import MagnetDto, magnet_utils, pause_unfinished_torrents, update_to_db, copy_if_already_exists
+from .common import (
+    MagnetDto,
+    magnet_utils,
+    pause_unfinished_torrents,
+    update_to_db,
+    copy_if_already_exists,
+)
 from shared.modules.libtorrentx import LibTorrentSession
 from bson import ObjectId
 import asyncio
@@ -14,6 +20,7 @@ router = APIRouter()
 # On app reload, update status of any downloading torrent status to paused,
 # as they may be killed already due to app reload
 asyncio.create_task(pause_unfinished_torrents())
+
 
 @router.post("/add")
 async def add_torrent(dto: MagnetDto, request: Request):
@@ -26,7 +33,8 @@ async def add_torrent(dto: MagnetDto, request: Request):
 
     # add torrent to db
     already_exists = await db.torrents.find_one(
-        {"info_hash": info_hash, "user_id": ObjectId(user_id)}, {"_id": True, "is_paused": True, "is_finished": True}
+        {"info_hash": info_hash, "user_id": ObjectId(user_id)},
+        {"_id": True, "is_paused": True, "is_finished": True},
     )
 
     if already_exists:
@@ -43,7 +51,11 @@ async def add_torrent(dto: MagnetDto, request: Request):
                 "created_at": datetime.datetime.now(),
             }
         )
-        emit(f"/stc/torrent-added-or-removed", {"action": "added", "info_hash": info_hash}, user_id)
+        emit(
+            f"/stc/torrent-added-or-removed",
+            {"action": "added", "info_hash": info_hash},
+            user_id,
+        )
 
     redis.delete(f"{user_id}/{info_hash}/stop")
     redis.delete(f"{user_id}/{info_hash}/copied_from_existing")
