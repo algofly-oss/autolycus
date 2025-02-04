@@ -30,7 +30,7 @@ def convert_to_seconds(time_str):
 @celery_worker.app.task(queue="transcoding")
 def transcode_video(input_path, output_path, resolution, user_id):
     cp = sp.Popen(
-        f"HandBrakeCLI -i {input_path} -o {output_path} {PRESETS[resolution]}",
+        f"HandBrakeCLI -i '{input_path}' -o '{output_path}' {PRESETS[resolution]}",
         stdout=sp.PIPE,
         stderr=sp.STDOUT,
         text=True,
