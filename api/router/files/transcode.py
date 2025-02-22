@@ -41,7 +41,7 @@ async def transcode(path: str, resolution: str, request: Request):
 
         with open(output_path, "w") as f:
             f.write("")
-            redis.set(key, json.dumps({"progress": 0.0001, "eta": 0}))
+            redis.set(key, json.dumps({"progress": 0.01, "eta": 0}))
 
         result = transcode_video.delay(path, output_path, resolution, user_id.decode())
         return {
@@ -80,8 +80,9 @@ async def transcode(path: str, request: Request, stream: bool = False):
                     progress_data = redis.get(key)
                     if progress_data:
                         emit(f"/stc/{key}", json.loads(progress_data), user_id.decode())
-                        yield progress_data
+                        yield ""
                     else:
+                        yield "1"
                         break
                     await asyncio.sleep(1)
 

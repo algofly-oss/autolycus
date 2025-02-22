@@ -3,9 +3,7 @@ import { Menu } from "@mantine/core";
 import { GoKebabHorizontal } from "react-icons/go";
 import { MdOutlineKeyboardArrowRight } from "react-icons/md";
 
-
 export default function FileMenu({ item, onAction, actions }) {
-
   return (
     <Menu shadow="md" width={200} position="bottom-end" withinPortal>
       <Menu.Target>
@@ -32,43 +30,44 @@ export default function FileMenu({ item, onAction, actions }) {
               onAction(action.action, item);
             }}
           >
-            {
-              action?.subMenu && (
-                <Menu position="right-start" trigger="hover" offset={20}>
-                  <Menu.Target>
-                    <div onClick={(e) => e.stopPropagation()} className="flex justify-between items-center">
-                      <p>{action.name}</p>
-                      <MdOutlineKeyboardArrowRight className="w-4 h-4" />
-                    </div>
-                  </Menu.Target>
-                  <Menu.Dropdown className="-mt-[0.6rem]">
-                    {action.subMenu.map((subAction) => (
-                      <Menu.Item
-                        key={subAction.name}
-
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          console.log(subAction)
-                          onAction(subAction.action, item);
-                        }}
+            {action?.subMenu && (
+              <Menu position="right-start" trigger="hover" offset={20}>
+                <Menu.Target>
+                  <div
+                    onClick={(e) => e.stopPropagation()}
+                    className="flex justify-between items-center"
+                  >
+                    <p>{action.name}</p>
+                    <MdOutlineKeyboardArrowRight className="w-4 h-4" />
+                  </div>
+                </Menu.Target>
+                <Menu.Dropdown className="-mt-[0.6rem]">
+                  {action.subMenu.map((subAction) => (
+                    <Menu.Item
+                      key={subAction.name}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onAction(subAction.action, item);
+                      }}
+                    >
+                      <p
+                        className={
+                          subAction?.action === "delete" ? "text-red-500" : ""
+                        }
                       >
-                        <p className={subAction?.action === "delete" ? "text-red-500" : ""}>
-                          {subAction.name}
-                        </p>
-                      </Menu.Item>
-                    ))}
-                  </Menu.Dropdown>
-                </Menu>
-              )
-            }
+                        {subAction.name}
+                      </p>
+                    </Menu.Item>
+                  ))}
+                </Menu.Dropdown>
+              </Menu>
+            )}
 
-            {
-              !action?.subMenu && (
-                <p className={action?.action === "delete" ? "text-red-500" : ""}>
-                  {action.name}
-                </p>
-              )
-            }
+            {!action?.subMenu && (
+              <p className={action?.action === "delete" ? "text-red-500" : ""}>
+                {action.name}
+              </p>
+            )}
           </Menu.Item>
         ))}
       </Menu.Dropdown>

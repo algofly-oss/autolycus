@@ -79,7 +79,6 @@ export default function FileExplorer({ initialPath, onPathChange }) {
   };
 
   const handleFileAction = async (action, item) => {
-    console.log("action", action)
     switch (action) {
       case "copy":
         setCopiedItem({ ...item, sourcePath: initialPath, action: "copy" });
@@ -98,8 +97,9 @@ export default function FileExplorer({ initialPath, onPathChange }) {
             /^\/downloads\/*/,
             ""
           );
-          const downloadUrl = `${apiRoutes.streamFile
-            }?path=${encodeURIComponent(path)}&download=true`;
+          const downloadUrl = `${
+            apiRoutes.streamFile
+          }?path=${encodeURIComponent(path)}&download=true`;
 
           const link = document.createElement("a");
           link.href = downloadUrl;
@@ -140,7 +140,9 @@ export default function FileExplorer({ initialPath, onPathChange }) {
         try {
           const path = `${initialPath}/${item.name}`;
           await axios.post(
-            `${apiRoutes.transcodeStart}?path=${encodeURIComponent(path)}&resolution=360p`
+            `${apiRoutes.transcodeStart}?path=${encodeURIComponent(
+              path
+            )}&resolution=360p`
           );
           toast.success("Transcoding started");
           fetchData();
@@ -153,7 +155,9 @@ export default function FileExplorer({ initialPath, onPathChange }) {
         try {
           const path = `${initialPath}/${item.name}`;
           await axios.post(
-            `${apiRoutes.transcodeStart}?path=${encodeURIComponent(path)}&resolution=480p`
+            `${apiRoutes.transcodeStart}?path=${encodeURIComponent(
+              path
+            )}&resolution=480p`
           );
           toast.success("Transcoding started");
           fetchData();
@@ -166,7 +170,9 @@ export default function FileExplorer({ initialPath, onPathChange }) {
         try {
           const path = `${initialPath}/${item.name}`;
           await axios.post(
-            `${apiRoutes.transcodeStart}?path=${encodeURIComponent(path)}&resolution=720p`
+            `${apiRoutes.transcodeStart}?path=${encodeURIComponent(
+              path
+            )}&resolution=720p`
           );
           toast.success("Transcoding started");
           fetchData();
@@ -178,9 +184,11 @@ export default function FileExplorer({ initialPath, onPathChange }) {
       case "transcode_1080p":
         try {
           const path = `${initialPath}/${item.name}`;
-          console.log(path)
+          console.log(path);
           await axios.post(
-            `${apiRoutes.transcodeStart}?path=${encodeURIComponent(path)}&resolution=1080p`
+            `${apiRoutes.transcodeStart}?path=${encodeURIComponent(
+              path
+            )}&resolution=1080p`
           );
           toast.success("Transcoding started");
           fetchData();
@@ -220,7 +228,8 @@ export default function FileExplorer({ initialPath, onPathChange }) {
 
       if (response.status === 200) {
         toast.success(
-          `Item ${copiedItem.action === "copy" ? "copied" : "moved"
+          `Item ${
+            copiedItem.action === "copy" ? "copied" : "moved"
           } successfully`
         );
         setCopiedItem(null);
@@ -305,15 +314,15 @@ export default function FileExplorer({ initialPath, onPathChange }) {
       )}
 
       <AnimatePresence>
-
-        {deleteDialog.open && <DeleteDialog
-          open={deleteDialog.open}
-          item={deleteDialog.item}
-          onClose={() => setDeleteDialog({ open: false, item: null })}
-          onDelete={handleDelete}
-        />}
+        {deleteDialog.open && (
+          <DeleteDialog
+            open={deleteDialog.open}
+            item={deleteDialog.item}
+            onClose={() => setDeleteDialog({ open: false, item: null })}
+            onDelete={handleDelete}
+          />
+        )}
       </AnimatePresence>
-
 
       <VideoPlayer
         open={videoPlayer.open}
@@ -323,12 +332,14 @@ export default function FileExplorer({ initialPath, onPathChange }) {
       />
 
       <AnimatePresence>
-        {renameDialog.open && <RenameDialog
-          open={renameDialog.open}
-          item={renameDialog.item}
-          onClose={() => setRenameDialog({ open: false, item: null })}
-          onRename={handleRename}
-        />}
+        {renameDialog.open && (
+          <RenameDialog
+            open={renameDialog.open}
+            item={renameDialog.item}
+            onClose={() => setRenameDialog({ open: false, item: null })}
+            onRename={handleRename}
+          />
+        )}
       </AnimatePresence>
 
       <div className="flex items-center gap-1 mb-6">
@@ -367,7 +378,13 @@ export default function FileExplorer({ initialPath, onPathChange }) {
 
       <div className="flex flex-col gap-2">
         {items.map((item) => (
-          <FileItem item={item} handleFileAction={handleFileAction} initialPath={initialPath} handleItemClick={handleItemClick}/>
+          <FileItem
+            item={item}
+            handleFileAction={handleFileAction}
+            initialPath={initialPath}
+            handleItemClick={handleItemClick}
+            fetchData={fetchData}
+          />
         ))}
       </div>
 
