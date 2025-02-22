@@ -1,20 +1,15 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
 import { FiArrowLeft, FiLoader } from "react-icons/fi";
-import { formatFileSize, getFileType } from "@/shared/utils/fileUtils";
+import { getFileType } from "@/shared/utils/fileUtils";
 import apiRoutes from "@/shared/routes/apiRoutes";
 import useToast from "@/shared/hooks/useToast";
 import Breadcrumbs from "./components/Breadcrumbs";
-import FileMenu from "./components/FileMenu";
-import FileIcon from "./components/FileIcon";
 import DeleteDialog from "./components/DeleteDialog";
 import VideoPlayer from "./components/VideoPlayer";
 import { AnimatePresence } from "framer-motion";
 import RenameDialog from "./components/RenameDialog";
-import { FiCopy, FiTrash2, FiDownload } from "react-icons/fi";
-import { BsBoxArrowRight } from "react-icons/bs";
-import { FaRegFileArchive } from "react-icons/fa";
-import { MdDriveFileRenameOutline } from "react-icons/md";
+import FileItem from "./components/FileItem";
 
 export default function FileExplorer({ initialPath, onPathChange }) {
   const [items, setItems] = useState([]);
@@ -84,6 +79,7 @@ export default function FileExplorer({ initialPath, onPathChange }) {
   };
 
   const handleFileAction = async (action, item) => {
+    console.log("action", action)
     switch (action) {
       case "copy":
         setCopiedItem({ ...item, sourcePath: initialPath, action: "copy" });
@@ -138,6 +134,59 @@ export default function FileExplorer({ initialPath, onPathChange }) {
         break;
       case "rename":
         setRenameDialog({ open: true, item });
+        break;
+
+      case "transcode_360p":
+        try {
+          const path = `${initialPath}/${item.name}`;
+          await axios.post(
+            `${apiRoutes.transcodeStart}?path=${encodeURIComponent(path)}&resolution=360p`
+          );
+          toast.success("Transcoding started");
+          fetchData();
+        } catch (error) {
+          toast.error("Failed to process transcoding request.");
+        }
+        break;
+
+      case "transcode_480p":
+        try {
+          const path = `${initialPath}/${item.name}`;
+          await axios.post(
+            `${apiRoutes.transcodeStart}?path=${encodeURIComponent(path)}&resolution=480p`
+          );
+          toast.success("Transcoding started");
+          fetchData();
+        } catch (error) {
+          toast.error("Failed to process transcoding request.");
+        }
+        break;
+
+      case "transcode_720p":
+        try {
+          const path = `${initialPath}/${item.name}`;
+          await axios.post(
+            `${apiRoutes.transcodeStart}?path=${encodeURIComponent(path)}&resolution=720p`
+          );
+          toast.success("Transcoding started");
+          fetchData();
+        } catch (error) {
+          toast.error("Failed to process transcoding request.");
+        }
+        break;
+
+      case "transcode_1080p":
+        try {
+          const path = `${initialPath}/${item.name}`;
+          console.log(path)
+          await axios.post(
+            `${apiRoutes.transcodeStart}?path=${encodeURIComponent(path)}&resolution=1080p`
+          );
+          toast.success("Transcoding started");
+          fetchData();
+        } catch (error) {
+          toast.error("Failed to process transcoding request.");
+        }
         break;
     }
   };
@@ -317,39 +366,9 @@ export default function FileExplorer({ initialPath, onPathChange }) {
       )}
 
       <div className="flex flex-col gap-2">
-        {items.map((item) => {
-          const actions = [
-            { name: "Copy", icon: FiCopy, action: "copy" },
-            { name: "Move", icon: BsBoxArrowRight, action: "move" },
-            { name: "Delete", icon: FiTrash2, action: "delete" },
-            { name: "Rename", icon: MdDriveFileRenameOutline, action: "rename" },
-            ...(item.is_directory
-              ? [{ name: "Archive", icon: FaRegFileArchive, action: "archive" }]
-              : [{ name: "Download", icon: FiDownload, action: "download" }]),
-          ];
-          return(
-          <div
-            key={item.name}
-            onClick={() => handleItemClick(item)}
-            className="py-4 px-4 rounded-lg border dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800 cursor-pointer transition-colors"
-          >
-            <div className="flex items-center gap-3">
-              <FileIcon item={item} />
-              <div className="truncate flex w-full items-center justify-between">
-                <div className="flex flex-col w-[95%]">
-                  <div className="font-medium truncate">{item.name}</div>
-                  <div className="text-sm text-gray-500">
-                    {formatFileSize(item.size)}
-                  </div>
-                </div>
-                <div className="w-[5%]">
-                <FileMenu item={item} onAction={handleFileAction} actions={actions}/>
-
-                </div>
-              </div>
-            </div>
-          </div>
-        )})}
+        {items.map((item) => (
+          <FileItem item={item} handleFileAction={handleFileAction} initialPath={initialPath} handleItemClick={handleItemClick}/>
+        ))}
       </div>
 
       {!loading && !error && items.length === 0 && (

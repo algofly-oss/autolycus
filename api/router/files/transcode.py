@@ -79,7 +79,7 @@ async def transcode(path: str, request: Request, stream: bool = False):
                 while True:
                     progress_data = redis.get(key)
                     if progress_data:
-                        emit(f"stc/{key}", json.loads(progress_data), user_id.decode())
+                        emit(f"/stc/{key}", json.loads(progress_data), user_id.decode())
                         yield progress_data
                     else:
                         break

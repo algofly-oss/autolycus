@@ -141,7 +141,7 @@ const TorrentCard = ({ torrentData }) => {
 
         {!is_finished && (
           <>
-            <ProgressBar progress={progress} is_paused={is_paused} />
+            <ProgressBar progress={progress} is_paused={is_paused} progress_height={"h-2.5"}/>
             <div className="flex flex-1 w-full gap-3">
               {is_paused ? (
                 <button
