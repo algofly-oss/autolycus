@@ -78,127 +78,6 @@ export default function FileExplorer({ initialPath, onPathChange }) {
     }
   };
 
-  const handleFileAction = async (action, item) => {
-    switch (action) {
-      case "copy":
-        setCopiedItem({ ...item, sourcePath: initialPath, action: "copy" });
-        toast.success("Item copied to clipboard");
-        break;
-      case "move":
-        setCopiedItem({ ...item, sourcePath: initialPath, action: "move" });
-        toast.success("Item ready to move");
-        break;
-      case "delete":
-        setDeleteDialog({ open: true, item });
-        break;
-      case "download":
-        try {
-          const path = `${initialPath}/${item.name}`.replace(
-            /^\/downloads\/*/,
-            ""
-          );
-          const downloadUrl = `${
-            apiRoutes.streamFile
-          }?path=${encodeURIComponent(path)}&download=true`;
-
-          const link = document.createElement("a");
-          link.href = downloadUrl;
-          link.download = item.name;
-          document.body.appendChild(link);
-          link.click();
-          document.body.removeChild(link);
-
-          toast.success("Download started");
-        } catch (err) {
-          toast.error("Failed to start download");
-        }
-        break;
-      case "archive":
-        try {
-          setArchiving(true);
-          const path = `${initialPath}/${item.name}`.replace(
-            /^\/downloads\/*/,
-            ""
-          );
-
-          await axios.post(
-            `${apiRoutes.archiveDir}?path=${encodeURIComponent(path)}`
-          );
-          toast.success("Directory archived successfully");
-        } catch (err) {
-          toast.error("Failed to archive directory");
-        } finally {
-          setArchiving(false);
-          fetchData();
-        }
-        break;
-      case "rename":
-        setRenameDialog({ open: true, item });
-        break;
-
-      case "transcode_360p":
-        try {
-          const path = `${initialPath}/${item.name}`;
-          await axios.post(
-            `${apiRoutes.transcodeStart}?path=${encodeURIComponent(
-              path
-            )}&resolution=360p`
-          );
-          toast.success("Transcoding started");
-          fetchData();
-        } catch (error) {
-          toast.error("Failed to process transcoding request.");
-        }
-        break;
-
-      case "transcode_480p":
-        try {
-          const path = `${initialPath}/${item.name}`;
-          await axios.post(
-            `${apiRoutes.transcodeStart}?path=${encodeURIComponent(
-              path
-            )}&resolution=480p`
-          );
-          toast.success("Transcoding started");
-          fetchData();
-        } catch (error) {
-          toast.error("Failed to process transcoding request.");
-        }
-        break;
-
-      case "transcode_720p":
-        try {
-          const path = `${initialPath}/${item.name}`;
-          await axios.post(
-            `${apiRoutes.transcodeStart}?path=${encodeURIComponent(
-              path
-            )}&resolution=720p`
-          );
-          toast.success("Transcoding started");
-          fetchData();
-        } catch (error) {
-          toast.error("Failed to process transcoding request.");
-        }
-        break;
-
-      case "transcode_1080p":
-        try {
-          const path = `${initialPath}/${item.name}`;
-          console.log(path);
-          await axios.post(
-            `${apiRoutes.transcodeStart}?path=${encodeURIComponent(
-              path
-            )}&resolution=1080p`
-          );
-          toast.success("Transcoding started");
-          fetchData();
-        } catch (error) {
-          toast.error("Failed to process transcoding request.");
-        }
-        break;
-    }
-  };
-
   const handlePaste = async () => {
     if (!copiedItem) return;
 
@@ -213,9 +92,6 @@ export default function FileExplorer({ initialPath, onPathChange }) {
         ""
       );
 
-      console.log("sourcePath", sourcePath);
-      console.log("destinationPath", destinationPath);
-
       const apiEndpoint =
         copiedItem.action === "copy" ? apiRoutes.copyFile : apiRoutes.moveFile;
       const response = await axios.post(
@@ -228,8 +104,7 @@ export default function FileExplorer({ initialPath, onPathChange }) {
 
       if (response.status === 200) {
         toast.success(
-          `Item ${
-            copiedItem.action === "copy" ? "copied" : "moved"
+          `Item ${copiedItem.action === "copy" ? "copied" : "moved"
           } successfully`
         );
         setCopiedItem(null);
@@ -379,11 +254,15 @@ export default function FileExplorer({ initialPath, onPathChange }) {
       <div className="flex flex-col gap-2">
         {items.map((item) => (
           <FileItem
+            key={item.name}
             item={item}
-            handleFileAction={handleFileAction}
             initialPath={initialPath}
             handleItemClick={handleItemClick}
             fetchData={fetchData}
+            setCopiedItem={setCopiedItem}
+            setDeleteDialog={setDeleteDialog}
+            setRenameDialog={setRenameDialog}
+            setArchiving={setArchiving}
           />
         ))}
       </div>

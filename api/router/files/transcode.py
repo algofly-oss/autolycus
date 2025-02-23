@@ -60,6 +60,7 @@ async def transcode(path: str, request: Request):
     key = f"transcoding_progress/{path}"
     if redis.get(key):
         redis.set(f"{key}/kill", "true")
+        os.remove(path)
         return {"message": "Task termination initiated"}
     else:
         return {"message": "No task found for given path"}

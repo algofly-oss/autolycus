@@ -1,7 +1,7 @@
 import { formatFileSize, getFileType } from "@/shared/utils/fileUtils";
 import FileIcon from "./FileIcon";
 import FileMenu from "./FileMenu";
-import { FiCopy, FiTrash2, FiDownload } from "react-icons/fi";
+import { FiCopy, FiTrash2, FiDownload, FiStopCircle } from "react-icons/fi";
 import { BsBoxArrowRight } from "react-icons/bs";
 import { FaRegFileArchive } from "react-icons/fa";
 import { MdDriveFileRenameOutline } from "react-icons/md";
@@ -9,48 +9,174 @@ import { RiMovie2Line } from "react-icons/ri";
 import { useContext, useEffect, useState } from "react";
 import socketRoutes from "@/shared/routes/socketRoutes";
 import { SocketContext } from "@/shared/contexts/socket";
-import axios from "axios";
 import apiRoutes from "@/shared/routes/apiRoutes";
 import ProgressBar from "@/shared/components/ProgressBar/ProgressBar";
 import { formatTimeRemaining } from "@/shared/utils/timeUtils";
+import axios from "axios";
+import useToast from "@/shared/hooks/useToast";
+
+const TRANSCODE_RESOLUTIONS = [
+  { name: "144p", action: "transcode_144p" },
+  { name: "240p", action: "transcode_240p" },
+  { name: "360p", action: "transcode_360p" },
+  { name: "480p", action: "transcode_480p" },
+  { name: "720p", action: "transcode_720p" },
+  { name: "1080p", action: "transcode_1080p" },
+  { name: "1440p", action: "transcode_1440p" },
+  { name: "2160p", action: "transcode_2160p" },
+];
+
+const DEFAULT_ACTIONS = [
+  { name: "Copy", icon: FiCopy, action: "copy" },
+  { name: "Move", icon: BsBoxArrowRight, action: "move" },
+  { name: "Delete", icon: FiTrash2, action: "delete" },
+  { name: "Rename", icon: MdDriveFileRenameOutline, action: "rename" },
+];
 
 const FileItem = ({
   item,
-  handleFileAction,
   initialPath,
   handleItemClick,
   fetchData,
+  setCopiedItem,
+  setDeleteDialog,
+  setRenameDialog,
+  setArchiving,
 }) => {
   const socket = useContext(SocketContext);
+  const toast = useToast();
   const [transcodingProgress, setTranscodingProgress] = useState({
     progress: 0,
     eta: 0,
   });
 
-  const actions = [
-    { name: "Copy", icon: FiCopy, action: "copy" },
-    { name: "Move", icon: BsBoxArrowRight, action: "move" },
-    { name: "Delete", icon: FiTrash2, action: "delete" },
-    { name: "Rename", icon: MdDriveFileRenameOutline, action: "rename" },
-    ...(item.is_directory
-      ? [{ name: "Archive", icon: FaRegFileArchive, action: "archive" }]
-      : [{ name: "Download", icon: FiDownload, action: "download" }]),
-    ...(getFileType(item.name) === "video"
-      ? [
+  const getActions = () => {
+    // if item is being transcoded, only show stop button
+    if (item.is_transcoding) {
+      return [
+        {
+          name: "Terminate",
+          icon: FiStopCircle,
+          action: "stop_transcode",
+        }
+      ];
+    }
+
+    // show normal actions based on file type
+    return [
+      ...DEFAULT_ACTIONS,
+      ...(item.is_directory
+        ? [{ name: "Archive", icon: FaRegFileArchive, action: "archive" }]
+        : [{ name: "Download", icon: FiDownload, action: "download" }]),
+      ...(getFileType(item.name) === "video" && !item.is_transcoding
+        ? [
           {
             name: "Transcode",
             icon: RiMovie2Line,
             action: "transcode",
-            subMenu: [
-              { name: "360p", action: "transcode_360p" },
-              { name: "480p", action: "transcode_480p" },
-              { name: "720p", action: "transcode_720p" },
-              { name: "1080p", action: "transcode_1080p" },
-            ],
+            subMenu: TRANSCODE_RESOLUTIONS,
           },
         ]
-      : []),
-  ];
+        : []),
+    ];
+  };
+
+  const handleTranscode = async (resolution) => {
+    try {
+      const path = `${initialPath}/${item.name}`;
+      await axios.post(
+        `${apiRoutes.transcodeStart}?path=${encodeURIComponent(
+          path
+        )}&resolution=${resolution}`
+      );
+      toast.success("Transcoding started");
+      fetchData();
+    } catch (error) {
+      toast.error("Failed to process transcoding request.");
+    }
+  };
+
+  const handleStopTranscode = async () => {
+    try {
+      const path = `${initialPath}/${item.name}`;
+      await axios.post(
+        `${apiRoutes.transcodeStop}?path=${encodeURIComponent(path)}`
+      );
+      toast.success("Transcoding stopped");
+      fetchData();
+    } catch (error) {
+      toast.error("Failed to stop transcoding.");
+    }
+  };
+
+  const handleFileAction = async (action, item) => {
+    switch (action) {
+      case "copy":
+        setCopiedItem({ ...item, sourcePath: initialPath, action: "copy" });
+        toast.success("Item copied to clipboard");
+        break;
+      case "move":
+        setCopiedItem({ ...item, sourcePath: initialPath, action: "move" });
+        toast.success("Item ready to move");
+        break;
+      case "delete":
+        setDeleteDialog({ open: true, item });
+        break;
+      case "download":
+        try {
+          const path = `${initialPath}/${item.name}`.replace(
+            /^\/downloads\/*/,
+            ""
+          );
+          const downloadUrl = `${apiRoutes.streamFile
+            }?path=${encodeURIComponent(path)}&download=true`;
+
+          const link = document.createElement("a");
+          link.href = downloadUrl;
+          link.download = item.name;
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+
+          toast.success("Download started");
+        } catch (err) {
+          toast.error("Failed to start download");
+        }
+        break;
+      case "archive":
+        try {
+          setArchiving(true);
+          const path = `${initialPath}/${item.name}`.replace(
+            /^\/downloads\/*/,
+            ""
+          );
+
+          await axios.post(
+            `${apiRoutes.archiveDir}?path=${encodeURIComponent(path)}`
+          );
+          toast.success("Directory archived successfully");
+        } catch (err) {
+          toast.error("Failed to archive directory");
+        } finally {
+          setArchiving(false);
+          fetchData();
+        }
+        break;
+      case "rename":
+        setRenameDialog({ open: true, item });
+        break;
+      case "stop_transcode":
+        await handleStopTranscode();
+        break;
+      default:
+        // Handle transcoding actions
+        if (action.startsWith("transcode_")) {
+          const resolution = action.split("_")[1];
+          await handleTranscode(resolution);
+        }
+        break;
+    }
+  };
 
   useEffect(() => {
     const controller = new AbortController();
@@ -67,9 +193,7 @@ const FileItem = ({
           if (response.ok) {
             try {
               const data = await response.json();
-              console.log(data);
               if (data === 1) {
-                // TODO: instead of fetching again, we can also update the state to set `is_transcoding = False`
                 fetchData();
               }
             } catch (responseError) {
@@ -85,7 +209,7 @@ const FileItem = ({
             }
           }
         }
-      } catch (error) {}
+      } catch (error) { }
     };
 
     fetchProgress();
@@ -143,7 +267,7 @@ const FileItem = ({
             <FileMenu
               item={item}
               onAction={handleFileAction}
-              actions={actions}
+              actions={getActions()}
             />
           </div>
         </div>
