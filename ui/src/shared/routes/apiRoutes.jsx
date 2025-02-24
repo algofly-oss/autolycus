@@ -24,6 +24,9 @@ let apiRoutes = {
   moveFile: "/files/move",
   renameFile: "/files/rename",
   diskUsage: "/files/status",
+  transcodeStart: "/files/transcode/start",
+  transcodeStop: "/files/transcode/stop",
+  transcodeProgress: "/files/transcode/progress",
 };
 
 Object.entries(apiRoutes).forEach(([key, value]) => {

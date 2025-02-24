@@ -49,7 +49,7 @@ def transcode_video(input_path, output_path, resolution, user_id):
         eta_match = re.search(r"ETA (\d+h\d+m\d+s)", line)
 
         if progress_match and eta_match:
-            progress = progress_match.group(1)  # 1-100
+            progress = float(progress_match.group(1))  # 1-100
             eta = convert_to_seconds(eta_match.group(1))
             redis.set(key, json.dumps({"progress": progress, "eta": eta}))
             # print(f"\nProgress: {progress}% | ETA: {eta / 60:.2f} min")

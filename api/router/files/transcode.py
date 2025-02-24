@@ -41,7 +41,7 @@ async def transcode(path: str, resolution: str, request: Request):
 
         with open(output_path, "w") as f:
             f.write("")
-            redis.set(key, json.dumps({"progress": 0.0001, "eta": 0}))
+            redis.set(key, json.dumps({"progress": 0.01, "eta": 0}))
 
         result = transcode_video.delay(path, output_path, resolution, user_id.decode())
         return {
@@ -60,6 +60,7 @@ async def transcode(path: str, request: Request):
     key = f"transcoding_progress/{path}"
     if redis.get(key):
         redis.set(f"{key}/kill", "true")
+        os.remove(path)
         return {"message": "Task termination initiated"}
     else:
         return {"message": "No task found for given path"}
@@ -79,9 +80,10 @@ async def transcode(path: str, request: Request, stream: bool = False):
                 while True:
                     progress_data = redis.get(key)
                     if progress_data:
-                        emit(f"stc/{key}", json.loads(progress_data), user_id.decode())
-                        yield progress_data
+                        emit(f"/stc/{key}", json.loads(progress_data), user_id.decode())
+                        yield ""
                     else:
+                        yield "1"
                         break
                     await asyncio.sleep(1)
 

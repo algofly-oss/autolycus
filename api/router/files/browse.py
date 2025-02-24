@@ -1,10 +1,15 @@
+import re
+import os
+import json
 from fastapi import APIRouter, HTTPException, Request
 from ..auth.common import authenticate_user
 from pathlib import Path
-import os
 from datetime import datetime
 from typing import List, Optional
 from pydantic import BaseModel
+from shared.factory import redis
+
+
 
 router = APIRouter()
 
@@ -14,6 +19,21 @@ class FileItem(BaseModel):
     last_modified: datetime
     is_directory: bool
     size: Optional[int]  # Size for files, None for directories
+    is_transcoding: bool = False
+
+def is_transcoded_file(filename):  
+    # Regular expression pattern to match resolution part (e.g., _360)  
+    pattern = r'_(\d{3,4})(?=p.mp4$)'  
+    
+    # Search for the pattern in the filename  
+    match = re.search(pattern, filename)  
+    
+    # If a match is found, return True and the matched part  
+    if match:  
+        return True
+    
+    # If no match is found, return False and None  
+    return False  
 
 
 @router.get("/browse", response_model=List[FileItem])
@@ -40,10 +60,18 @@ async def browse_directory(path: str, request: Request):
             if item.is_dir():
                 # Calculate the size of the directory
                 dir_size = sum(
+                    
                     f.stat().st_size for f in item.glob("**/*") if f.is_file()
                 )
             else:
                 dir_size = None  # Size is only relevant for files
+
+            #TODO: Verify video file
+            transcode_in_progress = False
+
+            if item.is_file() and is_transcoded_file(item.name) and redis.get(f"transcoding_progress/{abs_path}/{item.name}"):
+                transcode_in_progress = True
+
 
             files.append(
                 FileItem(
@@ -51,6 +79,7 @@ async def browse_directory(path: str, request: Request):
                     last_modified=datetime.fromtimestamp(item.stat().st_mtime),
                     is_directory=item.is_dir(),
                     size=dir_size if item.is_dir() else item.stat().st_size,
+                    is_transcoding=transcode_in_progress
                 )
             )
 
