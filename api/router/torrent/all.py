@@ -2,6 +2,9 @@ from fastapi import APIRouter, Request
 from shared.factory import db
 from bson import ObjectId
 from ..auth.common import authenticate_user
+from shared.sockets import emit
+from .download_status import get_download_status
+
 
 router = APIRouter()
 
@@ -20,5 +23,7 @@ async def all_torrent(request: Request):
         # torrent["_id"] = str(torrent["_id"])
         del torrent["_id"]
         del torrent["user_id"]
+
+    emit(f"/stc/download_status", get_download_status(user_id.decode()), user_id.decode())
 
     return {"data": torrents}

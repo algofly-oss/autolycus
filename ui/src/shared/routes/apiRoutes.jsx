@@ -15,6 +15,8 @@ let apiRoutes = {
   listTorrents: "/torrent/all",
   getTorrentInfo: "/torrent/get",
   deleteTorrent: "/torrent/delete",
+  searchTorrent: "/torrent/search",
+  downloadStatusTorrent: "/torrent/download-status",
 
   //files
   browseFiles: "/files/browse",

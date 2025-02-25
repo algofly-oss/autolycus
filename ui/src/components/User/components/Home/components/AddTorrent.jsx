@@ -16,7 +16,7 @@ export default function AddTorrent() {
           .post(apiRoutes.addMagnet, { magnet: magnetLink })
           .then((res) => {
             toast.success("Magnet added");
-            setMagnetLink("");
+            setMagnetLink("");ī
           })
           .catch((err) => {
             toast.error("Unable to add magnet");

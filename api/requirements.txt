@@ -8,6 +8,11 @@ python-socketio[asyncio]==5.12.1
 python-multipart==0.0.5
 requests==2.27.1
 libtorrent==2.0.7
+beautifulsoup4==4.10.0
+random-user-agent==1.0.1
+fake-useragent==0.1.11
+lxml==4.6.3
+
 
 celery
 flower

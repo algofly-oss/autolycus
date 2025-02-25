@@ -48,7 +48,7 @@ export default function TorrentDetails({ torrent }) {
       <h2 className="text-xl font-bold mb-6 break-words">{torrent.name}</h2>
 
       {/* Progress Bar for downloading torrents */}
-      {!torrent.is_finished && (
+      {/* {!torrent.is_finished && (
         <div className="mb-6">
           <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2.5">
             <div
@@ -60,7 +60,7 @@ export default function TorrentDetails({ torrent }) {
             {torrentState.get("torrentProgress")}%
           </div>
         </div>
-      )}
+      )} */}
 
       {/* Quality Information */}
       {resolution && source && <div className="mb-6">

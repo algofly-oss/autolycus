@@ -10,6 +10,7 @@ from .common import (
     update_to_db,
     copy_if_already_exists,
 )
+from .download_status import get_download_status
 from shared.modules.libtorrentx import LibTorrentSession
 from bson import ObjectId
 import asyncio
@@ -114,6 +115,7 @@ async def add_torrent_file(request: Request, torrent: UploadFile = File(...)):
                 {"action": "added", "info_hash": info_hash},
                 user_id,
             )
+            emit(f"/stc/download_status", get_download_status(user_id), user_id)
 
         redis.delete(f"{user_id}/{info_hash}/stop")
         redis.delete(f"{user_id}/{info_hash}/copied_from_existing")
