@@ -34,15 +34,18 @@ async def disconnect(sid):
 
 def emit(event_name, data, user_id):
     async def _emit(event_name, data, user_id):
-        try:
+        try:            
+            if asyncio.iscoroutine(data):
+                return
             await sio.emit(event_name, data=data, room=str(user_id))
-        except Exception:
-            traceback.print_exc()
+        except Exception as e:
+            # traceback.print_exc()
+            print(e)
 
     try:
         # If there's a running event loop, use create_task
         loop = asyncio.get_running_loop()
         loop.create_task(_emit(event_name, data, user_id))
-    except RuntimeError:
+    except Exception:
         # If there's no running event loop, use asyncio.run
         asyncio.run(_emit(event_name, data, user_id))

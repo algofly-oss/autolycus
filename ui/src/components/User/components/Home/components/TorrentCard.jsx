@@ -41,7 +41,7 @@ const TorrentCard = ({ torrentData }) => {
       .then((res) => {
         // console.log(res);
       })
-      .catch((err) => { });
+      .catch((err) => {});
   };
 
   const pauseTorrent = () => {
@@ -50,18 +50,17 @@ const TorrentCard = ({ torrentData }) => {
       .then((res) => {
         // console.log(res);
       })
-      .catch((err) => { });
+      .catch((err) => {});
   };
 
   const handleDelete = async () => {
     try {
-      const res = await axios
-        .post(apiRoutes.deleteTorrent, {
-          info_hash: torrentData.info_hash,
-        });
+      const res = await axios.post(apiRoutes.deleteTorrent, {
+        info_hash: torrentData.info_hash,
+      });
       toast.success("Torrent deleted successfully");
       setIsDeleteDialogOpen(false);
-    } catch (err) { 
+    } catch (err) {
       toast.error("Failed to delete torrent");
       setIsDeleteDialogOpen(false);
     }
@@ -122,7 +121,11 @@ const TorrentCard = ({ torrentData }) => {
             <h3 className="text-lg font-semibold dark:text-white truncate">
               {name}
             </h3>
-            <FileMenu item={torrentData} onAction={handleFileAction} actions={actions} />
+            <FileMenu
+              item={torrentData}
+              onAction={handleFileAction}
+              actions={actions}
+            />
           </div>
           <div className="flex items-center gap-2">
             {resolution && <span className="text-sm">{resolution}</span>}
@@ -141,7 +144,11 @@ const TorrentCard = ({ torrentData }) => {
 
         {!is_finished && (
           <>
-            <ProgressBar progress={progress} is_paused={is_paused} progress_height={"h-2.5"}/>
+            <ProgressBar
+              progress={progress}
+              is_paused={is_paused}
+              progress_height={"h-2.5"}
+            />
             <div className="flex flex-1 w-full gap-3">
               {is_paused ? (
                 <button
@@ -182,16 +189,17 @@ const TorrentCard = ({ torrentData }) => {
           </>
         )}
       </div>
-      
-      {isDeleteDialogOpen && <AnimatePresence>
 
-      <TorrentDeleteDialog
-        open={isDeleteDialogOpen}
-        item={torrentData}
-        onClose={() => setIsDeleteDialogOpen(false)}
-        onDelete={handleDelete}
-      />
-      </AnimatePresence>}
+      {isDeleteDialogOpen && (
+        <AnimatePresence>
+          <TorrentDeleteDialog
+            open={isDeleteDialogOpen}
+            item={torrentData}
+            onClose={() => setIsDeleteDialogOpen(false)}
+            onDelete={handleDelete}
+          />
+        </AnimatePresence>
+      )}
     </>
   );
 };

@@ -3,10 +3,11 @@ from shared.modules.libtorrentx import MagnetUtils
 from shared.factory import db, redis
 from shared.sockets import emit
 from ..files.status import get_disk_usage
+from .download_status import get_download_status
 import shutil
 import os
 import glob
-
+import asyncio
 
 class MagnetDto(BaseModel):
     magnet: str
@@ -57,7 +58,7 @@ def update_to_db(props, user_id):
     # Update torrent progress via socket.io
     emit(f"/stc/torrent-props-update/{props.get('info_hash')}", props, user_id)
     emit(f"/stc/disk-usage", get_disk_usage(str(user_id)), user_id)
-
+    # emit(f"/stc/download_status", await get_download_status(user_id), user_id)
     db.torrents.update_one(
         {"info_hash": props["info_hash"], "user_id": user_id}, {"$set": props}
     )

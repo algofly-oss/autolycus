@@ -8,6 +8,7 @@ from tasks.transcode_video import transcode_video
 import json
 import time
 import asyncio
+from .status import get_disk_usage
 
 router = APIRouter()
 
@@ -69,7 +70,9 @@ async def transcode(path: str, request: Request):
 @router.post("/transcode/progress")
 async def transcode(path: str, request: Request, stream: bool = False):
     user_id = authenticate_user(request.cookies.get("session_token"))
-    if not path.lstrip("/downloads/").startswith(user_id.decode()):
+    if user_id:
+        user_id = str(user_id.decode())
+    if not path.lstrip("/downloads/").startswith(user_id):
         raise HTTPException(status_code=403, detail="Unauthorized Path")
 
     key = f"transcoding_progress/{path}"
@@ -80,7 +83,8 @@ async def transcode(path: str, request: Request, stream: bool = False):
                 while True:
                     progress_data = redis.get(key)
                     if progress_data:
-                        emit(f"/stc/{key}", json.loads(progress_data), user_id.decode())
+                        emit(f"/stc/disk-usage", get_disk_usage(user_id), user_id)
+                        emit(f"/stc/{key}", json.loads(progress_data), user_id)
                         yield ""
                     else:
                         yield "1"
