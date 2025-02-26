@@ -51,13 +51,25 @@ export default function AddTorrent() {
 
   const handleFileChange = (event) => {
     const file = event.target.files[0];
-    console.log(file);
-    // const reader = new FileReader();
-    // reader.onload = (e) => {
-    //   const fileContents = e.target.result;
-    //   console.log(fileContents);
-    // };
-    // reader.readAsText(file);
+    if (!file) return;
+
+    const formData = new FormData();
+    formData.append("torrent", file);
+
+    axios
+      .post(apiRoutes.addTorrent, formData, {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+      })
+      .then((res) => {
+        toast.success("Torrent added");
+        fileInput.current.value = null;
+      })
+      .catch((err) => {
+        toast.error("Unable to add torrent");
+        fileInput.current.value = null;
+      });
   };
 
   return (
@@ -69,6 +81,11 @@ export default function AddTorrent() {
           placeholder="Magnet Link or Download URL"
           className="text-xs md:text-sm border-0 outline-0 focus:ring-0 rounded-l-lg w-full bg-zinc-100 dark:bg-black pl-4"
           onChange={(e) => setMagnetLink(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") {
+              addTorrent();
+            }
+          }}
         />
         <button
           className="bg-blue-500 dark:bg-blue-700 rounded-r-lg p-4 px-5 -ml-2 text-white active:opacity-90"

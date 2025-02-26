@@ -7,12 +7,19 @@ from bson import ObjectId
 
 router = APIRouter()
 
+
 @router.post("/resume")
 async def resume_torrent(info_hash: str, request: Request):
     user_id = authenticate_user(request.cookies.get("session_token")).decode("utf-8")
     torrent = await db.torrents.find_one(
         {"info_hash": info_hash, "user_id": ObjectId(user_id)},
-        {"_id": True, "info_hash": True, "is_paused": True, "is_finished": True, "magnet": True},
+        {
+            "_id": True,
+            "info_hash": True,
+            "is_paused": True,
+            "is_finished": True,
+            "magnet": True,
+        },
     )
 
     lt_session = LibTorrentSession(redis=redis)
@@ -40,4 +47,3 @@ async def resume_torrent(info_hash: str, request: Request):
         return {"message": "Magnet Exists" if torrent else "Magnet Added"}
 
     raise HTTPException(status_code=400, detail="Unable to add torrent")
-

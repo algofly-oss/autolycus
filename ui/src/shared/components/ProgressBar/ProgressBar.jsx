@@ -1,6 +1,6 @@
 import React from "react";
 
-const ProgressBar = ({ progress, is_paused, showLabel = true }) => {
+const ProgressBar = ({ progress, is_paused, progress_height, showLabel = true }) => {
   return (
     <div>
       {showLabel && (
@@ -17,9 +17,9 @@ const ProgressBar = ({ progress, is_paused, showLabel = true }) => {
           <p className="text-xs flex-shrink-0">{progress}%</p>
         </div>
       )}
-      <div className="w-full bg-gray-200 rounded-full h-2.5 dark:bg-gray-700 drop-shadow-sm">
+      <div className={`w-full bg-gray-200 rounded-full dark:bg-gray-700 drop-shadow-sm ${progress_height}`}>
         <div
-          className="bg-blue-500 dark:bg-blue-500 h-2.5 rounded-full"
+          className={`bg-blue-500 dark:bg-blue-500 rounded-full transition-all duration-300 ${progress_height}`}
           style={{ width: `${progress}%` }}
         />
       </div>

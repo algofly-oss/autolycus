@@ -3,11 +3,16 @@ from ..auth.common import authenticate_user
 from pathlib import Path
 import shutil
 import os
+from .status import get_disk_usage
+from shared.sockets import emit
 
 router = APIRouter()
 
+
 @router.post("/copy")
-async def copy_file(source_path: str, destination_path: str, is_directory: bool, request: Request):
+async def copy_file(
+    source_path: str, destination_path: str, is_directory: bool, request: Request
+):
     user_id = authenticate_user(request.cookies.get("session_token"))
     try:
         base_path = Path(os.getenv("DOWNLOAD_PATH", "/downloads"))
@@ -20,11 +25,16 @@ async def copy_file(source_path: str, destination_path: str, is_directory: bool,
 
         # Ensure the destination directory exists
         if not abs_destination_path.parent.exists():
-            raise HTTPException(status_code=404, detail="Destination directory not found")
+            raise HTTPException(
+                status_code=404, detail="Destination directory not found"
+            )
 
         # Ensure the paths are within the base directory
-        if not str(abs_source_path.resolve()).startswith(str(base_path.resolve())) or \
-           not str(abs_destination_path.resolve()).startswith(str(base_path.resolve())):
+        if not str(abs_source_path.resolve()).startswith(
+            str(base_path.resolve())
+        ) or not str(abs_destination_path.resolve()).startswith(
+            str(base_path.resolve())
+        ):
             raise HTTPException(status_code=403, detail="Access denied")
 
         # Copy the file or directory
@@ -37,6 +47,7 @@ async def copy_file(source_path: str, destination_path: str, is_directory: bool,
                 raise HTTPException(status_code=400, detail="Source is not a file")
             shutil.copy2(abs_source_path, abs_destination_path)
 
+        emit(f"/stc/disk-usage", get_disk_usage(user_id.decode()), user_id.decode())
         return {"detail": "Item copied successfully"}
 
     except Exception as e:

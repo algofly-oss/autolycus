@@ -1,30 +1,17 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { Menu } from "@mantine/core";
 import { GoKebabHorizontal } from "react-icons/go";
-import { FiCopy, FiTrash2, FiDownload } from "react-icons/fi";
-import { BsBoxArrowRight } from "react-icons/bs";
-import { FaRegFileArchive } from "react-icons/fa";
-import { MdDriveFileRenameOutline } from "react-icons/md";
+import { MdOutlineKeyboardArrowRight } from "react-icons/md";
 
-export default function FileMenu({ item, onAction }) {
-  const actions = [
-    { name: "Copy", icon: FiCopy, action: "copy" },
-    { name: "Move", icon: BsBoxArrowRight, action: "move" },
-    { name: "Rename", icon: MdDriveFileRenameOutline, action: "rename" },
-    ...(item.is_directory
-      ? [{ name: "Archive", icon: FaRegFileArchive, action: "archive" }]
-      : [{ name: "Download", icon: FiDownload, action: "download" }]),
-    { name: "Delete", icon: FiTrash2, action: "delete" },
-  ];
-
+export default function FileMenu({ item, onAction, actions }) {
   return (
     <Menu shadow="md" width={200} position="bottom-end" withinPortal>
       <Menu.Target>
         <button
-          className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full"
+          className="p-3 hover:bg-gray-100/50 dark:hover:bg-gray-700/30 rounded-full"
           onClick={(e) => e.stopPropagation()}
         >
-          <GoKebabHorizontal className="w-4 h-4 rotate-90" />
+          <GoKebabHorizontal className="w-4 h-4 rotate-90 text-gray-600 dark:text-gray-100" />
         </button>
       </Menu.Target>
 
@@ -35,7 +22,12 @@ export default function FileMenu({ item, onAction }) {
             icon={
               <action.icon
                 size={14}
-                className={action?.name === "Delete" ? "text-red-500" : ""}
+                className={
+                  action?.action === "delete" ||
+                  action?.action === "stop_transcode"
+                    ? "text-red-500"
+                    : ""
+                }
               />
             }
             onClick={(e) => {
@@ -43,9 +35,52 @@ export default function FileMenu({ item, onAction }) {
               onAction(action.action, item);
             }}
           >
-            <p className={action?.name === "Delete" ? "text-red-500" : ""}>
-              {action.name}
-            </p>
+            {action?.subMenu && (
+              <Menu position="right-start" trigger="hover" offset={20}>
+                <Menu.Target>
+                  <div
+                    onClick={(e) => e.stopPropagation()}
+                    className="flex justify-between items-center"
+                  >
+                    <p>{action.name}</p>
+                    <MdOutlineKeyboardArrowRight className="w-4 h-4" />
+                  </div>
+                </Menu.Target>
+                <Menu.Dropdown className="-mt-[0.6rem]">
+                  {action.subMenu.map((subAction) => (
+                    <Menu.Item
+                      key={subAction.name}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        console.log(subAction);
+                        onAction(subAction.action, item);
+                      }}
+                    >
+                      <p
+                        className={
+                          subAction?.action === "delete" ? "text-red-500" : ""
+                        }
+                      >
+                        {subAction.name}
+                      </p>
+                    </Menu.Item>
+                  ))}
+                </Menu.Dropdown>
+              </Menu>
+            )}
+
+            {!action?.subMenu && (
+              <p
+                className={
+                  action?.action === "delete" ||
+                  action?.action === "stop_transcode"
+                    ? "text-red-500"
+                    : ""
+                }
+              >
+                {action.name}
+              </p>
+            )}
           </Menu.Item>
         ))}
       </Menu.Dropdown>
