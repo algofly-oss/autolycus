@@ -115,7 +115,7 @@ async def add_torrent_file(request: Request, torrent: UploadFile = File(...)):
                 {"action": "added", "info_hash": info_hash},
                 user_id,
             )
-            # emit(f"/stc/download_status", await get_download_status(user_id), user_id)
+            emit(f"/stc/download_status", await get_download_status(user_id), user_id)
 
         redis.delete(f"{user_id}/{info_hash}/stop")
         redis.delete(f"{user_id}/{info_hash}/copied_from_existing")

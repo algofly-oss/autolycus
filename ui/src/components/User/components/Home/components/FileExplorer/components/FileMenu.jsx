@@ -1,11 +1,20 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { Menu } from "@mantine/core";
 import { GoKebabHorizontal } from "react-icons/go";
 import { MdOutlineKeyboardArrowRight } from "react-icons/md";
 
 export default function FileMenu({ item, onAction, actions }) {
+  const [opened, setOpened] = useState(false);
+
   return (
-    <Menu shadow="md" width={200} position="bottom-end" withinPortal>
+    <Menu
+      shadow="md"
+      width={200}
+      position="bottom-end"
+      withinPortal
+      opened={opened}
+      onChange={setOpened}
+    >
       <Menu.Target>
         <button
           className="p-3 hover:bg-gray-100/50 dark:hover:bg-gray-700/30 rounded-full"
@@ -52,8 +61,8 @@ export default function FileMenu({ item, onAction, actions }) {
                       key={subAction.name}
                       onClick={(e) => {
                         e.stopPropagation();
-                        console.log(subAction);
                         onAction(subAction.action, item);
+                        setOpened(false);
                       }}
                     >
                       <p

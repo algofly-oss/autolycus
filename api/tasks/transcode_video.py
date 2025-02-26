@@ -6,14 +6,14 @@ from shared.factory import redis
 import json
 
 PRESETS = {
-    "144p": "--width 256 --height 144 -e x264 --encopts preset=medium -q 27 --auto-anamorphic -f mp4 --aencoder av_aac --ab 96 --mixdown stereo",
-    "240p": "--width 426 --height 240 -e x264 --encopts preset=medium -q 26 --auto-anamorphic -f mp4 --aencoder av_aac --ab 64 --mixdown stereo",
-    "360p": "--width 640 --height 360 -e x264 --encopts preset=medium -q 25 --auto-anamorphic -f mp4 --aencoder av_aac --ab 128 --mixdown stereo",
-    "480p": "--width 854 --height 480 -e x264 --encopts preset=medium -q 24 --auto-anamorphic -f mp4 --aencoder av_aac --ab 256 --mixdown stereo",
-    "720p": "--width 1280 --height 720 -e x264 --encopts preset=medium -q 23 --auto-anamorphic -f mp4 --aencoder av_aac --ab 320 --mixdown stereo",
-    "1080p": "--width 1920 --height 1080 -e x264 --encopts preset=medium -q 22 --auto-anamorphic -f mp4 --aencoder av_aac --ab 320 --mixdown stereo",
-    "1440p": "--width 2560 --height 1440 -e x264 --encopts preset=medium -q 21 --auto-anamorphic -f mp4 --aencoder av_aac --ab 320 --mixdown stereo",
-    "2160p": "--width 3840 --height 2160 -e x264 --encopts preset=medium -q 20 --auto-anamorphic -f mp4 --aencoder av_aac --ab 320 --mixdown stereo",
+    "144p": "--width 256 --height 144 -e x264 --encopts preset=medium -q 27 --auto-anamorphic -f mp4 --all-audio --aencoder av_aac --ab 96 --mixdown stereo",
+    "240p": "--width 426 --height 240 -e x264 --encopts preset=medium -q 26 --auto-anamorphic -f mp4 --all-audio --aencoder av_aac --ab 64 --mixdown stereo",
+    "360p": "--width 640 --height 360 -e x264 --encopts preset=medium -q 25 --auto-anamorphic -f mp4 --all-audio --aencoder av_aac --ab 128 --mixdown stereo",
+    "480p": "--width 854 --height 480 -e x264 --encopts preset=medium -q 24 --auto-anamorphic -f mp4 --all-audio --aencoder av_aac --ab 256 --mixdown stereo",
+    "720p": "--width 1280 --height 720 -e x264 --encopts preset=medium -q 23 --auto-anamorphic -f mp4 --all-audio --aencoder av_aac --ab 320 --mixdown stereo",
+    "1080p": "--width 1920 --height 1080 -e x264 --encopts preset=medium -q 22 --auto-anamorphic -f mp4 --all-audio --aencoder av_aac --ab 320 --mixdown stereo",
+    "1440p": "--width 2560 --height 1440 -e x264 --encopts preset=medium -q 21 --auto-anamorphic -f mp4 --all-audio --aencoder av_aac --ab 320 --mixdown stereo",
+    "2160p": "--width 3840 --height 2160 -e x264 --encopts preset=medium -q 20 --auto-anamorphic -f mp4 --all-audio --aencoder av_aac --ab 320 --mixdown stereo",
 }
 
 ETA_PATTERN = re.compile(r"(?:(\d+)h)?(?:(\d+)m)?(?:(\d+)s)?")

@@ -29,6 +29,6 @@ async def all_torrent(request: Request):
         del torrent["user_id"]
 
     emit(f"/stc/disk-usage", get_disk_usage(user_id), user_id)
-    # emit(f"/stc/download_status", await get_download_status(user_id), user_id)
+    emit(f"/stc/download_status", await get_download_status(user_id), user_id)
 
     return {"data": torrents}
