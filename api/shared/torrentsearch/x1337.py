@@ -10,7 +10,7 @@ from .user_agents import get_ua_header
 
 class X1337:
     def __init__(self, domain="https://www.1377x.to", proxy="", retry=5):
-        self.domain = domain
+        self.domain = os.environ.get("1377x_URL", domain)
         self.proxy = proxy
         self.retry = retry
     
@@ -74,7 +74,8 @@ class X1337:
         else:
             response = requests.get(url, headers=get_ua_header())
         
-        return {'magnet': BeautifulSoup(response.text, features="lxml").find('a', href = re.compile(r'^[magnet]')).get("href").split("&dn=")[0]}
+        magnet = BeautifulSoup(response.text, features="lxml").find('a', href = re.compile(r'^[magnet]')).get("href")
+        return {'magnet': magnet}
     
     def get_magnet(self, data):
         return self.get_info(data).get('magnet')

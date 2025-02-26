@@ -57,7 +57,7 @@ async def delete_torrent(request: DeleteTorrentRequest, request_obj: Request):
             {"action": "removed", "info_hash": request.info_hash},
             user_id,
         )
-        emit(f"/stc/download_status", get_download_status(user_id), user_id)
+        # emit(f"/stc/download_status", await get_download_status(user_id), user_id)
         return {"message": "Torrent and associated files deleted successfully"}
     else:
         raise HTTPException(status_code=404, detail="Torrent not found")

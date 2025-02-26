@@ -16,7 +16,7 @@ export default function AddTorrent() {
           .post(apiRoutes.addMagnet, { magnet: magnetLink })
           .then((res) => {
             toast.success("Magnet added");
-            setMagnetLink("");ī
+            setMagnetLink("");
           })
           .catch((err) => {
             toast.error("Unable to add magnet");
@@ -54,21 +54,22 @@ export default function AddTorrent() {
     if (!file) return;
 
     const formData = new FormData();
-    formData.append('torrent', file);
+    formData.append("torrent", file);
 
-    axios.post(apiRoutes.addTorrent, formData, {
-      headers: {
-        'Content-Type': 'multipart/form-data'
-      }
-    })
-    .then((res) => {
-      toast.success("Torrent added");
-      fileInput.current.value = null;
-    })
-    .catch((err) => {
-      toast.error("Unable to add torrent");
-      fileInput.current.value = null;
-    });
+    axios
+      .post(apiRoutes.addTorrent, formData, {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+      })
+      .then((res) => {
+        toast.success("Torrent added");
+        fileInput.current.value = null;
+      })
+      .catch((err) => {
+        toast.error("Unable to add torrent");
+        fileInput.current.value = null;
+      });
   };
 
   return (
@@ -81,7 +82,7 @@ export default function AddTorrent() {
           className="text-xs md:text-sm border-0 outline-0 focus:ring-0 rounded-l-lg w-full bg-zinc-100 dark:bg-black pl-4"
           onChange={(e) => setMagnetLink(e.target.value)}
           onKeyDown={(e) => {
-            if (e.key === 'Enter') {
+            if (e.key === "Enter") {
               addTorrent();
             }
           }}

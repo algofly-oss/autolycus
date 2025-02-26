@@ -10,7 +10,7 @@ from .user_agents import get_ua_header
 
 class TPB:
     def __init__(self, domain="https://tpirbay.xyz/", proxy="", retry=5):
-        self.domain = domain
+        self.domain = os.environ.get("TPB_URL", domain)
         self.proxy = proxy
         self.retry = retry
     
@@ -57,7 +57,7 @@ class TPB:
                 text = inspect.cleandoc(cell.text)
                 for a in cell.find_all("a"):
                     if a.get("href").startswith("magnet"):
-                        magnet = a.get("href").split("&dn=")[0]
+                        magnet = a.get("href")
 
                 if i == 0:
                     d.update({"type": inspect.cleandoc(text).replace("\n"," ").replace("\r", "")})

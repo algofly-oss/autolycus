@@ -11,13 +11,15 @@ export default function UserHome() {
   const state = reactState({
     hoveredTorrent: null,
     isFileView: false,
-    hoveredTorrentInfoHash: null
+    hoveredTorrentInfoHash: null,
   });
+
+  const torrentSearchState = reactState({});
 
   useEffect(() => {
     if (tab !== "Home") {
-      state.set("hoveredTorrent", null); 
-      state.set("hoveredTorrentInfoHash", null)
+      state.set("hoveredTorrent", null);
+      state.set("hoveredTorrentInfoHash", null);
     }
   }, [tab]);
 
@@ -41,7 +43,7 @@ export default function UserHome() {
 
       <div className="w-full md:h-screen md:overflow-y-auto md:light-scrollbar dark:md:dark-scrollbar">
         {tab === "Home" && <Home state={state} />}
-        {tab === "Search" && <Search />}
+        {tab === "Search" && <Search torrentSearchState={torrentSearchState} />}
       </div>
       <div className="hidden lg:block w-[26rem] 2xl:w-[25%]- 2xl:w-[30rem] h-screen bg-neutral-100 dark:bg-black overflow-y-auto md:light-scrollbar dark:md:dark-scrollbar">
         <TorrentDetails
