@@ -1,3 +1,4 @@
+import os
 from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel
 from shared.factory import db, redis
