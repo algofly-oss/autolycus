@@ -48,7 +48,9 @@ async def delete_torrent(request: DeleteTorrentRequest, request_obj: Request):
                 await asyncio.sleep(1)
 
         # Delete the folder stored at save_dir
-        delete_dir(torrent["save_dir"])
+        save_dir = torrent.get("save_dir")
+        if save_dir and os.path.exists(save_dir):
+            delete_dir(save_dir)
 
         db.torrents.delete_one({"_id": torrent["_id"]})
 
@@ -57,7 +59,7 @@ async def delete_torrent(request: DeleteTorrentRequest, request_obj: Request):
             {"action": "removed", "info_hash": request.info_hash},
             user_id,
         )
-        # emit(f"/stc/download_status", await get_download_status(user_id), user_id)
+        emit(f"/stc/download_status", await get_download_status(user_id), user_id)
         return {"message": "Torrent and associated files deleted successfully"}
     else:
         raise HTTPException(status_code=404, detail="Torrent not found")

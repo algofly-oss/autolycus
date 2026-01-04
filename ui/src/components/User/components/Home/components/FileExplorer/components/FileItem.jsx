@@ -16,14 +16,14 @@ import axios from "axios";
 import useToast from "@/shared/hooks/useToast";
 
 const TRANSCODE_RESOLUTIONS = [
-  { name: "144p", action: "transcode_144p" },
-  { name: "240p", action: "transcode_240p" },
-  { name: "360p", action: "transcode_360p" },
-  { name: "480p", action: "transcode_480p" },
-  { name: "720p", action: "transcode_720p" },
-  { name: "1080p", action: "transcode_1080p" },
-  { name: "1440p", action: "transcode_1440p" },
-  { name: "2160p", action: "transcode_2160p" },
+  { name: "Low 144p", action: "transcode_144p" },
+  { name: "SD 240p", action: "transcode_240p" },
+  { name: "SD 360p", action: "transcode_360p" },
+  { name: "SD 480p", action: "transcode_480p" },
+  { name: "HD 720p", action: "transcode_720p" },
+  { name: "FHD 1080p", action: "transcode_1080p" },
+  { name: "2K 1440p", action: "transcode_1440p" },
+  { name: "4K 2160p", action: "transcode_2160p" },
 ];
 
 const DEFAULT_ACTIONS = [
@@ -58,7 +58,7 @@ const FileItem = ({
           name: "Terminate",
           icon: FiStopCircle,
           action: "stop_transcode",
-        }
+        },
       ];
     }
 
@@ -70,13 +70,13 @@ const FileItem = ({
         : [{ name: "Download", icon: FiDownload, action: "download" }]),
       ...(getFileType(item.name) === "video" && !item.is_transcoding
         ? [
-          {
-            name: "Transcode",
-            icon: RiMovie2Line,
-            action: "transcode",
-            subMenu: TRANSCODE_RESOLUTIONS,
-          },
-        ]
+            {
+              name: "Transcode",
+              icon: RiMovie2Line,
+              action: "transcode",
+              subMenu: TRANSCODE_RESOLUTIONS,
+            },
+          ]
         : []),
     ];
   };
@@ -128,8 +128,9 @@ const FileItem = ({
             /^\/downloads\/*/,
             ""
           );
-          const downloadUrl = `${apiRoutes.streamFile
-            }?path=${encodeURIComponent(path)}&download=true`;
+          const downloadUrl = `${
+            apiRoutes.streamFile
+          }?path=${encodeURIComponent(path)}&download=true`;
 
           const link = document.createElement("a");
           link.href = downloadUrl;
@@ -209,7 +210,7 @@ const FileItem = ({
             }
           }
         }
-      } catch (error) { }
+      } catch (error) {}
     };
 
     fetchProgress();
