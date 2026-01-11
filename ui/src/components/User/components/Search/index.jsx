@@ -262,138 +262,142 @@ const Search = ({ torrentSearchState }) => {
   };
 
   return (
-    <div className="max-w-3xl mx-auto p-4 space-y-4">
-      {/* Search Bar */}
-      <div className="flex w-full h-12 rounded-lg overflow-hidden">
-        <input
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          onKeyDown={(e) => e.key === "Enter" && handleSearch()}
-          disabled={loading}
-          placeholder="Search torrent here"
-          className="flex-1 px-4 text-sm bg-zinc-100 dark:bg-black text-zinc-900 dark:text-zinc-100 outline-none"
-        />
-        <button
-          onClick={loading ? handleCancel : handleSearch}
-          className={`w-12 flex items-center justify-center text-white ${
-            loading ? "bg-red-500" : "bg-blue-500"
-          }`}
-        >
-          {loading ? (
-            <div className="relative w-5 h-5 flex items-center justify-center">
-              <div className="absolute inset-0 rounded-full border-2 border-white/40 border-t-white animate-spin" />
-              <FiX className="relative z-10" />
+    <div className="flex justify-center">
+      <div className="m-4 pb-16 md:pb-6 xl:m-8 relative overflow-y-auto overflow-x-hidden 2xl:w-[80rem] w-full p-4 space-y-4">
+        {/* Search Bar */}
+        <div className="flex w-full h-12 rounded-lg overflow-hidden">
+          <input
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && handleSearch()}
+            disabled={loading}
+            placeholder="Search torrent here"
+            className="flex-1 px-4 text-sm bg-zinc-100 dark:bg-black text-zinc-900 dark:text-zinc-100 outline-none"
+          />
+          <button
+            onClick={loading ? handleCancel : handleSearch}
+            className={`w-12 flex items-center justify-center text-white ${
+              loading ? "bg-red-500" : "bg-blue-500"
+            }`}
+          >
+            {loading ? (
+              <div className="relative w-5 h-5 flex items-center justify-center">
+                <div className="absolute inset-0 rounded-full border-2 border-white/40 border-t-white animate-spin" />
+                <FiX className="relative z-10" />
+              </div>
+            ) : (
+              <FiSearch />
+            )}
+          </button>
+        </div>
+
+        {/* Sort + Source Filters */}
+        {results.length > 0 && (
+          <>
+            <div className="flex flex-wrap gap-2">
+              <SortButton label="Name" value={SORT_KEYS.name} />
+              <SortButton label="Seeds" value={SORT_KEYS.seeds} />
+              <SortButton label="Size" value={SORT_KEYS.size} />
+              <SortButton label="Upload Date" value={SORT_KEYS.date} />
             </div>
-          ) : (
-            <FiSearch />
-          )}
-        </button>
-      </div>
 
-      {/* Sort + Source Filters */}
-      {results.length > 0 && (
-        <>
-          <div className="flex flex-wrap gap-2">
-            <SortButton label="Name" value={SORT_KEYS.name} />
-            <SortButton label="Seeds" value={SORT_KEYS.seeds} />
-            <SortButton label="Size" value={SORT_KEYS.size} />
-            <SortButton label="Upload Date" value={SORT_KEYS.date} />
-          </div>
+            <div className="flex flex-wrap gap-2">
+              {sources.map((src) => {
+                const count =
+                  src === "All" ? results.length : sourceCounts[src] ?? 0;
 
-          <div className="flex flex-wrap gap-2">
-            {sources.map((src) => {
-              const count =
-                src === "All" ? results.length : sourceCounts[src] ?? 0;
-
-              return (
-                <button
-                  key={src}
-                  onClick={() => setActiveSource(src)}
-                  className={`flex items-center gap-1 px-3 py-1 rounded-full text-xs font-medium transition
+                return (
+                  <button
+                    key={src}
+                    onClick={() => setActiveSource(src)}
+                    className={`flex items-center gap-1 px-3 py-1 rounded-full text-xs font-medium transition
                     ${
                       activeSource === src
                         ? "bg-blue-600 text-white"
                         : "bg-zinc-200 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300"
                     }
                   `}
-                >
-                  <span>{src}</span>
-                  <span className="opacity-70">({formatCount(count)})</span>
-                </button>
-              );
-            })}
+                  >
+                    <span>{src}</span>
+                    <span className="opacity-70">({formatCount(count)})</span>
+                  </button>
+                );
+              })}
+            </div>
+          </>
+        )}
+
+        {/* Loader */}
+        {loading && results.length === 0 && (
+          <div className="py-10 flex justify-center">
+            <div className="h-6 w-6 rounded-full border-2 border-zinc-300 border-t-zinc-900 dark:border-zinc-700 dark:border-t-white animate-spin" />
           </div>
-        </>
-      )}
+        )}
 
-      {/* Loader */}
-      {loading && results.length === 0 && (
-        <div className="py-10 flex justify-center">
-          <div className="h-6 w-6 rounded-full border-2 border-zinc-300 border-t-zinc-900 dark:border-zinc-700 dark:border-t-white animate-spin" />
-        </div>
-      )}
+        {/* Results */}
+        {visibleResults.length > 0 && (
+          <ul className="space-y-1">
+            {visibleResults.map((item, i) => (
+              <li
+                key={i}
+                className="p-4 rounded-md bg-white dark:bg-zinc-900 hover:bg-zinc-50 dark:hover:bg-zinc-800 transition"
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <p className="font-semibold leading-snug">{item.Title}</p>
 
-      {/* Results */}
-      {visibleResults.length > 0 && (
-        <ul className="space-y-1">
-          {visibleResults.map((item, i) => (
-            <li
-              key={i}
-              className="p-4 rounded-md bg-white dark:bg-zinc-900 hover:bg-zinc-50 dark:hover:bg-zinc-800 transition"
-            >
-              <div className="flex items-start justify-between gap-3">
-                <p className="font-semibold leading-snug">{item.Title}</p>
-
-                <div className="flex items-center gap-2 shrink-0">
-                  <button
-                    onClick={() => handleCopyMagnet(item)}
-                    className="p-1.5 rounded-md bg-zinc-200 hover:bg-zinc-300
+                  <div className="flex items-center gap-2 shrink-0">
+                    <button
+                      onClick={() => handleCopyMagnet(item)}
+                      className="p-1.5 rounded-md bg-zinc-200 hover:bg-zinc-300
                                dark:bg-zinc-800 dark:hover:bg-zinc-700 transition"
-                    title="Copy magnet link"
-                  >
-                    <FiClipboard size={14} />
-                  </button>
+                      title="Copy magnet link"
+                    >
+                      <FiClipboard size={14} />
+                    </button>
 
-                  <button
-                    onClick={() => handleDownload(item)}
-                    className="p-1.5 rounded-md bg-blue-500 text-white
+                    <button
+                      onClick={() => handleDownload(item)}
+                      className="p-1.5 rounded-md bg-blue-500 text-white
                                hover:bg-blue-600 transition"
-                    title="Download"
-                  >
-                    <FiDownload size={14} />
-                  </button>
+                      title="Download"
+                    >
+                      <FiDownload size={14} />
+                    </button>
+                  </div>
                 </div>
-              </div>
 
-              <div className="text-xs text-zinc-500 flex gap-4 flex-wrap mt-1">
-                {item?.Seeders !== undefined && <span>🌱 {item.Seeders}</span>}
-                {item?.Size && <span>📦 {formatBytes(item.Size)}</span>}
-                {item?.PublishDate && (
-                  <span>📅 {formatDate(item.PublishDate)}</span>
-                )}
-                {item?.Tracker && <span>🔎 {item.Tracker}</span>}
-                {item?.Details && (
-                  <a
-                    href={item.Details}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="hover:text-blue-500 transition"
-                  >
-                    🌐 Website
-                  </a>
-                )}
-              </div>
-            </li>
-          ))}
-        </ul>
-      )}
+                <div className="text-xs text-zinc-500 flex gap-4 flex-wrap mt-1">
+                  {item?.Seeders !== undefined && (
+                    <span>🌱 {item.Seeders}</span>
+                  )}
+                  {item?.Size && <span>📦 {formatBytes(item.Size)}</span>}
+                  {item?.PublishDate && (
+                    <span>📅 {formatDate(item.PublishDate)}</span>
+                  )}
+                  {item?.Tracker && <span>🔎 {item.Tracker}</span>}
+                  {item?.Details && (
+                    <a
+                      href={item.Details}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="hover:text-blue-500 transition"
+                    >
+                      🌐 Website
+                    </a>
+                  )}
+                </div>
+              </li>
+            ))}
+          </ul>
+        )}
 
-      {/* No Results */}
-      {!loading && results.length === 0 && (
-        <p className="py-10 text-center text-sm text-zinc-500">
-          No results found
-        </p>
-      )}
+        {/* No Results */}
+        {!loading && results.length === 0 && (
+          <p className="py-10 text-center text-sm text-zinc-500">
+            No results found
+          </p>
+        )}
+      </div>
     </div>
   );
 };
