@@ -1,4 +1,4 @@
-import { useRef, useState, useMemo, useEffect } from "react";
+import { useRef, useState, useMemo, useEffect, use } from "react";
 import {
   FiSearch,
   FiX,
@@ -87,6 +87,7 @@ const sortResults = (data, { key, dir }) => {
 };
 
 const Search = ({ torrentSearchState }) => {
+  const [firstLoadFinished, setFirstLoadFinished] = useState(false);
   const [query, setQuery] = useState("");
   const [results, setResults] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -99,6 +100,52 @@ const Search = ({ torrentSearchState }) => {
   const [activeSource, setActiveSource] = useState("All");
   const abortRef = useRef(null);
   const toast = useToast();
+
+  useEffect(() => {
+    let searchResults = torrentSearchState.get("results") || [];
+    if (!query && !results?.length) {
+      setQuery(torrentSearchState.get("query"));
+      setSort(torrentSearchState.get("sort"));
+      setActiveSource(torrentSearchState.get("activeSource"));
+      setResults(searchResults);
+      if (searchResults?.length) {
+        setResults(searchResults?.slice(0, 10));
+      }
+    }
+
+    setFirstLoadFinished(true);
+
+    if (!query && !results?.length) {
+      setTimeout(() => {
+        setResults(searchResults);
+      }, 1);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (firstLoadFinished) {
+      torrentSearchState.set({
+        query: query,
+      });
+    }
+  }, [query]);
+
+  useEffect(() => {
+    if (firstLoadFinished) {
+      torrentSearchState.set({
+        results: results,
+      });
+    }
+  }, [results]);
+
+  useEffect(() => {
+    if (firstLoadFinished) {
+      torrentSearchState.set({
+        activeSource: activeSource,
+        sort: sort,
+      });
+    }
+  }, [activeSource, sort]);
 
   const extractMagnet = (item) => {
     let toastPrefix = "Magnet";
@@ -180,6 +227,10 @@ const Search = ({ torrentSearchState }) => {
     abortRef.current = controller;
 
     setResults([]);
+    setSort({
+      key: SORT_KEYS.name,
+      dir: "asc",
+    });
     setActiveSource("All");
     setLoading(true);
 
@@ -261,6 +312,10 @@ const Search = ({ torrentSearchState }) => {
       </button>
     );
   };
+
+  // if (!firstLoadFinished) {
+  //   return null;
+  // }
 
   return (
     <div className="flex justify-center">
