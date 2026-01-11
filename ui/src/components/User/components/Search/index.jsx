@@ -111,6 +111,7 @@ const Search = ({ torrentSearchState }) => {
       setResults(searchResults);
 
       if (searchResults?.length) {
+        setHasSearched(true);
         const TOTAL_LIMIT = 300; // overall cap
         const MAX_PER_SOURCE = 100; // per-source cap
 
