@@ -64,7 +64,7 @@ const DEFAULT_SORT_DIR = {
   [SORT_KEYS.size]: "desc",
 };
 
-const sortResults = (data, { key, dir }) => {
+const sortResults = (data, { key = SORT_KEYS.name, dir = "asc" } = {}) => {
   const factor = dir === "asc" ? 1 : -1;
 
   return [...data].sort((a, b) => {
