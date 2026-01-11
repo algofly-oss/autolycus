@@ -366,12 +366,22 @@ const Search = () => {
               </div>
 
               <div className="text-xs text-zinc-500 flex gap-4 flex-wrap mt-1">
-                {item.Seeders !== undefined && <span>🌱 {item.Seeders}</span>}
-                {item.Size && <span>📦 {formatBytes(item.Size)}</span>}
-                {item.PublishDate && (
+                {item?.Seeders !== undefined && <span>🌱 {item.Seeders}</span>}
+                {item?.Size && <span>📦 {formatBytes(item.Size)}</span>}
+                {item?.PublishDate && (
                   <span>📅 {formatDate(item.PublishDate)}</span>
                 )}
-                {item.Tracker && <span>🔎 {item.Tracker}</span>}
+                {item?.Tracker && <span>🔎 {item.Tracker}</span>}
+                {item?.Details && (
+                  <a
+                    href={item.Details}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="hover:text-blue-500 transition"
+                  >
+                    🌐 Website
+                  </a>
+                )}
               </div>
             </li>
           ))}
