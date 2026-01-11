@@ -1,106 +1,3 @@
-# import os
-# import requests
-# import threading
-# from concurrent.futures import ThreadPoolExecutor, as_completed
-
-
-# class Jackett:
-#     def __init__(self, apikey, base_url="http://jackett:9117"):
-#         self.base_url = base_url
-#         self.apikey = apikey
-
-#     def list_indexes(self):
-#         session = requests.Session()
-#         session.headers.update(
-#             {
-#                 "User-Agent": (
-#                     "Mozilla/5.0 (X11; Linux x86_64) "
-#                     "AppleWebKit/537.36 (KHTML, like Gecko) "
-#                     "Chrome/120.0.0.0 Safari/537.36"
-#                 ),
-#                 "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
-#                 "Accept-Language": "en-US,en;q=0.9",
-#                 "Referer": f"{self.base_url}/UI/Dashboard",
-#                 "Connection": "keep-alive",
-#             }
-#         )
-
-#         session.get(f"{self.base_url}/UI/Dashboard")
-#         r = session.get(
-#             f"{self.base_url}/api/v2.0/indexers", params={"apikey": self.apikey}
-#         )
-
-#         indexes = [x["id"] for x in r.json() if x["configured"]]
-#         return indexes
-
-#     def search_index(self, query, index, timeout=60 * 5):
-#         try:
-#             url = f"{self.base_url}/api/v2.0/indexers/{index}/results"
-#             params = {
-#                 "apikey": self.apikey,
-#                 "Query": query,
-#             }
-
-#             r = requests.get(url, params=params, timeout=timeout)
-#             r.raise_for_status()
-
-#             return {
-#                 "index": index,
-#                 "results": r.json().get("Results", []),
-#                 "error": None,
-#             }
-
-#         except Exception as e:
-#             return {
-#                 "index": index,
-#                 "results": [],
-#                 "error": str(e),
-#             }
-
-#     def search_iter(self, query, indexes, stop_event, max_workers=50):
-#         executor = ThreadPoolExecutor(max_workers=max_workers)
-#         try:
-#             futures = [
-#                 executor.submit(self.search_index, query, index) for index in indexes
-#             ]
-
-#             for future in as_completed(futures):
-#                 if stop_event.is_set():
-#                     break
-#                 yield future.result()
-
-#         finally:
-#             executor.shutdown(wait=False)
-
-#     def search(self, query, indexes=None, stop_event=None):
-#         if stop_event is None:
-#             stop_event = threading.Event()
-
-#         if not indexes:
-#             indexes = self.list_indexes()
-
-#         for payload in self.search_iter(query, indexes, stop_event):
-#             if stop_event.is_set():
-#                 break
-
-#             if payload["error"]:
-#                 continue
-
-#             for item in payload["results"]:
-#                 if stop_event.is_set():
-#                     return
-#                 yield item
-
-
-# if __name__ == "__main__":
-#     jackett = Jackett(apikey=os.environ.get("JACKETT_API_KEY"))
-#     for item in jackett.search(query="2025"):
-#         print(
-#             item.get("TrackerId"),
-#             item.get("Title"),
-#             item.get("Seeders"),
-#         )
-
 import os
 import asyncio
 import httpx
@@ -220,7 +117,9 @@ class AsyncJackett:
                     for item in results:
                         if cancel_event.is_set():
                             return
-                        yield item
+
+                        if item.get("Seeders", 0) > 0:
+                            yield item
 
             finally:
                 cancel_event.set()
