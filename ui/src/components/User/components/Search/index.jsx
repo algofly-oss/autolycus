@@ -118,6 +118,7 @@ const Search = ({ torrentSearchState }) => {
   };
 
   const handleCopyMagnet = (item) => {
+    console.log(item);
     let { magnet, toastPrefix } = extractMagnet(item);
 
     if (magnet) {
@@ -383,6 +384,19 @@ const Search = ({ torrentSearchState }) => {
                       className="hover:text-blue-500 transition"
                     >
                       🌐 Website
+                    </a>
+                  )}
+                  {item?.Details && (
+                    <a
+                      href={`https://www.imdb.com/find/?q=${item?.Title?.slice(
+                        0,
+                        20
+                      )}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="hover:text-blue-500 transition"
+                    >
+                      🌐 IMDB
                     </a>
                   )}
                 </div>
