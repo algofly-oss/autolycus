@@ -108,8 +108,75 @@ const Search = ({ torrentSearchState }) => {
       setSort(torrentSearchState.get("sort"));
       setActiveSource(torrentSearchState.get("activeSource"));
       setResults(searchResults);
+
       if (searchResults?.length) {
-        setResults(searchResults?.slice(0, 10));
+        const TOTAL_LIMIT = 300; // overall cap
+        const MAX_PER_SOURCE = 100; // per-source cap
+
+        if (Array.isArray(searchResults)) {
+          // 1. Group by source
+          const grouped = {};
+          for (const item of searchResults) {
+            const source = item.Tracker || "Unknown";
+            if (!grouped[source]) grouped[source] = [];
+            grouped[source].push(item);
+          }
+
+          // 2. Convert to ordered array (largest sources first)
+          const sources = Object.entries(grouped)
+            .map(([source, items]) => ({ source, items }))
+            .sort((a, b) => b.items.length - a.items.length);
+
+          // 3. Compute total items across all sources
+          const totalItems = sources.reduce(
+            (sum, s) => sum + s.items.length,
+            0
+          );
+
+          let remaining = TOTAL_LIMIT;
+          const picked = [];
+
+          // 4. Proportional allocation
+          for (const { items } of sources) {
+            if (remaining <= 0) break;
+
+            // ratio of this source vs all data
+            const ratio = items.length / totalItems;
+
+            // proportional share
+            let take = Math.floor(ratio * TOTAL_LIMIT);
+
+            // enforce caps
+            take = Math.min(take, MAX_PER_SOURCE);
+            take = Math.min(take, items.length);
+            take = Math.min(take, remaining);
+
+            picked.push(...items.slice(0, take));
+            remaining -= take;
+          }
+
+          // 5. If rounding left unused slots, top up from largest sources
+          if (remaining > 0) {
+            for (const { items } of sources) {
+              if (remaining <= 0) break;
+
+              const alreadyTaken = picked.filter(
+                (i) => i.Tracker === items[0].Tracker
+              ).length;
+
+              const extra = Math.min(items.length - alreadyTaken, remaining);
+
+              if (extra > 0) {
+                picked.push(...items.slice(alreadyTaken, alreadyTaken + extra));
+                remaining -= extra;
+              }
+            }
+          }
+
+          setResults(picked);
+        } else {
+          setResults([]);
+        }
       }
     }
 
