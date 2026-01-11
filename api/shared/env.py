@@ -17,3 +17,5 @@ REDIS_PASSWORD = os.environ.get("REDIS_PASSWORD", None)
 # Load mongodb credentials
 MONGO_DATABASE_URI = os.environ.get("MONGO_DATABASE_URI", None)
 MONGO_DATABASE_NAME = os.environ.get("MONGO_DATABASE_NAME", None)
+
+JACKETT_API_KEY = os.environ.get("JACKETT_API_KEY", None)

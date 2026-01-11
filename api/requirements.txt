@@ -14,3 +14,4 @@ fake-useragent==0.1.11
 lxml==4.6.3
 celery==5.4.0
 flower==2.0.1
+httpx==0.28.1

@@ -11,6 +11,8 @@ services:
     volumes:
       - ./volumes/mongodb:/data/db
     restart: always
+    networks:
+      - autolycus_network
 
   redis:
     image: redis:6.2-alpine
@@ -21,6 +23,8 @@ services:
     volumes:
       - ./volumes/redis:/data
     restart: always
+    networks:
+      - autolycus_network
 
   api:
     build:
@@ -39,6 +43,8 @@ services:
     depends_on:
       - redis
       - mongodb
+    networks:
+      - autolycus_network
 
   ui:
     build:
@@ -54,6 +60,8 @@ services:
     restart: always
     depends_on:
       - api
+    networks:
+      - autolycus_network
 
   proxy:
     image: nginx:1.19-alpine
@@ -73,3 +81,9 @@ services:
     restart: always
     depends_on:
       - ui
+    networks:
+      - autolycus_network
+
+networks:
+  autolycus_network:
+    name: autolycus_network
