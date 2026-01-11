@@ -1,4 +1,4 @@
-import { useRef, useState, useMemo } from "react";
+import { useRef, useState, useMemo, useEffect } from "react";
 import {
   FiSearch,
   FiX,
@@ -86,7 +86,7 @@ const sortResults = (data, { key, dir }) => {
   });
 };
 
-const Search = () => {
+const Search = ({ torrentSearchState }) => {
   const [query, setQuery] = useState("");
   const [results, setResults] = useState([]);
   const [loading, setLoading] = useState(false);
