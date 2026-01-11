@@ -271,14 +271,16 @@ const Search = ({ torrentSearchState }) => {
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && handleSearch()}
-            disabled={loading}
+            // disabled={loading}
             placeholder="Search torrent here"
             className="flex-1 px-4 text-sm bg-zinc-100 dark:bg-black text-zinc-900 dark:text-zinc-100 outline-none"
           />
           <button
             onClick={loading ? handleCancel : handleSearch}
             className={`w-12 flex items-center justify-center text-white ${
-              loading ? "bg-red-500" : "bg-blue-500"
+              loading
+                ? "bg-red-600 dark:bg-red-700"
+                : "bg-blue-600 dark:bg-blue-700"
             }`}
           >
             {loading ? (
@@ -341,7 +343,7 @@ const Search = ({ torrentSearchState }) => {
             {visibleResults.map((item, i) => (
               <li
                 key={i}
-                className="p-4 rounded-md bg-white dark:bg-zinc-900 hover:bg-zinc-50 dark:hover:bg-zinc-800 transition"
+                className="p-4 rounded-md bg-neutral-50 dark:bg-black hover:bg-zinc-100 dark:hover:bg-zinc-800 transition"
               >
                 <div className="flex items-start justify-between gap-3">
                   <p className="font-semibold leading-snug">{item.Title}</p>
@@ -350,7 +352,7 @@ const Search = ({ torrentSearchState }) => {
                     <button
                       onClick={() => handleCopyMagnet(item)}
                       className="p-1.5 rounded-md bg-zinc-200 hover:bg-zinc-300
-                               dark:bg-zinc-800 dark:hover:bg-zinc-700 transition"
+                               dark:bg-zinc-900 dark:hover:bg-zinc-700 transition"
                       title="Copy magnet link"
                     >
                       <FiClipboard size={14} />
@@ -375,15 +377,14 @@ const Search = ({ torrentSearchState }) => {
                   {item?.PublishDate && (
                     <span>📅 {formatDate(item.PublishDate)}</span>
                   )}
-                  {item?.Tracker && <span>🔎 {item.Tracker}</span>}
-                  {item?.Details && (
+                  {item?.Tracker && (
                     <a
-                      href={item.Details}
+                      href={item?.Details}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="hover:text-blue-500 transition"
                     >
-                      🌐 Website
+                      🔎 {item.Tracker}
                     </a>
                   )}
                   {item?.Details && (
