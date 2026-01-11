@@ -1,10 +1,16 @@
 import { useRef, useState, useMemo } from "react";
-import { FiSearch, FiX, FiArrowUp, FiArrowDown } from "react-icons/fi";
+import {
+  FiSearch,
+  FiX,
+  FiArrowUp,
+  FiArrowDown,
+  FiClipboard,
+  FiDownload,
+} from "react-icons/fi";
 import apiRoutes from "@/shared/routes/apiRoutes";
+import useToast from "@/shared/hooks/useToast";
+import axios from "axios";
 
-/* ===============================
-   Helpers
-================================ */
 const formatBytes = (bytes) => {
   if (!bytes || isNaN(bytes)) return "—";
   const units = ["B", "KB", "MB", "GB", "TB", "PB"];
@@ -44,9 +50,6 @@ const formatCount = (num) => {
   return `${value >= 10 ? Math.round(value) : value.toFixed(1)}${units[i]}`;
 };
 
-/* ===============================
-   Sorting
-================================ */
 const SORT_KEYS = {
   name: "name",
   seeds: "seeds",
@@ -95,10 +98,56 @@ const Search = () => {
 
   const [activeSource, setActiveSource] = useState("All");
   const abortRef = useRef(null);
+  const toast = useToast();
 
-  /* ===============================
-     Derived data
-  ================================ */
+  const extractMagnet = (item) => {
+    let toastPrefix = "Magnet";
+    let magnet = item?.MagnetUri;
+    if (!magnet && item?.InfoHash) {
+      magnet = `magnet:?xt=urn:btih:${
+        item?.InfoHash || ""
+      }&tr=udp%3A%2F%2Ftracker.coppersurfer.tk%3A6969%2Fannounce&tr=udp%3A%2F%2Ftracker.openbittorrent.com%3A6969%2Fannounce&tr=udp%3A%2F%2F9.rarbg.to%3A2710%2Fannounce&tr=udp%3A%2F%2F9.rarbg.me%3A2780%2Fannounce&tr=udp%3A%2F%2F9.rarbg.to%3A2730%2Fannounce&tr=udp%3A%2F%2Ftracker.opentrackr.org%3A1337&tr=http%3A%2F%2Fp4p.arenabg.com%3A1337%2Fannounce&tr=udp%3A%2F%2Ftracker.torrent.eu.org%3A451%2Fannounce&tr=udp%3A%2F%2Ftracker.tiny-vps.com%3A6969%2Fannounce&tr=udp%3A%2F%2Fopen.stealth.si%3A80%2Fannounce`;
+      toastPrefix = "InfoHash";
+    }
+    if (!magnet && item?.Details) {
+      magnet = item?.Details; // Website URL
+      toastPrefix = "URL";
+    }
+
+    return { magnet, toastPrefix };
+  };
+
+  const handleCopyMagnet = (item) => {
+    let { magnet, toastPrefix } = extractMagnet(item);
+
+    if (magnet) {
+      const el = document.createElement("textarea");
+      el.value = magnet;
+      document.body.appendChild(el);
+      el.select();
+      document.execCommand("copy");
+      document.body.removeChild(el);
+      toast.success(`${toastPrefix} copied to clipboard`);
+    } else {
+      toast.error(`Magnet not Found`);
+    }
+  };
+
+  const handleDownload = async (item) => {
+    let { magnet, toastPrefix } = extractMagnet(item);
+    if (magnet && toastPrefix !== "URL") {
+      try {
+        await axios.post(apiRoutes.addMagnet, { magnet: magnet });
+        toast.success(`Added to Download Queue`);
+      } catch (err) {
+        console.error("Add magnet error:", err);
+        toast.error("Failed to add torrent");
+      }
+    } else {
+      toast.error(`Magnet not Found`);
+    }
+  };
+
   const sourceCounts = useMemo(() => {
     const map = {};
     results.forEach((r) => {
@@ -121,9 +170,6 @@ const Search = () => {
     return results.filter((r) => r.Tracker === activeSource);
   }, [results, activeSource]);
 
-  /* ===============================
-     Search
-  ================================ */
   const handleSearch = async () => {
     const trimmed = query.trim();
     if (!trimmed) return;
@@ -180,9 +226,6 @@ const Search = () => {
     setLoading(false);
   };
 
-  /* ===============================
-     Sorting controls
-  ================================ */
   const handleSortChange = (key) => {
     setSort((prev) => {
       const dir =
@@ -218,9 +261,6 @@ const Search = () => {
     );
   };
 
-  /* ===============================
-     UI
-  ================================ */
   return (
     <div className="max-w-3xl mx-auto p-4 space-y-4">
       {/* Search Bar */}
@@ -230,7 +270,7 @@ const Search = () => {
           onChange={(e) => setQuery(e.target.value)}
           onKeyDown={(e) => e.key === "Enter" && handleSearch()}
           disabled={loading}
-          placeholder="Search torrent here..."
+          placeholder="Search torrent here"
           className="flex-1 px-4 text-sm bg-zinc-100 dark:bg-black text-zinc-900 dark:text-zinc-100 outline-none"
         />
         <button
@@ -241,9 +281,7 @@ const Search = () => {
         >
           {loading ? (
             <div className="relative w-5 h-5 flex items-center justify-center">
-              {/* Spinner ring */}
               <div className="absolute inset-0 rounded-full border-2 border-white/40 border-t-white animate-spin" />
-              {/* Cross */}
               <FiX className="relative z-10" />
             </div>
           ) : (
@@ -288,7 +326,7 @@ const Search = () => {
         </>
       )}
 
-      {/* Loader — ONLY until first result */}
+      {/* Loader */}
       {loading && results.length === 0 && (
         <div className="py-10 flex justify-center">
           <div className="h-6 w-6 rounded-full border-2 border-zinc-300 border-t-zinc-900 dark:border-zinc-700 dark:border-t-white animate-spin" />
@@ -303,7 +341,30 @@ const Search = () => {
               key={i}
               className="p-4 rounded-md bg-white dark:bg-zinc-900 hover:bg-zinc-50 dark:hover:bg-zinc-800 transition"
             >
-              <p className="font-semibold">{item.Title}</p>
+              <div className="flex items-start justify-between gap-3">
+                <p className="font-semibold leading-snug">{item.Title}</p>
+
+                <div className="flex items-center gap-2 shrink-0">
+                  <button
+                    onClick={() => handleCopyMagnet(item)}
+                    className="p-1.5 rounded-md bg-zinc-200 hover:bg-zinc-300
+                               dark:bg-zinc-800 dark:hover:bg-zinc-700 transition"
+                    title="Copy magnet link"
+                  >
+                    <FiClipboard size={14} />
+                  </button>
+
+                  <button
+                    onClick={() => handleDownload(item)}
+                    className="p-1.5 rounded-md bg-blue-500 text-white
+                               hover:bg-blue-600 transition"
+                    title="Download"
+                  >
+                    <FiDownload size={14} />
+                  </button>
+                </div>
+              </div>
+
               <div className="text-xs text-zinc-500 flex gap-4 flex-wrap mt-1">
                 {item.Seeders !== undefined && <span>🌱 {item.Seeders}</span>}
                 {item.Size && <span>📦 {formatBytes(item.Size)}</span>}

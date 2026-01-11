@@ -33,7 +33,7 @@ async def delete_torrent(request: DeleteTorrentRequest, request_obj: Request):
     )
 
     if torrent:
-        if not torrent["is_finished"]:
+        if not torrent.get("is_finished"):
             db.torrents.update_one(
                 {"_id": torrent["_id"]}, {"$set": {"is_paused": True}}
             )

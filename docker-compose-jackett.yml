@@ -2,8 +2,8 @@ services:
   tor:
     image: dockage/tor-privoxy:latest
     restart: always
-    # ports:
-    #   - "9050:9050"
+    ports:
+      - "9050:9050"
     networks:
       - autolycus_network
 
