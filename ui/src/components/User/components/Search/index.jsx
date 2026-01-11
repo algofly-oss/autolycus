@@ -91,6 +91,7 @@ const Search = ({ torrentSearchState }) => {
   const [query, setQuery] = useState("");
   const [results, setResults] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [hasSearched, setHasSearched] = useState(false);
 
   const [sort, setSort] = useState({
     key: SORT_KEYS.name,
@@ -288,6 +289,8 @@ const Search = ({ torrentSearchState }) => {
   const handleSearch = async () => {
     const trimmed = query.trim();
     if (!trimmed) return;
+
+    setHasSearched(true);
 
     abortRef.current?.abort();
     const controller = new AbortController();
@@ -529,10 +532,22 @@ const Search = ({ torrentSearchState }) => {
         )}
 
         {/* No Results */}
-        {!loading && results.length === 0 && (
+        {hasSearched && !loading && results.length === 0 && (
           <p className="py-10 text-center text-sm text-zinc-500">
             No results found
           </p>
+        )}
+
+        {!hasSearched && !loading && (
+          <div className="flex flex-col items-center justify-center py-12 sm:py-16 text-gray-500 dark:text-gray-400">
+            <FiSearch className="w-10 h-10 sm:w-12 sm:h-12 mb-4" />
+            <h3 className="text-base sm:text-lg font-semibold mb-2">
+              Search for Torrents
+            </h3>
+            <p className="text-sm sm:text-base text-center max-w-sm">
+              Enter your search term above to find torrents
+            </p>
+          </div>
         )}
       </div>
     </div>
