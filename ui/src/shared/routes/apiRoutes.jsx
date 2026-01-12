@@ -31,6 +31,7 @@ let apiRoutes = {
   transcodeStart: "/files/transcode/start",
   transcodeStop: "/files/transcode/stop",
   transcodeProgress: "/files/transcode/progress",
+  generatePublicUrl: "/files/generate-public-url",
 };
 
 Object.entries(apiRoutes).forEach(([key, value]) => {

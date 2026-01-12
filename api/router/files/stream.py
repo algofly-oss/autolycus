@@ -35,9 +35,7 @@ def get_chunk(full_path, byte1=None, byte2=None):
     return chunk, start, length, file_size
 
 
-@router.get("/stream")
-async def stream_file(request: Request, path: str = "", download: bool = False):
-    user_id = authenticate_user(request.cookies.get("session_token"))
+def handle_stream_file(request, path, download=False):
     try:
         # Convert the relative path to absolute path
         base_path = Path(os.getenv("DOWNLOAD_PATH", "/downloads"))
@@ -103,3 +101,9 @@ async def stream_file(request: Request, path: str = "", download: bool = False):
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/stream")
+async def stream_file(request: Request, path: str = "", download: bool = False):
+    user_id = authenticate_user(request.cookies.get("session_token"))
+    return handle_stream_file(request, path, download)

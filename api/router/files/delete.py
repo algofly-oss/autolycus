@@ -5,6 +5,7 @@ import os
 import shutil
 from .status import get_disk_usage
 from shared.sockets import emit
+from shared.factory import db
 
 router = APIRouter()
 
@@ -17,6 +18,23 @@ def delete_dir(abs_path: Path):
 async def delete_file(path: str, request: Request):
     user_id = authenticate_user(request.cookies.get("session_token"))
     try:
+        info_hash = path.split("/")[1]
+        full_path = os.path.join(os.getenv("DOWNLOAD_PATH", "/downloads"), path)
+        public_url = await db.public_urls.find_one(
+            {
+                "info_hash": info_hash,
+                "path": full_path,
+            }
+        )
+        if public_url:
+            # delete public url if exists
+            await db.public_urls.delete_one(
+                {
+                    "info_hash": info_hash,
+                    "path": full_path,
+                }
+            )
+
         # Convert the relative path to absolute path
         base_path = Path(os.getenv("DOWNLOAD_PATH", "/downloads"))
         abs_path = base_path / path
