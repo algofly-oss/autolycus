@@ -583,7 +583,7 @@ const Search = ({ torrentSearchState }) => {
           </p>
         )}
 
-        {!hasSearched && !loading && (
+        {!hasSearched && !loading && firstLoadFinished && (
           <div className="flex flex-col items-center justify-center py-12 sm:py-16 text-gray-500 dark:text-gray-400">
             <FiSearch className="w-10 h-10 sm:w-12 sm:h-12 mb-4" />
             <h3 className="text-base sm:text-lg font-semibold mb-2">
