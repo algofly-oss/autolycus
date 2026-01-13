@@ -99,6 +99,7 @@ const Search = ({ torrentSearchState }) => {
   });
 
   const [activeSource, setActiveSource] = useState("All");
+  const [titleFilter, setTitleFilter] = useState("");
   const abortRef = useRef(null);
   const toast = useToast();
 
@@ -282,10 +283,22 @@ const Search = ({ torrentSearchState }) => {
     return ["All", ...sorted];
   }, [sourceCounts]);
 
+  // const visibleResults = useMemo(() => {
+  //   if (activeSource === "All") return results;
+  //   return results.filter((r) => r.Tracker === activeSource);
+  // }, [results, activeSource]);
+
   const visibleResults = useMemo(() => {
-    if (activeSource === "All") return results;
-    return results.filter((r) => r.Tracker === activeSource);
-  }, [results, activeSource]);
+    let data =
+      activeSource === "All"
+        ? results
+        : results.filter((r) => r.Tracker === activeSource);
+
+    if (!titleFilter.trim()) return data;
+
+    const q = titleFilter.toLowerCase();
+    return data.filter((r) => (r.Title || "").toLowerCase().includes(q));
+  }, [results, activeSource, titleFilter]);
 
   const handleSearch = async () => {
     const trimmed = query.trim();
@@ -430,11 +443,24 @@ const Search = ({ torrentSearchState }) => {
         {/* Sort + Source Filters */}
         {results.length > 0 && (
           <>
-            <div className="flex flex-wrap gap-2">
-              <SortButton label="Name" value={SORT_KEYS.name} />
-              <SortButton label="Seeds" value={SORT_KEYS.seeds} />
-              <SortButton label="Size" value={SORT_KEYS.size} />
-              <SortButton label="Upload Date" value={SORT_KEYS.date} />
+            <div className="flex space-x-2">
+              <div className="flex flex-wrap gap-2 w-max">
+                <SortButton label="Name" value={SORT_KEYS.name} />
+                <SortButton label="Seeds" value={SORT_KEYS.seeds} />
+                <SortButton label="Size" value={SORT_KEYS.size} />
+                <SortButton label="Upload Date" value={SORT_KEYS.date} />
+              </div>
+
+              <div className="border-l my-0.5 dark:border-neutral-800" />
+
+              <div className="flex w-max rounded-full overflow-hidden">
+                <input
+                  value={titleFilter}
+                  onChange={(e) => setTitleFilter(e.target.value)}
+                  placeholder="Filter results by title"
+                  className="w-full px-3 text-xs bg-zinc-200 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 rounded-full outline-none"
+                />
+              </div>
             </div>
 
             <div className="flex flex-wrap gap-2">
