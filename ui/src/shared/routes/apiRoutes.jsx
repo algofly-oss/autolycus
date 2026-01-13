@@ -16,6 +16,7 @@ let apiRoutes = {
   getTorrentInfo: "/torrent/get",
   deleteTorrent: "/torrent/delete",
   searchTorrent: "/torrent/search",
+  searchImdbRedirect: "/torrent/search/imdb-redirect",
   getMagnet: "/torrent/search/get-magnet",
   downloadStatusTorrent: "/torrent/download-status",
 

@@ -1,5 +1,6 @@
 import { useRef, useState, useMemo, useEffect, use } from "react";
 import { useVirtualizer } from "@tanstack/react-virtual";
+import { Tooltip } from "@mantine/core";
 import Fuse from "fuse.js";
 import {
   FiSearch,
@@ -94,7 +95,7 @@ function VirtualizedResults({ items, onCopy, onDownload, filtersRef }) {
   const rowVirtualizer = useVirtualizer({
     count: items.length,
     getScrollElement: () => parentRef.current,
-    estimateSize: () => 80,
+    estimateSize: () => 85,
     overscan: 6,
   });
 
@@ -127,6 +128,11 @@ function VirtualizedResults({ items, onCopy, onDownload, filtersRef }) {
     return () => ro.disconnect();
   }, []);
 
+  function truncate(text, length = 100) {
+    if (typeof text !== "string") return "";
+    return text.length > length ? text.slice(0, length) + "..." : text;
+  }
+
   return (
     <div
       ref={parentRef}
@@ -150,7 +156,9 @@ function VirtualizedResults({ items, onCopy, onDownload, filtersRef }) {
               }}
             >
               <div className="flex items-start justify-between gap-3">
-                <p className="font-semibold leading-snug">{item.Title}</p>
+                <p className="font-semibold leading-snug text-sm">
+                  {truncate(item?.Title)}
+                </p>
 
                 <div className="flex items-center gap-2 shrink-0">
                   <button
@@ -191,10 +199,11 @@ function VirtualizedResults({ items, onCopy, onDownload, filtersRef }) {
                 )}
                 {item?.Details && (
                   <a
-                    href={`https://www.imdb.com/find/?q=${item.Title?.slice(
-                      0,
-                      20
-                    )}`}
+                    href={`${apiRoutes?.searchImdbRedirect}?q=${
+                      item?.parsed?.title
+                        ? `${item?.parsed?.title} ${item?.parsed?.year || ""}`
+                        : item.Title?.slice(0, 20)
+                    }`}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="hover:text-blue-500 transition"

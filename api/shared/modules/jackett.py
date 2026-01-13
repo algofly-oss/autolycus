@@ -2,6 +2,7 @@ import os
 import asyncio
 import httpx
 from typing import AsyncIterator, List, Optional
+from .torrent_name_parser import parse
 
 
 class AsyncJackett:
@@ -119,6 +120,10 @@ class AsyncJackett:
                             return
 
                         if item.get("Seeders", 0) > 0:
+                            try:
+                                item["parsed"] = parse(item["Title"])
+                            except Exception as e:
+                                print(e)
                             yield item
 
             finally:
