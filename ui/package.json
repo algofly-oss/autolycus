@@ -24,6 +24,7 @@
     "@mantine/tiptap": "^6.0.4",
     "@reduxjs/toolkit": "^1.9.3",
     "@tabler/icons-react": "^2.11.0",
+    "@tanstack/react-virtual": "^3.13.18",
     "@tiptap/extension-link": "^2.0.0-beta.220",
     "@tiptap/react": "^2.0.0-beta.220",
     "@tiptap/starter-kit": "^2.0.0-beta.220",

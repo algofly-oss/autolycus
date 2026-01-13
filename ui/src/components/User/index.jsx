@@ -41,7 +41,7 @@ export default function UserHome() {
         <UserNavBar tab={tab} setTab={setTab} />
       </div>
 
-      <div className="w-full md:h-screen md:overflow-y-auto md:light-scrollbar dark:md:dark-scrollbar">
+      <div className="w-full md:h-screen md:overflow-y-auto md:light-scrollbar dark:md:dark-scrollbar ">
         {tab === "Home" && <Home state={state} />}
         {tab === "Search" && <Search torrentSearchState={torrentSearchState} />}
       </div>

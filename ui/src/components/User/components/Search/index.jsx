@@ -1,4 +1,5 @@
 import { useRef, useState, useMemo, useEffect, use } from "react";
+import { useVirtualizer } from "@tanstack/react-virtual";
 import Fuse from "fuse.js";
 import {
   FiSearch,
@@ -87,6 +88,129 @@ const sortResults = (data, { key = SORT_KEYS.name, dir = "asc" } = {}) => {
   });
 };
 
+function VirtualizedResults({ items, onCopy, onDownload, filtersRef }) {
+  const parentRef = useRef(null);
+
+  const rowVirtualizer = useVirtualizer({
+    count: items.length,
+    getScrollElement: () => parentRef.current,
+    estimateSize: () => 80,
+    overscan: 6,
+  });
+
+  const updateOffset = () => {
+    if (!filtersRef.current) return;
+
+    const rect = filtersRef.current.getBoundingClientRect();
+    const distancePx = rect.bottom;
+
+    const rootFontSize = parseFloat(
+      getComputedStyle(document.documentElement).fontSize
+    );
+
+    const distanceRem = distancePx / rootFontSize;
+
+    document.documentElement.style.setProperty(
+      "--results-offset",
+      `${distanceRem + 2.5}rem`
+    );
+  };
+
+  useEffect(() => {
+    if (!filtersRef.current) return;
+
+    updateOffset();
+
+    const ro = new ResizeObserver(updateOffset);
+    ro.observe(filtersRef.current);
+
+    return () => ro.disconnect();
+  }, []);
+
+  return (
+    <div
+      ref={parentRef}
+      className={`h-[calc(100vh-var(--results-offset))] overflow-auto light-scrolbar dark:dark-scrollbar pr-1 rounded-lg`}
+    >
+      <ul
+        className="relative w-full"
+        style={{ height: rowVirtualizer.getTotalSize() }}
+      >
+        {rowVirtualizer.getVirtualItems().map((virtualRow) => {
+          const item = items[virtualRow.index];
+
+          return (
+            <li
+              key={virtualRow.key}
+              className="absolute left-0 w-full p-4 rounded-md
+                         bg-neutral-50 dark:bg-black
+                         hover:bg-zinc-100 dark:hover:bg-zinc-800 transition"
+              style={{
+                transform: `translateY(${virtualRow.start}px)`,
+              }}
+            >
+              <div className="flex items-start justify-between gap-3">
+                <p className="font-semibold leading-snug">{item.Title}</p>
+
+                <div className="flex items-center gap-2 shrink-0">
+                  <button
+                    onClick={() => onCopy(item)}
+                    className="p-1.5 rounded-md bg-zinc-200 hover:bg-zinc-300
+                             dark:bg-zinc-900 dark:hover:bg-zinc-700 transition"
+                    title="Copy magnet link"
+                  >
+                    <FiClipboard size={14} />
+                  </button>
+
+                  <button
+                    onClick={() => onDownload(item)}
+                    className="p-1.5 rounded-md bg-blue-500 text-white
+                             hover:bg-blue-600 transition"
+                    title="Download"
+                  >
+                    <FiDownload size={14} />
+                  </button>
+                </div>
+              </div>
+
+              <div className="text-xs text-zinc-500 flex gap-4 flex-wrap mt-1">
+                {item?.Seeders !== undefined && <span>🌱 {item.Seeders}</span>}
+                {item?.Size && <span>📦 {formatBytes(item.Size)}</span>}
+                {item?.PublishDate && (
+                  <span>📅 {formatDate(item.PublishDate)}</span>
+                )}
+                {item?.Tracker && (
+                  <a
+                    href={item.Details}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="hover:text-blue-500 transition"
+                  >
+                    🔎 {item.Tracker}
+                  </a>
+                )}
+                {item?.Details && (
+                  <a
+                    href={`https://www.imdb.com/find/?q=${item.Title?.slice(
+                      0,
+                      20
+                    )}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="hover:text-blue-500 transition"
+                  >
+                    🌐 IMDB
+                  </a>
+                )}
+              </div>
+            </li>
+          );
+        })}
+      </ul>
+    </div>
+  );
+}
+
 const Search = ({ torrentSearchState }) => {
   const [firstLoadFinished, setFirstLoadFinished] = useState(false);
   const [query, setQuery] = useState("");
@@ -102,6 +226,7 @@ const Search = ({ torrentSearchState }) => {
   const [activeSource, setActiveSource] = useState("All");
   const [titleFilter, setTitleFilter] = useState("");
   const abortRef = useRef(null);
+  const filtersRef = useRef(null);
   const toast = useToast();
 
   useEffect(() => {
@@ -312,7 +437,7 @@ const Search = ({ torrentSearchState }) => {
         ? results
         : results.filter((r) => r.Tracker === activeSource);
 
-    if (!titleFilter.trim()) return data;
+    if (!titleFilter?.trim()) return data;
 
     const res = fuse.search(titleFilter);
 
@@ -465,7 +590,7 @@ const Search = ({ torrentSearchState }) => {
 
         {/* Sort + Source Filters */}
         {results.length > 0 && (
-          <>
+          <div ref={filtersRef}>
             <div className="flex space-x-2">
               <div className="flex flex-wrap gap-2 w-max">
                 <SortButton label="Name" value={SORT_KEYS.name} />
@@ -486,7 +611,7 @@ const Search = ({ torrentSearchState }) => {
               </div>
             </div>
 
-            <div className="flex flex-wrap gap-2">
+            <div className="flex flex-wrap gap-2 mt-2">
               {sources.map((src) => {
                 const count =
                   src === "All" ? results.length : sourceCounts[src] ?? 0;
@@ -509,7 +634,7 @@ const Search = ({ torrentSearchState }) => {
                 );
               })}
             </div>
-          </>
+          </div>
         )}
 
         {/* Loader */}
@@ -521,71 +646,12 @@ const Search = ({ torrentSearchState }) => {
 
         {/* Results */}
         {visibleResults.length > 0 && (
-          <ul className="space-y-1">
-            {visibleResults.map((item, i) => (
-              <li
-                key={i}
-                className="p-4 rounded-md bg-neutral-50 dark:bg-black hover:bg-zinc-100 dark:hover:bg-zinc-800 transition"
-              >
-                <div className="flex items-start justify-between gap-3">
-                  <p className="font-semibold leading-snug">{item.Title}</p>
-
-                  <div className="flex items-center gap-2 shrink-0">
-                    <button
-                      onClick={() => handleCopyMagnet(item)}
-                      className="p-1.5 rounded-md bg-zinc-200 hover:bg-zinc-300
-                               dark:bg-zinc-900 dark:hover:bg-zinc-700 transition"
-                      title="Copy magnet link"
-                    >
-                      <FiClipboard size={14} />
-                    </button>
-
-                    <button
-                      onClick={() => handleDownload(item)}
-                      className="p-1.5 rounded-md bg-blue-500 text-white
-                               hover:bg-blue-600 transition"
-                      title="Download"
-                    >
-                      <FiDownload size={14} />
-                    </button>
-                  </div>
-                </div>
-
-                <div className="text-xs text-zinc-500 flex gap-4 flex-wrap mt-1">
-                  {item?.Seeders !== undefined && (
-                    <span>🌱 {item.Seeders}</span>
-                  )}
-                  {item?.Size && <span>📦 {formatBytes(item.Size)}</span>}
-                  {item?.PublishDate && (
-                    <span>📅 {formatDate(item.PublishDate)}</span>
-                  )}
-                  {item?.Tracker && (
-                    <a
-                      href={item?.Details}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="hover:text-blue-500 transition"
-                    >
-                      🔎 {item.Tracker}
-                    </a>
-                  )}
-                  {item?.Details && (
-                    <a
-                      href={`https://www.imdb.com/find/?q=${item?.Title?.slice(
-                        0,
-                        20
-                      )}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="hover:text-blue-500 transition"
-                    >
-                      🌐 IMDB
-                    </a>
-                  )}
-                </div>
-              </li>
-            ))}
-          </ul>
+          <VirtualizedResults
+            items={visibleResults}
+            onCopy={handleCopyMagnet}
+            onDownload={handleDownload}
+            filtersRef={filtersRef}
+          />
         )}
 
         {/* No Results */}
