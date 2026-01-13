@@ -107,6 +107,7 @@ const Search = ({ torrentSearchState }) => {
     let searchResults = torrentSearchState.get("results") || [];
     if (!query && !results?.length) {
       setQuery(torrentSearchState.get("query"));
+      setTitleFilter(torrentSearchState.get("titleFilter"));
       setSort(torrentSearchState.get("sort"));
       setActiveSource(torrentSearchState.get("activeSource"));
       setResults(searchResults);
@@ -203,6 +204,14 @@ const Search = ({ torrentSearchState }) => {
   useEffect(() => {
     if (firstLoadFinished) {
       torrentSearchState.set({
+        titleFilter: titleFilter,
+      });
+    }
+  }, [titleFilter]);
+
+  useEffect(() => {
+    if (firstLoadFinished) {
+      torrentSearchState.set({
         results: results,
       });
     }
@@ -282,11 +291,6 @@ const Search = ({ torrentSearchState }) => {
 
     return ["All", ...sorted];
   }, [sourceCounts]);
-
-  // const visibleResults = useMemo(() => {
-  //   if (activeSource === "All") return results;
-  //   return results.filter((r) => r.Tracker === activeSource);
-  // }, [results, activeSource]);
 
   const visibleResults = useMemo(() => {
     let data =
