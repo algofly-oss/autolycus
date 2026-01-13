@@ -583,17 +583,20 @@ const Search = ({ torrentSearchState }) => {
           </p>
         )}
 
-        {!hasSearched && !loading && firstLoadFinished && (
-          <div className="flex flex-col items-center justify-center py-12 sm:py-16 text-gray-500 dark:text-gray-400">
-            <FiSearch className="w-10 h-10 sm:w-12 sm:h-12 mb-4" />
-            <h3 className="text-base sm:text-lg font-semibold mb-2">
-              Search for Torrents
-            </h3>
-            <p className="text-sm sm:text-base text-center max-w-sm">
-              Enter your search term above to find torrents
-            </p>
-          </div>
-        )}
+        {!hasSearched &&
+          !loading &&
+          firstLoadFinished &&
+          !results?.length > 0 && (
+            <div className="flex flex-col items-center justify-center py-12 sm:py-16 text-gray-500 dark:text-gray-400">
+              <FiSearch className="w-10 h-10 sm:w-12 sm:h-12 mb-4" />
+              <h3 className="text-base sm:text-lg font-semibold mb-2">
+                Search for Torrents
+              </h3>
+              <p className="text-sm sm:text-base text-center max-w-sm">
+                Enter your search term above to find torrents
+              </p>
+            </div>
+          )}
       </div>
     </div>
   );
