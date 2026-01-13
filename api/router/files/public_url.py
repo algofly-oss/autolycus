@@ -31,7 +31,7 @@ async def generate_public_url(payload: Payload, request: Request):
     torrent_name = ""
     torrent = await db.torrents.find_one({"info_hash": info_hash})
     if torrent:
-        torrent_name = torrent.get("name")
+        torrent_name = torrent.get("name", "")
 
     path_hash = hashlib.md5(f"{info_hash}/{payload.path}".encode()).hexdigest()[:10]
 

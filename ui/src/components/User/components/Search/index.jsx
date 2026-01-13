@@ -384,23 +384,30 @@ const Search = ({ torrentSearchState }) => {
     );
   };
 
-  // if (!firstLoadFinished) {
-  //   return null;
-  // }
-
   return (
     <div className="flex justify-center">
-      <div className="m-4 pb-16 md:pb-6 xl:m-8 relative overflow-y-auto overflow-x-hidden 2xl:w-[80rem] w-full p-4 space-y-4">
+      <div className="mt-4 pb-16 md:pb-6 relative overflow-y-auto overflow-x-hidden 2xl:w-[82rem] w-full p-4 space-y-4">
         {/* Search Bar */}
-        <div className="flex w-full h-12 rounded-lg overflow-hidden">
-          <input
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && handleSearch()}
-            // disabled={loading}
-            placeholder="Search torrent here"
-            className="flex-1 px-4 text-sm bg-zinc-100 dark:bg-black text-zinc-900 dark:text-zinc-100 outline-none"
-          />
+        <div className="flex w-full h-[3.2rem] rounded-lg overflow-hidden">
+          <div className="relative flex-1">
+            <input
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && handleSearch()}
+              // disabled={loading}
+              placeholder="Search torrent here"
+              className="w-full h-full px-4 pr-10 text-sm bg-zinc-100 dark:bg-black text-zinc-900 dark:text-zinc-100 outline-none"
+            />
+            {query && (
+              <button
+                onClick={() => setQuery("")}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200"
+                aria-label="Clear search"
+              >
+                <FiX size={16} />
+              </button>
+            )}
+          </div>
           <button
             onClick={loading ? handleCancel : handleSearch}
             className={`w-12 flex items-center justify-center text-white ${
