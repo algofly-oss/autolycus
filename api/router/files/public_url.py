@@ -4,9 +4,10 @@ from fastapi import APIRouter, HTTPException, Request
 from ..auth.common import authenticate_user
 from pydantic import BaseModel
 from shared.factory import db
+from shared.modules.torrent_name_parser import parse_title
 from datetime import datetime
 from .stream import handle_stream_file
-
+import traceback
 
 router = APIRouter()
 
@@ -27,27 +28,48 @@ async def generate_public_url(payload: Payload, request: Request):
     if not os.path.exists(payload.path):
         raise HTTPException(status_code=404, detail="Path not found")
 
-    path_hash = hashlib.md5(payload.path.encode()).hexdigest()[:10]
+    torrent_name = ""
+    torrent = await db.torrents.find_one({"info_hash": info_hash})
+    if torrent:
+        torrent_name = torrent.get("name")
+
+    path_hash = hashlib.md5(f"{info_hash}/{payload.path}".encode()).hexdigest()[:10]
+
+    try:
+        title = parse_title(torrent_name + " " + os.path.basename(payload.path))
+        title, ext = os.path.splitext(title)
+        title = f"{title}-{path_hash}{ext}"
+    except Exception as e:
+        title = path_hash
+        traceback.print_exc()
 
     if not await db.public_urls.find_one(
-        {"user_id": user_id.decode(), "info_hash": info_hash, "key": path_hash}
+        {"user_id": user_id.decode(), "info_hash": info_hash, "path_hash": path_hash}
     ):
         await db.public_urls.insert_one(
             {
                 "user_id": user_id.decode(),
-                "key": path_hash,
-                "path": payload.path,
                 "info_hash": info_hash,
+                "path_hash": path_hash,
+                "path": payload.path,
+                "title": title,
                 "created_at": datetime.now(),
             }
         )
 
-    return {"key": path_hash}
+    return {"key": title}
 
 
 @router.get("/public/{key}")
 async def public_file_access(request: Request, key: str, download: str = "false"):
-    path = await db.public_urls.find_one({"key": key})
+    path = await db.public_urls.find_one(
+        {
+            "$or": [
+                {"title": key},
+                {"path_hash": key},
+            ]
+        }
+    )
     if not path:
         raise HTTPException(status_code=404, detail="Public URL not found")
 

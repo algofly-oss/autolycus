@@ -4,7 +4,6 @@ from fastapi import APIRouter, Request, HTTPException
 from ..auth.common import authenticate_user
 from fastapi.responses import StreamingResponse, Response
 from shared.factory import jackett
-import requests
 
 router = APIRouter()
 
