@@ -389,7 +389,9 @@ const Search = ({ torrentSearchState }) => {
     const controller = new AbortController();
     abortRef.current = controller;
 
+    setTitleFilter("");
     setResults([]);
+
     setSort({
       key: SORT_KEYS.name,
       dir: "asc",
