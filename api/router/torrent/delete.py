@@ -33,8 +33,8 @@ async def delete_torrent(request: DeleteTorrentRequest, request_obj: Request):
     )
 
     if torrent:
-        if not torrent["is_finished"]:
-            db.torrents.update_one(
+        if not torrent.get("is_finished"):
+            await db.torrents.update_one(
                 {"_id": torrent["_id"]}, {"$set": {"is_paused": True}}
             )
             redis.set(f"{user_id}/{torrent['info_hash']}/stop", 1)
@@ -48,12 +48,25 @@ async def delete_torrent(request: DeleteTorrentRequest, request_obj: Request):
                     break
                 await asyncio.sleep(1)
 
+        public_urls_cursor = db.public_urls.find(
+            {
+                "info_hash": torrent.get("info_hash"),
+            }
+        )
+        public_urls = await public_urls_cursor.to_list(length=None)
+        if public_urls:
+            await db.public_urls.delete_many(
+                {
+                    "info_hash": torrent.get("info_hash"),
+                }
+            )
+
         # Delete the folder stored at save_dir
         save_dir = torrent.get("save_dir")
         if save_dir and os.path.exists(save_dir):
             delete_dir(save_dir)
 
-        db.torrents.delete_one({"_id": torrent["_id"]})
+        await db.torrents.delete_one({"_id": torrent["_id"]})
 
         emit(
             f"/stc/torrent-added-or-removed",

@@ -22,19 +22,19 @@ async def connect(sid, environ, auth):
             user_id = user_id.decode()
             await sio.enter_room(sid, user_id)
 
-    print(f"{sid}: connected")
+    # print(f"{sid}: connected")
     await sio.emit("join", {"sid": sid})
 
 
 @sio.event
 async def disconnect(sid):
-    print(f"{sid}: disconnected")
+    # print(f"{sid}: disconnected")
     await sio.disconnect(sid)
 
 
 def emit(event_name, data, user_id):
     async def _emit(event_name, data, user_id):
-        try:            
+        try:
             if asyncio.iscoroutine(data):
                 return
             await sio.emit(event_name, data=data, room=str(user_id))

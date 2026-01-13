@@ -2,6 +2,7 @@ import { formatFileSize, getFileType } from "@/shared/utils/fileUtils";
 import FileIcon from "./FileIcon";
 import FileMenu from "./FileMenu";
 import { FiCopy, FiTrash2, FiDownload, FiStopCircle } from "react-icons/fi";
+import { HiOutlineLink } from "react-icons/hi";
 import { BsBoxArrowRight } from "react-icons/bs";
 import { FaRegFileArchive } from "react-icons/fa";
 import { MdDriveFileRenameOutline } from "react-icons/md";
@@ -65,6 +66,15 @@ const FileItem = ({
     // show normal actions based on file type
     return [
       ...DEFAULT_ACTIONS,
+      ...(getFileType(item.name) === "video"
+        ? [
+            {
+              name: "Copy Link",
+              icon: HiOutlineLink,
+              action: "copy_link",
+            },
+          ]
+        : []),
       ...(item.is_directory
         ? [{ name: "Archive", icon: FaRegFileArchive, action: "archive" }]
         : [{ name: "Download", icon: FiDownload, action: "download" }]),
@@ -109,6 +119,27 @@ const FileItem = ({
     }
   };
 
+  const generatePublicUrl = (initialPath, item) => {
+    let filePath = `${initialPath}/${item?.name}`;
+    axios
+      .post(apiRoutes?.generatePublicUrl, { path: filePath })
+      .then((res) => {
+        if (res?.data?.key) {
+          let url = `${window.location.origin}/api/files/public/${res?.data?.key}`;
+          const el = document.createElement("textarea");
+          el.value = url;
+          document.body.appendChild(el);
+          el.select();
+          document.execCommand("copy");
+          document.body.removeChild(el);
+          toast.success("Link Copied to Clipboard");
+        }
+      })
+      .catch((err) => {
+        //
+      });
+  };
+
   const handleFileAction = async (action, item) => {
     switch (action) {
       case "copy":
@@ -121,6 +152,9 @@ const FileItem = ({
         break;
       case "delete":
         setDeleteDialog({ open: true, item });
+        break;
+      case "copy_link":
+        generatePublicUrl(initialPath, item);
         break;
       case "download":
         try {

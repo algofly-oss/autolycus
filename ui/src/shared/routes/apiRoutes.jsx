@@ -16,6 +16,7 @@ let apiRoutes = {
   getTorrentInfo: "/torrent/get",
   deleteTorrent: "/torrent/delete",
   searchTorrent: "/torrent/search",
+  searchImdbRedirect: "/torrent/search/imdb-redirect",
   getMagnet: "/torrent/search/get-magnet",
   downloadStatusTorrent: "/torrent/download-status",
 
@@ -31,6 +32,7 @@ let apiRoutes = {
   transcodeStart: "/files/transcode/start",
   transcodeStop: "/files/transcode/stop",
   transcodeProgress: "/files/transcode/progress",
+  generatePublicUrl: "/files/generate-public-url",
 };
 
 Object.entries(apiRoutes).forEach(([key, value]) => {

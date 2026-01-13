@@ -2,6 +2,9 @@ import os
 import motor.motor_asyncio
 from redis import Redis
 from .env import *
+from .modules.jackett import AsyncJackett
+
+jackett = AsyncJackett(apikey=JACKETT_API_KEY)
 
 # Initialize Redis
 redis = Redis(
