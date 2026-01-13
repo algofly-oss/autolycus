@@ -1,4 +1,5 @@
 import { useRef, useState, useMemo, useEffect, use } from "react";
+import Fuse from "fuse.js";
 import {
   FiSearch,
   FiX,
@@ -292,6 +293,19 @@ const Search = ({ torrentSearchState }) => {
     return ["All", ...sorted];
   }, [sourceCounts]);
 
+  const fuse = useMemo(() => {
+    return new Fuse(results, {
+      keys: [
+        { name: "Title", weight: 1 },
+        { name: "Tracker", weight: 0.2 },
+      ],
+      threshold: 0.35, // lower = stricter
+      ignoreLocation: true,
+      minMatchCharLength: 2,
+      useExtendedSearch: true,
+    });
+  }, [results]);
+
   const visibleResults = useMemo(() => {
     let data =
       activeSource === "All"
@@ -300,9 +314,14 @@ const Search = ({ torrentSearchState }) => {
 
     if (!titleFilter.trim()) return data;
 
-    const q = titleFilter.toLowerCase();
-    return data.filter((r) => (r.Title || "").toLowerCase().includes(q));
-  }, [results, activeSource, titleFilter]);
+    const res = fuse.search(titleFilter);
+
+    return res
+      .map((r) => r.item)
+      .filter((r) =>
+        activeSource === "All" ? true : r.Tracker === activeSource
+      );
+  }, [results, activeSource, titleFilter, fuse]);
 
   const handleSearch = async () => {
     const trimmed = query.trim();
