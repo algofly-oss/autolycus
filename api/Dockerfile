@@ -6,7 +6,7 @@ COPY . .
 ENV DEBIAN_FRONTEND=noninteractive
 RUN apt-get update -y \
     && apt-get install python3-libtorrent ffmpeg -y \
-    && apt-get install gcc libpq-dev rsync handbrake handbrake-cli -y
+    && apt-get install gcc libpq-dev rsync handbrake handbrake-cli aria2 -y
 
 # Install python packages
 ENV PYTHONPATH="/usr/lib/python3/dist-packages":$PYTHONPATH

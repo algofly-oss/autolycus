@@ -1,3 +1,4 @@
+import hashlib
 from fastapi import APIRouter, Request, Response, HTTPException, UploadFile, File
 from pydantic import BaseModel
 from shared.factory import db, redis
@@ -5,6 +6,7 @@ from shared.sockets import emit
 from ..auth.common import authenticate_user
 from .common import (
     MagnetDto,
+    UrlDto,
     magnet_utils,
     pause_unfinished_torrents,
     update_to_db,
@@ -17,6 +19,10 @@ import asyncio
 import datetime
 import tempfile
 import os
+import subprocess as sp
+import traceback
+import json
+from tasks.download_from_url import download_from_url
 
 router = APIRouter()
 
@@ -72,10 +78,11 @@ async def add_torrent(dto: MagnetDto, request: Request):
 
     return {"message": "Magnet Exists" if already_exists else "Magnet Added"}
 
+
 @router.post("/add-file")
 async def add_torrent_file(request: Request, torrent: UploadFile = File(...)):
     user_id = authenticate_user(request.cookies.get("session_token")).decode("utf-8")
-    
+
     # Save the uploaded file temporarily
     with tempfile.NamedTemporaryFile(delete=False, suffix=".torrent") as temp_file:
         content = await torrent.read()
@@ -86,7 +93,7 @@ async def add_torrent_file(request: Request, torrent: UploadFile = File(...)):
         lt_session = LibTorrentSession(redis=redis)
         # Convert .torrent file to magnet link
         magnet = lt_session._get_magnet_from_torrent_file(temp_file_path)
-        
+
         # extract info_hash from magnet
         info_hash = magnet_utils._clean_magnet_uri(magnet).split(":")[3][:40]
 
@@ -132,3 +139,93 @@ async def add_torrent_file(request: Request, torrent: UploadFile = File(...)):
     finally:
         # Clean up the temporary file
         os.unlink(temp_file_path)
+
+
+def get_filename_from_url(url):
+    result = sp.run(
+        f"aria2c --check-certificate=false --console-log-level=info --dry-run '{url}'",
+        shell=True,
+        stdout=sp.PIPE,
+        stderr=sp.PIPE,
+        text=True,
+    )
+
+    response = {"filename": None, "content_type": None, "content_length": None}
+    if result.returncode == 0:
+        for line in result.stdout.splitlines():
+            if "Download complete:" in line:
+                try:
+                    path = line.split("Download complete:", 1)[1].strip()
+                    response["filename"] = path.split("/")[-1]
+                except:
+                    traceback.print_exc()
+
+            elif "Content-Type:" in line:
+                try:
+                    response["content_type"] = line.split(": ")[-1]
+                except:
+                    traceback.print_exc()
+
+            elif "Content-Length:" in line:
+                try:
+                    response["content_length"] = int(line.split(": ")[-1])
+                except:
+                    traceback.print_exc()
+    else:
+        print(f"Error: {result.stderr}")
+
+    return response
+
+
+@router.post("/add-url")
+async def direct_download(dto: UrlDto, request: Request):
+    user_id = authenticate_user(request.cookies.get("session_token")).decode("utf-8")
+
+    try:
+        file_info = get_filename_from_url(dto.url)
+        if (not file_info.get("filename")) or file_info.get(
+            "content_type"
+        ) != "application/octet-stream":
+            raise HTTPException(status_code=404, detail="Invalid URL")
+
+        url_hash = hashlib.md5(dto.url.encode()).hexdigest()
+        save_dir = f"/downloads/{user_id}/{url_hash}"
+
+        already_exists = await db.torrents.find_one(
+            {"url_hash": url_hash, "user_id": ObjectId(str(user_id))},
+        )
+
+        obj = {
+            "user_id": ObjectId(str(user_id)),
+            "name": file_info.get("filename", "Unknown"),
+            "is_direct_download": True,
+            "url": dto.url,
+            "url_hash": url_hash,
+            "ok": True,
+            "download_speed": 0,
+            "downloaded_bytes": 0,
+            "total_bytes": file_info.get("content_length", 0),
+            "progress": 0,
+            "save_dir": save_dir,
+            "is_paused": False,
+            "is_finished": False,
+            "created_at": datetime.datetime.now(),
+        }
+
+        if already_exists:
+            return {"message": "URL Exists"}
+
+        await db.torrents.insert_one(obj)
+
+        result = download_from_url.delay(dto.url, url_hash, save_dir, str(user_id))
+
+        emit(
+            f"/stc/torrent-added-or-removed",
+            {"action": "added", "url_hash": url_hash},
+            user_id,
+        )
+
+        return {"message": "URL added"}
+    except Exception as e:
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail="Failed to add URL")
