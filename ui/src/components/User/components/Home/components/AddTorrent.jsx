@@ -25,7 +25,15 @@ export default function AddTorrent() {
         magnetLink.trim().toLowerCase().startsWith("http://") ||
         magnetLink.trim().toLowerCase().startsWith("https://")
       ) {
-        toast.error("Download link not supported yet");
+        axios
+          .post(apiRoutes.addDirectDownload, { url: magnetLink })
+          .then((res) => {
+            toast.success("URL added");
+            setMagnetLink("");
+          })
+          .catch((err) => {
+            toast.error("Unable to add URL");
+          });
       } else if (
         magnetLink.trim().length === 40 ||
         magnetLink.trim().length === 256

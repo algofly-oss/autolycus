@@ -9,8 +9,13 @@ import os
 import glob
 import asyncio
 
+
 class MagnetDto(BaseModel):
     magnet: str
+
+
+class UrlDto(BaseModel):
+    url: str
 
 
 magnet_utils = MagnetUtils()
@@ -70,8 +75,11 @@ async def pause_unfinished_torrents():
             "$or": [{"is_finished": False}, {"is_finished": {"$exists": False}}],
             "$or": [{"is_paused": False}, {"is_paused": {"$exists": False}}],
         },
-        {"_id": True},
+        {"_id": True, "is_direct_download": True},
     ):
+        if torrent.get("is_direct_download"):
+            continue
+
         await db.torrents.update_one(
             {"_id": torrent.get("_id")},
             {"$set": {"is_paused": True, "download_speed": 0}},

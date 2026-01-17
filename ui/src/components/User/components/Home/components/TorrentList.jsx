@@ -70,12 +70,16 @@ export default function TorrentList({ state, onPathChange }) {
     // listen for torrent props update via socket.io for each torrent in torrentList
     torrentList.forEach((torrent) => {
       socket.on(
-        socketRoutes.stcTorrentPropsUpdate + `/${torrent.info_hash}`,
+        socketRoutes.stcTorrentPropsUpdate +
+          `/${torrent?.info_hash || torrent?.url_hash}`,
         (data) => {
-          if (data?.info_hash) {
+          if (data?.info_hash || data?.url_hash) {
+            // console.log("received progress data", data);
             setTorrentList((prevTorrentList) =>
               prevTorrentList.map((t) =>
-                t.info_hash === data?.info_hash ? { ...t, ...data } : t
+                t.info_hash === data?.info_hash || t.url_hash === data?.url_hash
+                  ? { ...t, ...data }
+                  : t
               )
             );
           }

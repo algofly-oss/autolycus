@@ -9,6 +9,7 @@ let apiRoutes = {
 
   // torrents
   addMagnet: "/torrent/add",
+  addDirectDownload: "/torrent/add-url",
   addTorrent: "/torrent/add-file",
   pauseTorrent: "/torrent/pause",
   resumeTorrent: "/torrent/resume",

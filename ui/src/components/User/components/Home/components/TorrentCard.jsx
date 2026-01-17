@@ -36,8 +36,13 @@ const TorrentCard = ({ torrentData }) => {
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
 
   const resumeTorrent = () => {
+    let postfix = `?info_hash=${info_hash}`;
+    if (torrentData?.is_direct_download) {
+      postfix = `?info_hash=url_hash_${torrentData?.url_hash}`;
+    }
+
     axios
-      .post(apiRoutes.resumeTorrent + `?info_hash=${info_hash}`)
+      .post(apiRoutes.resumeTorrent + postfix)
       .then((res) => {
         // console.log(res);
       })
@@ -45,8 +50,13 @@ const TorrentCard = ({ torrentData }) => {
   };
 
   const pauseTorrent = () => {
+    let postfix = `?info_hash=${info_hash}`;
+    if (torrentData?.is_direct_download) {
+      postfix = `?info_hash=url_hash_${torrentData?.url_hash}`;
+    }
+
     axios
-      .post(apiRoutes.pauseTorrent + `?info_hash=${info_hash}`)
+      .post(apiRoutes.pauseTorrent + postfix)
       .then((res) => {
         // console.log(res);
       })
@@ -54,9 +64,14 @@ const TorrentCard = ({ torrentData }) => {
   };
 
   const handleDelete = async () => {
+    let hash = info_hash;
+    if (torrentData?.is_direct_download) {
+      hash = `url_hash_${torrentData?.url_hash}`;
+    }
+
     try {
       const res = await axios.post(apiRoutes.deleteTorrent, {
-        info_hash: torrentData.info_hash,
+        info_hash: hash,
       });
       toast.success("Torrent deleted successfully");
       setIsDeleteDialogOpen(false);
@@ -67,20 +82,26 @@ const TorrentCard = ({ torrentData }) => {
   };
 
   const copyMagnetToClipBoard = async () => {
-    if (torrentData?.magnet) {
+    if (torrentData?.magnet || torrentData?.url) {
       const el = document.createElement("textarea");
-      el.value = torrentData?.magnet;
+      el.value = torrentData?.magnet || torrentData?.url;
       document.body.appendChild(el);
       el.select();
       document.execCommand("copy");
       document.body.removeChild(el);
-      toast.success("Magnet copied to clipboard");
+      if (torrentData?.magnet) {
+        toast.success("Magnet copied to clipboard");
+      } else if (torrentData?.url) {
+        toast.success("URL copied to clipboard");
+      } else {
+        toast.error("Magnet not found");
+      }
     }
   };
 
   const actions = [
     {
-      name: "Copy Magnet",
+      name: torrentData?.is_direct_download ? "Copy URL" : "Copy Magnet",
       icon: BiCopy,
       action: "copy-magnet",
     },
