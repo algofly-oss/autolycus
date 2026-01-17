@@ -77,9 +77,7 @@ export default function TorrentList({ state, onPathChange }) {
             // console.log("received progress data", data);
             setTorrentList((prevTorrentList) =>
               prevTorrentList.map((t) =>
-                t.info_hash === data?.info_hash || t.url_hash === data?.url_hash
-                  ? { ...t, ...data }
-                  : t
+                t.info_hash === data?.info_hash ? { ...t, ...data } : t
               )
             );
           }
