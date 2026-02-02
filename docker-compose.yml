@@ -114,10 +114,11 @@ services:
       - ${APP_HTTPS_PORT}:443
     volumes:
       - ./proxy/nginx.conf:/etc/nginx/templates/default.conf.template
-      - ./proxy/certificate/server.crt:/etc/ssl/certs/server.crt
-      - ./proxy/certificate/server.key:/etc/ssl/certs/server.key
+      - ./api/certificate/server.crt:/etc/ssl/certs/server.crt
+      - ./api/certificate/server.key:/etc/ssl/certs/server.key
     restart: always
     depends_on:
+      - api
       - ui
     networks:
       - autolycus_network
