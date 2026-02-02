@@ -12,17 +12,6 @@ if [ ! -d "/app/jackett" ]; then
     fi
 fi
 
-# Configure SSL Certificate
-if [ ! -d "/app/certificate" ]; then
-    echo "Certificate directory not found, running generate_certificate.sh..."
-    if [ -f "/app/generate_certificate.sh" ]; then
-        bash ./generate_certificate.sh
-    else
-        echo "Error: generate_certificate.sh not found!"
-        exit 1
-    fi
-fi
-
 # Start Celery Worker
 celery -A celery_worker worker -Q transcoding --concurrency=$CELERY_NUM_WORKERS --loglevel=info -E &
 
