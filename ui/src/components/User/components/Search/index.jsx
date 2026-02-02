@@ -70,9 +70,12 @@ const Search = ({ torrentSearchState }) => {
   const [results, setResults] = useState([]);
   const [loading, setLoading] = useState(false);
   const [hasSearched, setHasSearched] = useState(false);
+  const [sourceOrder, setSourceOrder] = useState([]);
+  const [reorderPulse, setReorderPulse] = useState(false);
 
   const [sort, setSortState] = useState(INITIAL_SORT);
   const sortRef = useRef(INITIAL_SORT);
+  const prevLoadingRef = useRef(false);
 
   const updateSort = (nextSort) => {
     sortRef.current = nextSort;
@@ -136,6 +139,17 @@ const Search = ({ torrentSearchState }) => {
     }
   }, [activeSource, sort]);
 
+  useEffect(() => {
+    const wasLoading = prevLoadingRef.current;
+    prevLoadingRef.current = loading;
+
+    if (wasLoading && !loading && results.length > 0) {
+      setReorderPulse(true);
+      const timeout = setTimeout(() => setReorderPulse(false), 220);
+      return () => clearTimeout(timeout);
+    }
+  }, [loading, results.length]);
+
   const extractMagnet = (item) => {
     let toastPrefix = "Magnet";
     let magnet = item?.MagnetUri;
@@ -195,6 +209,10 @@ const Search = ({ torrentSearchState }) => {
   }, [results]);
 
   const sources = useMemo(() => {
+    if (loading) {
+      return ["All", ...sourceOrder];
+    }
+
     const sorted = Object.entries(sourceCounts)
       .sort(([trackA, countA], [trackB, countB]) => {
         const countDiff = countB - countA;
@@ -204,7 +222,7 @@ const Search = ({ torrentSearchState }) => {
       .map(([tracker]) => tracker);
 
     return ["All", ...sorted];
-  }, [sourceCounts]);
+  }, [loading, sourceCounts, sourceOrder]);
 
   const fuse = useMemo(() => {
     return new Fuse(results, {
@@ -252,6 +270,7 @@ const Search = ({ torrentSearchState }) => {
 
     setTitleFilter(trimmed);
     setResults([]);
+    setSourceOrder([]);
     updateSort(INITIAL_SORT);
     setActiveSource("All");
     setLoading(true);
@@ -283,6 +302,12 @@ const Search = ({ torrentSearchState }) => {
         for (const line of lines) {
           if (!line.trim()) continue;
           const item = JSON.parse(line);
+
+          if (item?.Tracker) {
+            setSourceOrder((prev) =>
+              prev.includes(item.Tracker) ? prev : [...prev, item.Tracker]
+            );
+          }
 
           setResults((prev) =>
             sortResults([...prev, item], sortRef.current ?? sort)
@@ -339,6 +364,7 @@ const Search = ({ torrentSearchState }) => {
               setActiveSource={setActiveSource}
               sourceCounts={sourceCounts}
               resultsCount={results.length}
+              reorderPulse={reorderPulse}
             />
           </div>
         )}

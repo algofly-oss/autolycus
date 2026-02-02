@@ -32,6 +32,7 @@ const SortFilters = ({
   setActiveSource,
   sourceCounts,
   resultsCount,
+  reorderPulse,
 }) => (
   <div>
     <div className="flex space-x-2">
@@ -54,7 +55,7 @@ const SortFilters = ({
       </div>
     </div>
 
-    <div className="flex flex-wrap gap-2 mt-2">
+    <div className={`flex flex-wrap gap-2 mt-2 ${reorderPulse ? "bubble-reorder" : ""}`}>
       {sources.map((src) => {
         const count = src === "All" ? resultsCount : sourceCounts[src] ?? 0;
 
