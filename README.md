@@ -4,8 +4,6 @@
 [![Issues][issues-shield]][issues-url]
 [![LinkedIn][linkedin-shield]][linkedin-url]
 
-
-
 <br />
 
 <p align="center">
@@ -56,6 +54,7 @@
 <!-- ABOUT THE PROJECT -->
 
 ## About The Project
+
 **Note:**
 
 - This project started as a personal project to learn about react and docker. This was my first time working with react so the code might not be the best, I have certainly learned a lot from this project and maintaining or updating it is just too much work for me, so I have decided to open source it.
@@ -66,16 +65,13 @@
 
 - The libtorrent module in this repository is now updated to use more connection threads, so that the download speed is increased (Make sure to use full magnet uri which also includes the trackers).
 
-
-
-
 ![App Home](images/mobile-views-combined.png)
 
 There are lot of times when you want to access the specific content of a torrent file but don't want to waste bandwidth on downloading the entire file, this can be solved by downloading the file on a remote server and then browsing through the files.
 
-* With remote file browsing / download support
-* Optimized for both web and mobile views, responsive layout
-* Built using Next.js and Fast API ⚡
+- With remote file browsing / download support
+- Optimized for both web and mobile views, responsive layout
+- Built using Next.js and Fast API ⚡
 
 A mobile first UI design so that you can enjoy the content seamlessly, Inspired by trending designs on [Dribble](https://dribbble.com/).
 
@@ -84,13 +80,12 @@ List of commonly used resources that I find helpful are listed in the acknowledg
 ### Built With
 
 The application is containarized so that you don't need to go through the hassle of installing dependencies, tech stack used to built this application is listed below.
-* [Fast API](https://fastapi.tiangolo.com/)
-* [Libtorrent](https://libtorrent.org/)
-* [Next.js](https://nextjs.org/)
-* [Mongodb](https://www.mongodb.com/)
-* [Docker](https://www.docker.com/)
 
-
+- [Fast API](https://fastapi.tiangolo.com/)
+- [Libtorrent](https://libtorrent.org/)
+- [Next.js](https://nextjs.org/)
+- [Mongodb](https://www.mongodb.com/)
+- [Docker](https://www.docker.com/)
 
 <!-- GETTING STARTED -->
 
@@ -114,14 +109,17 @@ This project is focused to run on server environment hence docker containers are
    ```sh
    cp env.example .env
    ```
-4. Run the containers
+4. Generate or put your own SSL certificates
    ```sh
-   sudo docker compose up
+   cd proxy && chmod +x generate_certificate.sh && ./generate_certificate.sh && cd ..
+   ```
+5. Run the containers
+   ```sh
+   docker compose up
    ```
 
-
-
 <!-- USAGE EXAMPLES -->
+
 ## Usage
 
 - When you run the application for the very first time It will ask you to login, you can signup for a new account and login with the credentials.
@@ -132,17 +130,14 @@ This project is focused to run on server environment hence docker containers are
 
   ![downloading](images/web-download.jpg)
 
-
-
 <!-- ROADMAP -->
 
 ## Roadmap
 
 See the [open issues](https://github.com/algofly-oss/autolycus/issues) for a list of proposed features (and known issues).
 
-
-
 <!-- CONTRIBUTING -->
+
 ## Contributing
 
 Contributions are what make the open source community such an amazing place to be learn, inspire, and create. Any contributions you make are **greatly appreciated**.
@@ -153,22 +148,19 @@ Contributions are what make the open source community such an amazing place to b
 4. Push to the Branch (`git push origin feature/AmazingFeature`)
 5. Open a Pull Request
 
-
-
 <!-- LICENSE -->
+
 ## License
 
 Distributed under the GNU General Public License v3.0. See [LICENSE](LICENSE.txt) for more information.
 
-
 <!-- CONTACT -->
+
 ## Contact
 
 Nitin Rai - [@imneonizer](https://www.linkedin.com/in/imneonizer/) - mneonizer@gmail.com
 
 Project Link: [https://github.com/algofly-oss/autolycus](https://github.com/algofly-oss/autolycus)
-
-
 
 <!-- MARKDOWN LINKS & IMAGES -->
 <!-- https://www.markdownguide.org/basic-syntax/#reference-style-links -->
