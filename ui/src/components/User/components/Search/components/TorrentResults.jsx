@@ -64,8 +64,16 @@ const TorrentCardContent = ({ item, onCopy, onDownload }) => (
   </>
 );
 
-const VirtualizedResults = ({ items, onCopy, onDownload }) => {
+const VirtualizedResults = ({
+  items,
+  onCopy,
+  onDownload,
+  scrollOffset,
+  onScrollOffsetChange,
+}) => {
   const parentRef = useRef(null);
+  const restoringRef = useRef(false);
+  const rafRef = useRef(null);
 
   const rowVirtualizer = useVirtualizer({
     count: items.length,
@@ -83,9 +91,37 @@ const VirtualizedResults = ({ items, onCopy, onDownload }) => {
     return () => ro.disconnect();
   }, [rowVirtualizer]);
 
+  useEffect(() => {
+    if (!parentRef.current) return;
+    const offset = Number.isFinite(scrollOffset) ? scrollOffset : 0;
+    restoringRef.current = true;
+    requestAnimationFrame(() => {
+      rowVirtualizer.scrollToOffset(offset, { align: "start" });
+      requestAnimationFrame(() => {
+        restoringRef.current = false;
+      });
+    });
+  }, [rowVirtualizer, scrollOffset]);
+
+  useEffect(() => {
+    return () => {
+      if (rafRef.current) cancelAnimationFrame(rafRef.current);
+    };
+  }, []);
+
   return (
     <div
       ref={parentRef}
+      onScroll={() => {
+        if (!parentRef.current || !onScrollOffsetChange) return;
+        if (restoringRef.current) return;
+        const nextOffset = parentRef.current.scrollTop;
+        if (rafRef.current) cancelAnimationFrame(rafRef.current);
+        rafRef.current = requestAnimationFrame(() => {
+          onScrollOffsetChange(nextOffset);
+          rafRef.current = null;
+        });
+      }}
       className={`h-[calc(100vh-var(--results-offset))] overflow-auto light-scrolbar dark:dark-scrollbar pr-1 rounded-lg`}
     >
       <ul className="relative w-full" style={{ height: rowVirtualizer.getTotalSize() }}>
@@ -117,32 +153,92 @@ const VirtualizedResults = ({ items, onCopy, onDownload }) => {
 const getTorrentKey = (item, index) =>
   item?.InfoHash || item?.Details || `${item?.Title ?? "torrent"}-${index}`;
 
-const PlainResults = ({ items, onCopy, onDownload }) => (
-  <div
-    className={`h-[calc(100vh-var(--results-offset))] overflow-auto light-scrolbar dark:dark-scrollbar pr-1 rounded-lg`}
-  >
-    <ul className="flex flex-col gap-2">
-      {items.map((item, index) => (
-        <li
-          key={getTorrentKey(item, index)}
-          className="w-full p-4 rounded-md
+const PlainResults = ({
+  items,
+  onCopy,
+  onDownload,
+  scrollOffset,
+  onScrollOffsetChange,
+}) => {
+  const parentRef = useRef(null);
+  const restoringRef = useRef(false);
+  const rafRef = useRef(null);
+
+  useEffect(() => {
+    if (!parentRef.current) return;
+    const offset = Number.isFinite(scrollOffset) ? scrollOffset : 0;
+    restoringRef.current = true;
+    requestAnimationFrame(() => {
+      if (parentRef.current) parentRef.current.scrollTop = offset;
+      requestAnimationFrame(() => {
+        restoringRef.current = false;
+      });
+    });
+  }, [scrollOffset]);
+
+  useEffect(() => {
+    return () => {
+      if (rafRef.current) cancelAnimationFrame(rafRef.current);
+    };
+  }, []);
+
+  return (
+    <div
+      ref={parentRef}
+      onScroll={() => {
+        if (!parentRef.current || !onScrollOffsetChange) return;
+        if (restoringRef.current) return;
+        const nextOffset = parentRef.current.scrollTop;
+        if (rafRef.current) cancelAnimationFrame(rafRef.current);
+        rafRef.current = requestAnimationFrame(() => {
+          onScrollOffsetChange(nextOffset);
+          rafRef.current = null;
+        });
+      }}
+      className={`h-[calc(100vh-var(--results-offset))] overflow-auto light-scrolbar dark:dark-scrollbar pr-1 rounded-lg`}
+    >
+      <ul className="flex flex-col gap-2">
+        {items.map((item, index) => (
+          <li
+            key={getTorrentKey(item, index)}
+            className="w-full p-4 rounded-md
                      bg-neutral-50 dark:bg-black
                      hover:bg-zinc-100 dark:hover:bg-zinc-800 transition"
-        >
-          <TorrentCardContent item={item} onCopy={onCopy} onDownload={onDownload} />
-        </li>
-      ))}
-    </ul>
-  </div>
-);
+          >
+            <TorrentCardContent item={item} onCopy={onCopy} onDownload={onDownload} />
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+};
 
-const TorrentResults = ({ items, onCopy, onDownload, isMobile }) => {
+const TorrentResults = ({
+  items,
+  onCopy,
+  onDownload,
+  isMobile,
+  scrollOffset,
+  onScrollOffsetChange,
+}) => {
   if (!items?.length) return null;
 
   return isMobile ? (
-    <PlainResults items={items} onCopy={onCopy} onDownload={onDownload} />
+    <PlainResults
+      items={items}
+      onCopy={onCopy}
+      onDownload={onDownload}
+      scrollOffset={scrollOffset}
+      onScrollOffsetChange={onScrollOffsetChange}
+    />
   ) : (
-    <VirtualizedResults items={items} onCopy={onCopy} onDownload={onDownload} />
+    <VirtualizedResults
+      items={items}
+      onCopy={onCopy}
+      onDownload={onDownload}
+      scrollOffset={scrollOffset}
+      onScrollOffsetChange={onScrollOffsetChange}
+    />
   );
 };
 

@@ -72,6 +72,7 @@ const Search = ({ torrentSearchState }) => {
   const [hasSearched, setHasSearched] = useState(false);
   const [sourceOrder, setSourceOrder] = useState([]);
   const [reorderPulse, setReorderPulse] = useState(false);
+  const [scrollOffset, setScrollOffset] = useState(0);
 
   const [sort, setSortState] = useState(INITIAL_SORT);
   const sortRef = useRef(INITIAL_SORT);
@@ -87,6 +88,7 @@ const Search = ({ torrentSearchState }) => {
   const abortRef = useRef(null);
   const filtersRef = useRef(null);
   const searchSessionRef = useRef(0);
+  const skipFilterResetRef = useRef(true);
   const toast = useToast();
   const isMobile = useIsMobileWidth();
 
@@ -102,6 +104,10 @@ const Search = ({ torrentSearchState }) => {
       setSortState(sortValue);
       setActiveSource(torrentSearchState.get("activeSource"));
       setResults(searchResults);
+      const savedScrollOffset = torrentSearchState.get("scrollOffset");
+      if (Number.isFinite(savedScrollOffset)) {
+        setScrollOffset(savedScrollOffset);
+      }
     }
     setFirstLoadFinished(true);
   }, []);
@@ -123,12 +129,29 @@ const Search = ({ torrentSearchState }) => {
   }, [titleFilter]);
 
   useEffect(() => {
+    if (!firstLoadFinished) return;
+    if (skipFilterResetRef.current) {
+      skipFilterResetRef.current = false;
+      return;
+    }
+    setScrollOffset(0);
+  }, [activeSource, titleFilter, firstLoadFinished]);
+
+  useEffect(() => {
     if (firstLoadFinished) {
       torrentSearchState.set({
         results: results,
       });
     }
   }, [results]);
+
+  useEffect(() => {
+    if (firstLoadFinished) {
+      torrentSearchState.set({
+        scrollOffset: scrollOffset,
+      });
+    }
+  }, [scrollOffset]);
 
   useEffect(() => {
     if (firstLoadFinished) {
@@ -273,6 +296,7 @@ const Search = ({ torrentSearchState }) => {
     setSourceOrder([]);
     updateSort(INITIAL_SORT);
     setActiveSource("All");
+    setScrollOffset(0);
     setLoading(true);
 
     try {
@@ -381,6 +405,8 @@ const Search = ({ torrentSearchState }) => {
             onCopy={handleCopyMagnet}
             onDownload={handleDownload}
             isMobile={isMobile}
+            scrollOffset={scrollOffset}
+            onScrollOffsetChange={setScrollOffset}
           />
         )}
 
