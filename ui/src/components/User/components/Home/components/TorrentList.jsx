@@ -171,6 +171,8 @@ export default function TorrentList({ state, onPathChange }) {
     };
   }, [torrentList?.length]);
 
+  const shouldShowPagination = torrentList.length > 0;
+
   return (
     <div className="mt-5 flex flex-col gap-1.5">
       {torrentList.map((torrent) => (
@@ -188,20 +190,22 @@ export default function TorrentList({ state, onPathChange }) {
           <TorrentCard torrentData={torrent} />
         </div>
       ))}
-      <Pagination
-        currentPage={currentPage}
-        totalPages={totalPages}
-        pageInput={pageInput}
-        pageSize={pageSize}
-        pageSizeOptions={PAGE_SIZE_OPTIONS}
-        rangeStart={rangeStart}
-        rangeEnd={rangeEnd}
-        totalItems={totalTorrents}
-        onPageButtonClick={handlePageButtonClick}
-        onPageInputChange={handlePageInputChange}
-        onApplyPageInput={applyPageInput}
-        onPageSizeChange={handlePageSizeChange}
-      />
+      {shouldShowPagination && (
+        <Pagination
+          currentPage={currentPage}
+          totalPages={totalPages}
+          pageInput={pageInput}
+          pageSize={pageSize}
+          pageSizeOptions={PAGE_SIZE_OPTIONS}
+          rangeStart={rangeStart}
+          rangeEnd={rangeEnd}
+          totalItems={totalTorrents}
+          onPageButtonClick={handlePageButtonClick}
+          onPageInputChange={handlePageInputChange}
+          onApplyPageInput={applyPageInput}
+          onPageSizeChange={handlePageSizeChange}
+        />
+      )}
     </div>
   );
 }
