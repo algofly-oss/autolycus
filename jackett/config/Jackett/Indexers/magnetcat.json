@@ -1,0 +1,53 @@
+[
+  {
+    "id": "sitelink",
+    "type": "inputstring",
+    "name": "Site Link",
+    "value": "https://magnetcatcat.com/"
+  },
+  {
+    "id": "cookieheader",
+    "type": "hiddendata",
+    "name": "CookieHeader",
+    "value": "session=eyJfZnJlc2giOmZhbHNlLCJfcGVybWFuZW50Ijp0cnVlLCJjc3JmX3Rva2VuIjp7IiBiIjoiT0dSalpqY3lNakUzWXpjeU5tUmhOakkyTmpNd1lUQTRNekV4TWpsaVl6STVZMlU0WWpoaVpRPT0ifX0.aXr_7g.EOiKV_Vqug8MNnoQXYx8T9bAk7A; cf_clearance=35pbY97nHcqjDHKNOR6snmo4I0548ghB1rx960bEepA-1769093702-1.2.1.1-odzPWj3r6RZP3ZYcGYgWOptQyAmgoN05SAVeAKeFAtQKWmxA0rRe5kQawtVHM.B5ITRW4Y9vdmRln6wUR_uegt0t5Q85I6p.RdIm6vHFMWMEY060pwECLqfKJpRRi8fEsiiDHQ99lGRrPMw0P0pxVT5.1mfqeE1dH45o2WBHqsBo_VvdCaF_EavQ1eZ16hasLeTV52_c5jS0nsP0TVUzFmkgmzpiMXYFP_iy5XrTmnq4QeJcdbG8yDqSxv1h3OAR"
+  },
+  {
+    "id": "lasterror",
+    "type": "hiddendata",
+    "name": "LastError",
+    "value": null
+  },
+  {
+    "id": "category",
+    "type": "inputselect",
+    "name": "Category",
+    "value": "0",
+    "options": {
+      "0": "All categories",
+      "1": "Movies and TV shows",
+      "2": "Music",
+      "3": "Images",
+      "4": "Documents and books",
+      "5": "Compressed files",
+      "6": "Installer packages",
+      "7": "Other"
+    }
+  },
+  {
+    "id": "sortrequestedfromsite",
+    "type": "inputselect",
+    "name": "Sort requested from site",
+    "value": "2",
+    "options": {
+      "2": "created",
+      "1": "size",
+      "0": "relevance"
+    }
+  },
+  {
+    "id": "tags",
+    "type": "inputtags",
+    "name": "Tags",
+    "value": ""
+  }
+]

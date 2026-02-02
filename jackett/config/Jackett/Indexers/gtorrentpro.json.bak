@@ -1,0 +1,26 @@
+[
+  {
+    "id": "sitelink",
+    "type": "inputstring",
+    "name": "Site Link",
+    "value": "https://gtorrent.club/"
+  },
+  {
+    "id": "cookieheader",
+    "type": "hiddendata",
+    "name": "CookieHeader",
+    "value": "PHPSESSID=epv7pln6ceu113rgtevr3qb890; dle_user_id=deleted; dle_password=deleted; dle_hash=deleted; cf_clearance=1BQpaEx4gRP2q5nnrtwsbImr39FhqgrLaA92ayP3Hms-1768983331-1.2.1.1-fyw_9I.Ses2uMCkw9Jr1DcgwYkS43on5XQckiJu3RhR0s.iamlVtRmbjyDNu6XD8fbOvnw1AURtFwmFXg5A9vIhHlwW7vXstz6v3FaqYcGRwjolEOBZqM1dJlzqu58vzh7b0YKUIZnBt4HfH7s6pwLak8YDlaObsLAB8Q7qriVhJOeUzlPi1q6Qvb1_dud0oHcwFbd7Qizmlzzvd1_goDxPnXSt5buA2OrFOGdhTZO4nqV2Kv2M5SgoUVHgSa_K2"
+  },
+  {
+    "id": "lasterror",
+    "type": "hiddendata",
+    "name": "LastError",
+    "value": null
+  },
+  {
+    "id": "tags",
+    "type": "inputtags",
+    "name": "Tags",
+    "value": ""
+  }
+]

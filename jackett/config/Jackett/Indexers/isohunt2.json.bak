@@ -1,0 +1,55 @@
+[
+  {
+    "id": "sitelink",
+    "type": "inputstring",
+    "name": "Site Link",
+    "value": "https://isohunt.sh/"
+  },
+  {
+    "id": "cookieheader",
+    "type": "hiddendata",
+    "name": "CookieHeader",
+    "value": "cf_clearance=DvH6dqldzcaZSftXCde9tn_FOaAVS9QAM0WoiQWMgjw-1769665375-1.2.1.1-nu9z5Y9oDw.lYeFxodd1jYnb1KoCinU2zpAQ6XYBXYzU1Pi0fbAY9v06fIe4LaZrTdG8lWOFJ3ZSymd7R6Qg4UdxzvwvoPwudVB32VGUbrhax0cXlSZhX1t9J1fDNZbC9o0vXQlXR0WvSnB8Ad5jHi8sIMO0r9VdFPmaIODfM2wSTwLurm_dZaD1yCgVgn35VwpmnLRpWHcfmZOEbu4kUd8mYOjwYtLMIx6fXB1JrLDl7LQqA6J.uwAXWWqY4hR3"
+  },
+  {
+    "id": "lasterror",
+    "type": "hiddendata",
+    "name": "LastError",
+    "value": null
+  },
+  {
+    "id": "categoryfilter",
+    "type": "inputselect",
+    "name": "Category Filter",
+    "value": "0",
+    "options": {
+      "0": "All",
+      "1": "Anime",
+      "2": "Software",
+      "3": "Games",
+      "4": "Adult",
+      "5": "Movies",
+      "6": "Music",
+      "7": "Other",
+      "8": "Series & TV",
+      "9": "Books"
+    }
+  },
+  {
+    "id": "sortrequestedfromsite",
+    "type": "inputselect",
+    "name": "Sort requested from site",
+    "value": "created_at",
+    "options": {
+      "created_at": "created",
+      "seeders": "seeders",
+      "size": "size"
+    }
+  },
+  {
+    "id": "tags",
+    "type": "inputtags",
+    "name": "Tags",
+    "value": ""
+  }
+]

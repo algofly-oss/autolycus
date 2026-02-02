@@ -1,0 +1,52 @@
+[
+  {
+    "id": "sitelink",
+    "type": "inputstring",
+    "name": "Site Link",
+    "value": "https://www.world-torrent1.com/"
+  },
+  {
+    "id": "cookieheader",
+    "type": "hiddendata",
+    "name": "CookieHeader",
+    "value": null
+  },
+  {
+    "id": "lasterror",
+    "type": "hiddendata",
+    "name": "LastError",
+    "value": null
+  },
+  {
+    "id": "replacemultibyanotherlanguageinreleasename",
+    "type": "inputbool",
+    "name": "Replace MULTi by another language in release name",
+    "value": false
+  },
+  {
+    "id": "replacemultibythislanguage",
+    "type": "inputselect",
+    "name": "Replace MULTi by this language",
+    "value": "FRENCH",
+    "options": {
+      "FRENCH": "FRENCH",
+      "MULTi FRENCH": "MULTi FRENCH",
+      "ENGLISH": "ENGLISH",
+      "MULTi ENGLISH": "MULTi ENGLISH",
+      "VOSTFR": "VOSTFR",
+      "MULTi VOSTFR": "MULTi VOSTFR"
+    }
+  },
+  {
+    "id": "replacevostfrandsubfrenchwithenglish",
+    "type": "inputbool",
+    "name": "Replace VOSTFR and SUBFRENCH with ENGLISH",
+    "value": false
+  },
+  {
+    "id": "tags",
+    "type": "inputtags",
+    "name": "Tags",
+    "value": ""
+  }
+]

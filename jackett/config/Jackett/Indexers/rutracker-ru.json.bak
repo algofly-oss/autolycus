@@ -1,0 +1,60 @@
+[
+  {
+    "id": "sitelink",
+    "type": "inputstring",
+    "name": "Site Link",
+    "value": "http://rutracker.ru/"
+  },
+  {
+    "id": "cookieheader",
+    "type": "hiddendata",
+    "name": "CookieHeader",
+    "value": ""
+  },
+  {
+    "id": "lasterror",
+    "type": "hiddendata",
+    "name": "LastError",
+    "value": "Exception (rutracker-ru): Request to http://rutracker.ru/tracker.php?f[]=-1&prev_allw=1&prev_a=0&prev_dla=0&prev_dlc=0&prev_dld=0&prev_dlw=0&prev_my=0&prev_new=0&prev_sd=0&prev_da=1&prev_dc=0&prev_df=1&prev_ds=0&prev_tor_type=0&o=1&s=2&dc=0&df=1&da=1&ds=0&tm=-1&sns=-1&srg=-1&allw=0 failed (Error GatewayTimeout) - The tracker seems to be down.: Request to http://rutracker.ru/tracker.php?f[]=-1&prev_allw=1&prev_a=0&prev_dla=0&prev_dlc=0&prev_dld=0&prev_dlw=0&prev_my=0&prev_new=0&prev_sd=0&prev_da=1&prev_dc=0&prev_df=1&prev_ds=0&prev_tor_type=0&o=1&s=2&dc=0&df=1&da=1&ds=0&tm=-1&sns=-1&srg=-1&allw=0 failed (Error GatewayTimeout) - The tracker seems to be down."
+  },
+  {
+    "id": "stripcyrillicletters",
+    "type": "inputbool",
+    "name": "Strip Cyrillic Letters",
+    "value": false
+  },
+  {
+    "id": "addrustoendofalltitlestoimprovelanguagedetectionbysonarrandradarr.willcauseenglish-onlyresultstobemisidentified.",
+    "type": "inputbool",
+    "name": "Add RUS to end of all titles to improve language detection by Sonarr and Radarr. Will cause English-only results to be misidentified.",
+    "value": false
+  },
+  {
+    "id": "sortrequestedfromsite",
+    "type": "inputselect",
+    "name": "Sort requested from site",
+    "value": "1",
+    "options": {
+      "1": "created",
+      "10": "seeders",
+      "7": "size",
+      "2": "title"
+    }
+  },
+  {
+    "id": "orderrequestedfromsite",
+    "type": "inputselect",
+    "name": "Order requested from site",
+    "value": "2",
+    "options": {
+      "2": "desc",
+      "1": "asc"
+    }
+  },
+  {
+    "id": "tags",
+    "type": "inputtags",
+    "name": "Tags",
+    "value": ""
+  }
+]

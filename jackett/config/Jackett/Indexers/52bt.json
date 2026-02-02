@@ -1,0 +1,53 @@
+[
+  {
+    "id": "sitelink",
+    "type": "inputstring",
+    "name": "Site Link",
+    "value": "https://www.529072.xyz/"
+  },
+  {
+    "id": "cookieheader",
+    "type": "hiddendata",
+    "name": "CookieHeader",
+    "value": "session=eyJfZnJlc2giOmZhbHNlLCJfcGVybWFuZW50Ijp0cnVlLCJjc3JmX3Rva2VuIjp7IiBiIjoiWVRZeE5tWTVOVGxrWWpRMVlqQmpPVEJsWW1VM05EYzVPR0l6Wm1NMVl6RmxPRFptTnpFM01nPT0ifX0.aWNrfQ.HicEh4t-3sa1-5JHFMvt74foAR4; cf_clearance=4VgKu8FisXVBkXFwmEyot33g_ni2iweS1VCic1mr2Tw-1768055496-1.2.1.1-pr_8i9IARKP_dUnVErk8mfLXz5X7sle9gzneEaWrGSRST7VF31CqofpIypleto1jAZOqGCUQuS627iPjALskeJ8n_iVQFcJ2WuyAoP1e3ctFHHP1wkFMNcliEh5kBk5nzzA1vOtvYni65cwLb42d5I8yeYi.5Nw9GuHGotyxSOn5Jrt..7vELbzSO9YYNHyEWgsTG4kEL1uX6qcnsEAFnEu0BDWPgO8cON24fRCZVhl6Dx8wLZfDVm424IoCU8bD"
+  },
+  {
+    "id": "lasterror",
+    "type": "hiddendata",
+    "name": "LastError",
+    "value": null
+  },
+  {
+    "id": "category",
+    "type": "inputselect",
+    "name": "Category",
+    "value": "0",
+    "options": {
+      "0": "All categories",
+      "1": "Film and Television",
+      "2": "Music",
+      "3": "Images",
+      "4": "Books",
+      "5": "Zip Files",
+      "6": "Software",
+      "7": "Other"
+    }
+  },
+  {
+    "id": "sortrequestedfromsite",
+    "type": "inputselect",
+    "name": "Sort requested from site",
+    "value": "2",
+    "options": {
+      "2": "created",
+      "1": "size",
+      "0": "relevance"
+    }
+  },
+  {
+    "id": "tags",
+    "type": "inputtags",
+    "name": "Tags",
+    "value": ""
+  }
+]

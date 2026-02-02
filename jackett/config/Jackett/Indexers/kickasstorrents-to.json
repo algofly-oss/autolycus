@@ -1,0 +1,26 @@
+[
+  {
+    "id": "sitelink",
+    "type": "inputstring",
+    "name": "Site Link",
+    "value": "https://kickasstorrents.proxyninja.net/"
+  },
+  {
+    "id": "cookieheader",
+    "type": "hiddendata",
+    "name": "CookieHeader",
+    "value": "cf_clearance=HsaoXvSAKcNv7muB3Ffp3wapeBkeMz99acivl.Qk_vc-1769668594-1.2.1.1-7JYvs9su0.hFuImS11Sg_gKEwCsB_nxjmPdKwstfG8txPlSeSmwmAJARbIZElkqrBp1gtrzDIHxlYCvVbpP6OsIeFyuLvdiwkjt12XS.lyzGCWdWsxQHTmX2rHhSF7xwr6KehQFmFdV4LR6qVZPDXPjGkIt.9uSD8_Hser.39FaWGq2UoSBHFpFbUI14JRUg6uEs7vK4ex7LNk1nT.rKd00hLPNZb3wZGo.bKHYjLAs; cf_chl_rc_ni=1"
+  },
+  {
+    "id": "lasterror",
+    "type": "hiddendata",
+    "name": "LastError",
+    "value": null
+  },
+  {
+    "id": "tags",
+    "type": "inputtags",
+    "name": "Tags",
+    "value": ""
+  }
+]

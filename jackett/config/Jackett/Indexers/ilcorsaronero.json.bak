@@ -1,0 +1,53 @@
+[
+  {
+    "id": "sitelink",
+    "type": "inputstring",
+    "name": "Site Link",
+    "value": "https://ilcorsaronero.link/"
+  },
+  {
+    "id": "cookieheader",
+    "type": "hiddendata",
+    "name": "CookieHeader",
+    "value": null
+  },
+  {
+    "id": "lasterror",
+    "type": "hiddendata",
+    "name": "LastError",
+    "value": null
+  },
+  {
+    "id": "category(forkeywordsearch)",
+    "type": "inputselect",
+    "name": "Category (for Keyword search)",
+    "value": "all",
+    "options": {
+      "all": "All categories",
+      "film": "Film",
+      "serie-tv": "Serie TV",
+      "animazione": "Animazione",
+      "musica": "Musica",
+      "libri": "Libri",
+      "giochi": "Giochi",
+      "software": "Software",
+      "altro": "Altro"
+    }
+  },
+  {
+    "id": "downloadtype",
+    "type": "inputselect",
+    "name": "Download type",
+    "value": "Magnet",
+    "options": {
+      "Magnet": "magnet",
+      "Torrent": "torrent"
+    }
+  },
+  {
+    "id": "tags",
+    "type": "inputtags",
+    "name": "Tags",
+    "value": ""
+  }
+]

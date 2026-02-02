@@ -5,7 +5,7 @@ services:
     image: mongo:5.0
     container_name: autolycus_mongodb
     ports:
-      - ${MONGO_HOST_PORT_MAP}:27017
+      - ${MONGO_HOST_PORT_MAP:-27017}:27017
     env_file:
       - ./.env
     volumes:
@@ -26,6 +26,42 @@ services:
     networks:
       - autolycus_network
 
+  tor:
+    image: dockage/tor-privoxy:latest
+    container_name: autolycus_tor
+    restart: always
+    ports:
+      - ${TOR_HOST_PORT_MAP:-9050}:9050
+    networks:
+      - autolycus_network
+
+  flaresolverr:
+    image: ghcr.io/flaresolverr/flaresolverr:latest
+    container_name: autolycus_flaresolverr
+    environment:
+      - LOG_LEVEL=info
+      - LOG_HTML=false
+      - CAPTCHA_SOLVER=none
+    restart: always
+    networks:
+      - autolycus_network
+
+  jackett:
+    image: lscr.io/linuxserver/jackett:latest
+    container_name: autolycus_jackett
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=Etc/UTC
+      - AUTO_UPDATE=true
+    volumes:
+      - ./jackett/config:/config
+    restart: always
+    ports:
+      - ${JACKETT_HOST_PORT_MAP:-9117}:9117
+    networks:
+      - autolycus_network
+
   api:
     build:
       context: ./api
@@ -38,7 +74,7 @@ services:
       - ./.env
     volumes:
       - ./api:/app
-      - ./volumes/downloads:/downloads
+      - ${DOWNLOADS_PATH:-./volumes/downloads}:/downloads
     restart: always
     depends_on:
       - redis

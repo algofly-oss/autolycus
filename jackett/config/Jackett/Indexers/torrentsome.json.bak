@@ -1,0 +1,26 @@
+[
+  {
+    "id": "sitelink",
+    "type": "inputstring",
+    "name": "Site Link",
+    "value": "https://torrentsome231.com/"
+  },
+  {
+    "id": "cookieheader",
+    "type": "hiddendata",
+    "name": "CookieHeader",
+    "value": "_csrf=W_n8vNbRQYJ2T6D4JTRpGDAJRDUsIyfR; cf_clearance=8uq96Miqixs3Czz_d5PmB8M7HberRhyj6E1ko5BLiOA-1769095940-1.2.1.1-4RrolOV0WyQCm8_H5gpzLiTUiDdg0tZPH1lURDgtarmdkijKLrWKphkcIXLE9OWCGnVUMRPYW85p1I4G1jn72Qqt8k3rxet2.Iwtocg0O0U_Cf88WRJF_G88l8kKeC_MJtukNelqF.zX0jim6Fi4.1vkEw1Oa1Ub6OO6QYxQ8zCOcbYaYeNkEF31d9wkvLdvqVDIkikGVr_QvtSflGqv2VJzo_vkUV8JfBm6RFvkMbU"
+  },
+  {
+    "id": "lasterror",
+    "type": "hiddendata",
+    "name": "LastError",
+    "value": null
+  },
+  {
+    "id": "tags",
+    "type": "inputtags",
+    "name": "Tags",
+    "value": ""
+  }
+]

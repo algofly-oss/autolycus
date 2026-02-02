@@ -1,0 +1,55 @@
+[
+  {
+    "id": "sitelink",
+    "type": "inputstring",
+    "name": "Site Link",
+    "value": "https://bitru.org/"
+  },
+  {
+    "id": "cookieheader",
+    "type": "hiddendata",
+    "name": "CookieHeader",
+    "value": "last_browse=1769699433; cf_clearance=F6VdClXunC3cyrYfczjzdljzy8G7DYaOo3uV5c9qHwY-1769699408-1.2.1.1-ChauhG.L352SrnZ5U9EY.czp8jqWPgojtGcdRydeBdffEWBkDm24vRTV8Wn7td.UMP8K91iQdF34BX8C.oe1pMlln1k30ja7T1WIfhRtzmlnrnnc8EHev_PIF9H4xAaVoQsytzPE.PjEOFo_D2IXCGDrW32SjyA14OK.sRk_hI5UmbE86A.4HvIFlFk7lCTKOd9Vl8Rhry2mfhxna.LUSYihr3WO0AKk8A9EEIJsRU89y69vUjHBFQo5E5eMv8qf"
+  },
+  {
+    "id": "lasterror",
+    "type": "hiddendata",
+    "name": "LastError",
+    "value": null
+  },
+  {
+    "id": "stripcyrillicletters",
+    "type": "inputbool",
+    "name": "Strip Cyrillic Letters",
+    "value": false
+  },
+  {
+    "id": "addrustoendofalltitlestoimprovelanguagedetectionbysonarrandradarr.willcauseenglish-onlyresultstobemisidentified.",
+    "type": "inputbool",
+    "name": "Add RUS to end of all titles to improve language detection by Sonarr and Radarr. Will cause English-only results to be misidentified.",
+    "value": false
+  },
+  {
+    "id": "includeadvertising",
+    "type": "inputbool",
+    "name": "Include Advertising",
+    "value": true
+  },
+  {
+    "id": "sortrequestedfromsite",
+    "type": "inputselect",
+    "name": "Sort requested from site",
+    "value": "_",
+    "options": {
+      "_": "created",
+      "seeders": "seeders",
+      "size": "size"
+    }
+  },
+  {
+    "id": "tags",
+    "type": "inputtags",
+    "name": "Tags",
+    "value": ""
+  }
+]
