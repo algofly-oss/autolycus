@@ -71,11 +71,11 @@ services:
     image: autolycus_api
     container_name: autolycus_api
     environment:
-      - API_DEBUG=False
+      - API_DEBUG=True
     env_file:
       - ./.env
     volumes:
-      # - ./api:/app
+      - ./api:/app
       - ${DOWNLOADS_PATH:-./volumes/downloads}:/downloads
     restart: always
     depends_on:
@@ -87,15 +87,15 @@ services:
   ui:
     build:
       context: ./ui
-      dockerfile: Dockerfile.prod
-    image: autolycus_ui
-    container_name: autolycus_ui
+      dockerfile: Dockerfile
+    image: autolycus_ui_dev
+    container_name: autolycus_ui_dev
     env_file:
       - ./.env
     environment:
-      - BUILD_ENV=prod
-    # volumes:
-    #   - ./ui:/app
+      - BUILD_ENV=dev
+    volumes:
+      - ./ui:/app
     restart: always
     depends_on:
       - api

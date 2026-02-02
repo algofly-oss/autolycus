@@ -115,7 +115,7 @@ This project is focused to run on server environment hence docker containers are
    ```
 5. Run the containers
    ```sh
-   docker compose up
+   docker compose up -d
    ```
 
 <!-- USAGE EXAMPLES -->

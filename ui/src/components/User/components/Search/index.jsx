@@ -1,224 +1,68 @@
-import { useRef, useState, useMemo, useEffect, use } from "react";
-import { useVirtualizer } from "@tanstack/react-virtual";
-import { Tooltip } from "@mantine/core";
+import { useRef, useState, useMemo, useEffect } from "react";
 import Fuse from "fuse.js";
-import {
-  FiSearch,
-  FiX,
-  FiArrowUp,
-  FiArrowDown,
-  FiClipboard,
-  FiDownload,
-} from "react-icons/fi";
+import { FiSearch } from "react-icons/fi";
 import apiRoutes from "@/shared/routes/apiRoutes";
 import useToast from "@/shared/hooks/useToast";
 import axios from "axios";
+import SearchBar from "./components/SearchBar";
+import SortFilters from "./components/SortFilters";
+import TorrentResults from "./components/TorrentResults";
+import {
+  DEFAULT_SORT_DIR,
+  INITIAL_SORT,
+  MOBILE_BREAKPOINT,
+  SORT_KEYS,
+  sortResults,
+} from "./utils";
 
-const formatBytes = (bytes) => {
-  if (!bytes || isNaN(bytes)) return "—";
-  const units = ["B", "KB", "MB", "GB", "TB", "PB"];
-  let value = Number(bytes);
-  let i = 0;
-  while (value >= 1024 && i < units.length - 1) {
-    value /= 1024;
-    i++;
-  }
-  return `${value.toFixed(value >= 10 ? 0 : 1)} ${units[i]}`;
-};
-
-const formatDate = (iso) => {
-  if (!iso) return "—";
-  const d = new Date(iso);
-  if (isNaN(d.getTime())) return "—";
-  return d.toLocaleDateString(undefined, {
-    year: "numeric",
-    month: "short",
-    day: "numeric",
+const useIsMobileWidth = () => {
+  const [isMobile, setIsMobile] = useState(() => {
+    if (typeof window === "undefined") return false;
+    return window.innerWidth <= MOBILE_BREAKPOINT;
   });
-};
-
-const formatCount = (num) => {
-  if (!num || isNaN(num)) return "0";
-  if (num < 1000) return String(num);
-
-  const units = ["k", "M", "B"];
-  let value = num;
-  let i = -1;
-
-  while (value >= 1000 && i < units.length - 1) {
-    value /= 1000;
-    i++;
-  }
-
-  return `${value >= 10 ? Math.round(value) : value.toFixed(1)}${units[i]}`;
-};
-
-const SORT_KEYS = {
-  name: "name",
-  seeds: "seeds",
-  size: "size",
-  date: "date",
-};
-
-const DEFAULT_SORT_DIR = {
-  [SORT_KEYS.name]: "asc",
-  [SORT_KEYS.date]: "desc",
-  [SORT_KEYS.seeds]: "desc",
-  [SORT_KEYS.size]: "desc",
-};
-
-const sortResults = (data, { key = SORT_KEYS.name, dir = "asc" } = {}) => {
-  const factor = dir === "asc" ? 1 : -1;
-
-  return [...data].sort((a, b) => {
-    switch (key) {
-      case SORT_KEYS.name:
-        return factor * (a.Title || "").localeCompare(b.Title || "");
-      case SORT_KEYS.seeds:
-        return factor * ((a.Seeders ?? 0) - (b.Seeders ?? 0));
-      case SORT_KEYS.size:
-        return factor * ((a.Size ?? 0) - (b.Size ?? 0));
-      case SORT_KEYS.date: {
-        const aTime = a.PublishDate ? Date.parse(a.PublishDate) : 0;
-        const bTime = b.PublishDate ? Date.parse(b.PublishDate) : 0;
-        return factor * (aTime - bTime);
-      }
-      default:
-        return 0;
-    }
-  });
-};
-
-function VirtualizedResults({ items, onCopy, onDownload, filtersRef }) {
-  const parentRef = useRef(null);
-
-  const rowVirtualizer = useVirtualizer({
-    count: items.length,
-    getScrollElement: () => parentRef.current,
-    estimateSize: () => 85,
-    overscan: 6,
-  });
-
-  const updateOffset = () => {
-    if (!filtersRef.current) return;
-
-    const rect = filtersRef.current.getBoundingClientRect();
-    const distancePx = rect.bottom;
-
-    const rootFontSize = parseFloat(
-      getComputedStyle(document.documentElement).fontSize
-    );
-
-    const distanceRem = distancePx / rootFontSize;
-
-    document.documentElement.style.setProperty(
-      "--results-offset",
-      `${distanceRem + 2.5}rem`
-    );
-  };
 
   useEffect(() => {
-    if (!filtersRef.current) return;
+    const checkWidth = () => {
+      setIsMobile(window.innerWidth <= MOBILE_BREAKPOINT);
+    };
+    checkWidth();
+    window.addEventListener("resize", checkWidth);
+    return () => window.removeEventListener("resize", checkWidth);
+  }, []);
+
+  return isMobile;
+};
+
+const useResultsOffset = (filtersRef, watchKey) => {
+  useEffect(() => {
+    if (typeof document === "undefined") return;
+    const element = filtersRef.current;
+    if (!element) return;
+
+    const updateOffset = () => {
+      const rect = element.getBoundingClientRect();
+      const distancePx = rect.bottom;
+
+      const rootFontSize = parseFloat(
+        getComputedStyle(document.documentElement).fontSize
+      );
+
+      const distanceRem = distancePx / rootFontSize;
+
+      document.documentElement.style.setProperty(
+        "--results-offset",
+        `${distanceRem + 2.5}rem`
+      );
+    };
 
     updateOffset();
 
     const ro = new ResizeObserver(updateOffset);
-    ro.observe(filtersRef.current);
+    ro.observe(element);
 
     return () => ro.disconnect();
-  }, []);
-
-  function truncate(text, length = 100) {
-    if (typeof text !== "string") return "";
-    return text.length > length ? text.slice(0, length) + "..." : text;
-  }
-
-  return (
-    <div
-      ref={parentRef}
-      className={`h-[calc(100vh-var(--results-offset))] overflow-auto light-scrolbar dark:dark-scrollbar pr-1 rounded-lg`}
-    >
-      <ul
-        className="relative w-full"
-        style={{ height: rowVirtualizer.getTotalSize() }}
-      >
-        {rowVirtualizer.getVirtualItems().map((virtualRow) => {
-          const item = items[virtualRow.index];
-
-          return (
-            <li
-              key={virtualRow.key}
-              className="absolute left-0 w-full p-4 rounded-md
-                         bg-neutral-50 dark:bg-black
-                         hover:bg-zinc-100 dark:hover:bg-zinc-800 transition"
-              style={{
-                transform: `translateY(${virtualRow.start}px)`,
-              }}
-            >
-              <div className="flex items-start justify-between gap-3">
-                <p className="font-semibold leading-snug text-sm">
-                  {truncate(item?.Title)}
-                </p>
-
-                <div className="flex items-center gap-2 shrink-0">
-                  <button
-                    onClick={() => onCopy(item)}
-                    className="p-1.5 rounded-md bg-zinc-200 hover:bg-zinc-300
-                             dark:bg-zinc-900 dark:hover:bg-zinc-700 transition"
-                    title="Copy magnet link"
-                  >
-                    <FiClipboard size={14} />
-                  </button>
-
-                  <button
-                    onClick={() => onDownload(item)}
-                    className="p-1.5 rounded-md bg-blue-500 text-white
-                             hover:bg-blue-600 transition"
-                    title="Download"
-                  >
-                    <FiDownload size={14} />
-                  </button>
-                </div>
-              </div>
-
-              <div className="text-xs text-zinc-500 flex gap-4 flex-wrap mt-1">
-                {item?.Seeders !== undefined && <span>🌱 {item.Seeders}</span>}
-                {item?.Size && <span>📦 {formatBytes(item.Size)}</span>}
-                {item?.PublishDate && (
-                  <span>📅 {formatDate(item.PublishDate)}</span>
-                )}
-                {item?.Tracker && (
-                  <a
-                    href={item.Details}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="hover:text-blue-500 transition"
-                  >
-                    🔎 {item.Tracker}
-                  </a>
-                )}
-                {item?.Details && (
-                  <a
-                    href={`${apiRoutes?.searchImdbRedirect}?q=${
-                      item?.parsed?.title
-                        ? `${item?.parsed?.title} ${item?.parsed?.year || ""}`
-                        : item.Title?.slice(0, 20)
-                    }`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="hover:text-blue-500 transition"
-                  >
-                    🌐 IMDB
-                  </a>
-                )}
-              </div>
-            </li>
-          );
-        })}
-      </ul>
-    </div>
-  );
-}
+  }, [filtersRef, watchKey]);
+};
 
 const Search = ({ torrentSearchState }) => {
   const [firstLoadFinished, setFirstLoadFinished] = useState(false);
@@ -227,23 +71,32 @@ const Search = ({ torrentSearchState }) => {
   const [loading, setLoading] = useState(false);
   const [hasSearched, setHasSearched] = useState(false);
 
-  const [sort, setSort] = useState({
-    key: SORT_KEYS.name,
-    dir: "asc",
-  });
+  const [sort, setSortState] = useState(INITIAL_SORT);
+  const sortRef = useRef(INITIAL_SORT);
+
+  const updateSort = (nextSort) => {
+    sortRef.current = nextSort;
+    setSortState(nextSort);
+  };
 
   const [activeSource, setActiveSource] = useState("All");
   const [titleFilter, setTitleFilter] = useState("");
   const abortRef = useRef(null);
   const filtersRef = useRef(null);
+  const searchSessionRef = useRef(0);
   const toast = useToast();
+  const isMobile = useIsMobileWidth();
 
   useEffect(() => {
     let searchResults = torrentSearchState.get("results") || [];
     if (!query && !results?.length) {
       setQuery(torrentSearchState.get("query"));
       setTitleFilter(torrentSearchState.get("titleFilter"));
-      setSort(torrentSearchState.get("sort"));
+      const savedSort = torrentSearchState.get("sort");
+      const sortValue =
+        savedSort?.key && savedSort?.dir ? savedSort : INITIAL_SORT;
+      sortRef.current = sortValue;
+      setSortState(sortValue);
       setActiveSource(torrentSearchState.get("activeSource"));
       setResults(searchResults);
     }
@@ -293,7 +146,7 @@ const Search = ({ torrentSearchState }) => {
       toastPrefix = "InfoHash";
     }
     if (!magnet && item?.Details) {
-      magnet = item?.Details; // Website URL
+      magnet = item?.Details;
       toastPrefix = "URL";
     }
 
@@ -343,7 +196,11 @@ const Search = ({ torrentSearchState }) => {
 
   const sources = useMemo(() => {
     const sorted = Object.entries(sourceCounts)
-      .sort((a, b) => b[1] - a[1])
+      .sort(([trackA, countA], [trackB, countB]) => {
+        const countDiff = countB - countA;
+        if (countDiff !== 0) return countDiff;
+        return (trackA || "").localeCompare(trackB || "");
+      })
       .map(([tracker]) => tracker);
 
     return ["All", ...sorted];
@@ -355,7 +212,7 @@ const Search = ({ torrentSearchState }) => {
         { name: "Title", weight: 1 },
         { name: "Tracker", weight: 0.2 },
       ],
-      threshold: 0.35, // lower = stricter
+      threshold: 0.35,
       ignoreLocation: true,
       minMatchCharLength: 2,
       useExtendedSearch: true,
@@ -379,11 +236,15 @@ const Search = ({ torrentSearchState }) => {
       );
   }, [results, activeSource, titleFilter, fuse]);
 
+  useResultsOffset(filtersRef, visibleResults.length);
+
   const handleSearch = async () => {
     const trimmed = query.trim();
     if (!trimmed) return;
 
     setHasSearched(true);
+
+    const searchId = (searchSessionRef.current += 1);
 
     abortRef.current?.abort();
     const controller = new AbortController();
@@ -391,11 +252,7 @@ const Search = ({ torrentSearchState }) => {
 
     setTitleFilter("");
     setResults([]);
-
-    setSort({
-      key: SORT_KEYS.name,
-      dir: "asc",
-    });
+    updateSort(INITIAL_SORT);
     setActiveSource("All");
     setLoading(true);
 
@@ -427,13 +284,17 @@ const Search = ({ torrentSearchState }) => {
           if (!line.trim()) continue;
           const item = JSON.parse(line);
 
-          setResults((prev) => sortResults([...prev, item], sort));
+          setResults((prev) =>
+            sortResults([...prev, item], sortRef.current ?? sort)
+          );
         }
       }
     } catch (err) {
       if (err.name !== "AbortError") console.error(err);
     } finally {
-      setLoading(false);
+      if (searchSessionRef.current === searchId) {
+        setLoading(false);
+      }
     }
   };
 
@@ -444,150 +305,59 @@ const Search = ({ torrentSearchState }) => {
   };
 
   const handleSortChange = (key) => {
-    setSort((prev) => {
-      const dir =
-        prev.key === key
-          ? prev.dir === "asc"
-            ? "desc"
-            : "asc"
-          : DEFAULT_SORT_DIR[key] ?? "asc";
-
-      setResults((r) => sortResults(r, { key, dir }));
-      return { key, dir };
-    });
-  };
-
-  const SortButton = ({ label, value }) => {
-    const active = sort.key === value;
-    const Icon = sort.dir === "asc" ? FiArrowUp : FiArrowDown;
-
-    return (
-      <button
-        onClick={() => handleSortChange(value)}
-        className={`flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-medium transition
-          ${
-            active
-              ? "bg-zinc-900 text-white dark:bg-zinc-100 dark:text-black"
-              : "bg-zinc-200 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300"
-          }
-        `}
-      >
-        {label}
-        {active && <Icon size={12} />}
-      </button>
-    );
+    const dir =
+      sort.key === key
+        ? sort.dir === "asc"
+          ? "desc"
+          : "asc"
+        : DEFAULT_SORT_DIR[key] ?? "asc";
+    const nextSort = { key, dir };
+    updateSort(nextSort);
+    setResults((r) => sortResults(r, nextSort));
   };
 
   return (
     <div className="flex justify-center">
       <div className="mt-4 pb-16 md:pb-6 relative overflow-y-auto overflow-x-hidden 2xl:w-[82rem] w-full p-4 space-y-4">
-        {/* Search Bar */}
-        <div className="flex w-full h-[3.2rem] rounded-lg overflow-hidden">
-          <div className="relative flex-1">
-            <input
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && handleSearch()}
-              // disabled={loading}
-              placeholder="Search torrent here"
-              className="w-full h-full px-4 pr-10 text-sm bg-zinc-100 dark:bg-black text-zinc-900 dark:text-zinc-100 outline-none"
-            />
-            {query && (
-              <button
-                onClick={() => setQuery("")}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200"
-                aria-label="Clear search"
-              >
-                <FiX size={16} />
-              </button>
-            )}
-          </div>
-          <button
-            onClick={loading ? handleCancel : handleSearch}
-            className={`w-12 flex items-center justify-center text-white ${
-              loading
-                ? "bg-red-600 dark:bg-red-700"
-                : "bg-blue-600 dark:bg-blue-700"
-            }`}
-          >
-            {loading ? (
-              <div className="relative w-5 h-5 flex items-center justify-center">
-                <div className="absolute inset-0 rounded-full border-2 border-white/40 border-t-white animate-spin" />
-                <FiX className="relative z-10" />
-              </div>
-            ) : (
-              <FiSearch />
-            )}
-          </button>
-        </div>
+        <SearchBar
+          query={query}
+          setQuery={setQuery}
+          loading={loading}
+          onSearch={handleSearch}
+          onCancel={handleCancel}
+        />
 
-        {/* Sort + Source Filters */}
         {results.length > 0 && (
           <div ref={filtersRef}>
-            <div className="flex space-x-2">
-              <div className="flex flex-wrap gap-2 w-max">
-                <SortButton label="Name" value={SORT_KEYS.name} />
-                <SortButton label="Seeds" value={SORT_KEYS.seeds} />
-                <SortButton label="Size" value={SORT_KEYS.size} />
-                <SortButton label="Upload Date" value={SORT_KEYS.date} />
-              </div>
-
-              <div className="border-l my-0.5 dark:border-neutral-800" />
-
-              <div className="flex w-max rounded-full overflow-hidden">
-                <input
-                  value={titleFilter}
-                  onChange={(e) => setTitleFilter(e.target.value)}
-                  placeholder="Filter results by title"
-                  className="w-full px-3 text-xs bg-zinc-200 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 rounded-full outline-none"
-                />
-              </div>
-            </div>
-
-            <div className="flex flex-wrap gap-2 mt-2">
-              {sources.map((src) => {
-                const count =
-                  src === "All" ? results.length : sourceCounts[src] ?? 0;
-
-                return (
-                  <button
-                    key={src}
-                    onClick={() => setActiveSource(src)}
-                    className={`flex items-center gap-1 px-3 py-1 rounded-full text-xs font-medium transition
-                    ${
-                      activeSource === src
-                        ? "bg-blue-600 text-white"
-                        : "bg-zinc-200 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300"
-                    }
-                  `}
-                  >
-                    <span>{src}</span>
-                    <span className="opacity-70">({formatCount(count)})</span>
-                  </button>
-                );
-              })}
-            </div>
+            <SortFilters
+              sort={sort}
+              onSortChange={handleSortChange}
+              titleFilter={titleFilter}
+              setTitleFilter={setTitleFilter}
+              sources={sources}
+              activeSource={activeSource}
+              setActiveSource={setActiveSource}
+              sourceCounts={sourceCounts}
+              resultsCount={results.length}
+            />
           </div>
         )}
 
-        {/* Loader */}
         {loading && results.length === 0 && (
           <div className="py-10 flex justify-center">
             <div className="h-6 w-6 rounded-full border-2 border-zinc-300 border-t-zinc-900 dark:border-zinc-700 dark:border-t-white animate-spin" />
           </div>
         )}
 
-        {/* Results */}
         {visibleResults.length > 0 && (
-          <VirtualizedResults
+          <TorrentResults
             items={visibleResults}
             onCopy={handleCopyMagnet}
             onDownload={handleDownload}
-            filtersRef={filtersRef}
+            isMobile={isMobile}
           />
         )}
 
-        {/* No Results */}
         {hasSearched && !loading && results.length === 0 && (
           <p className="py-10 text-center text-sm text-zinc-500">
             No results found
