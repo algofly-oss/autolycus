@@ -1,4 +1,4 @@
-import { FiArrowUp, FiArrowDown } from "react-icons/fi";
+import { FiArrowUp, FiArrowDown, FiX } from "react-icons/fi";
 import { formatCount, SORT_KEYS } from "../utils";
 
 const SortButton = ({ label, value, sort, onSortChange }) => {
@@ -45,13 +45,23 @@ const SortFilters = ({
 
       <div className="border-l my-0.5 dark:border-neutral-800" />
 
-      <div className="flex w-max rounded-full overflow-hidden">
+      <div className="relative flex w-max rounded-full overflow-hidden">
         <input
           value={titleFilter}
           onChange={(e) => setTitleFilter(e.target.value)}
           placeholder="Filter results by title"
-          className="w-full px-3 text-xs bg-zinc-200 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 rounded-full outline-none"
+          className="w-full px-3 pr-7 text-xs bg-zinc-200 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 rounded-full outline-none"
         />
+        {titleFilter ? (
+          <button
+            type="button"
+            onClick={() => setTitleFilter("")}
+            aria-label="Clear title filter"
+            className="absolute right-2 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-200"
+          >
+            <FiX size={12} />
+          </button>
+        ) : null}
       </div>
     </div>
 
