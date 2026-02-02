@@ -55,8 +55,10 @@ services:
       - TZ=Etc/UTC
       - AUTO_UPDATE=true
     volumes:
-      - ./jackett/config:/config
+      - ./api/jackett/config:/config
     restart: always
+    depends_on:
+      - api
     ports:
       - ${JACKETT_HOST_PORT_MAP:-9117}:9117
     networks:
