@@ -236,6 +236,7 @@ const Search = ({ torrentSearchState }) => {
   const [titleFilter, setTitleFilter] = useState("");
   const abortRef = useRef(null);
   const filtersRef = useRef(null);
+  const searchSessionRef = useRef(0);
   const toast = useToast();
 
   useEffect(() => {
@@ -385,6 +386,8 @@ const Search = ({ torrentSearchState }) => {
 
     setHasSearched(true);
 
+    const searchId = (searchSessionRef.current += 1);
+
     abortRef.current?.abort();
     const controller = new AbortController();
     abortRef.current = controller;
@@ -433,7 +436,9 @@ const Search = ({ torrentSearchState }) => {
     } catch (err) {
       if (err.name !== "AbortError") console.error(err);
     } finally {
-      setLoading(false);
+      if (searchSessionRef.current === searchId) {
+        setLoading(false);
+      }
     }
   };
 
