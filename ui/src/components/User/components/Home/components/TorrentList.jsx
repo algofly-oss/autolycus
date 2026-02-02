@@ -17,8 +17,19 @@ const PAGE_SIZE_OPTIONS = [10, 20, 50, 100, 200];
 export default function TorrentList({ state, onPathChange }) {
   const socket = useContext(SocketContext);
   const [torrentList, setTorrentList] = useState([]);
-  const [currentPage, setCurrentPage] = useState(1);
-  const [pageSize, setPageSize] = useState(PAGE_SIZE_OPTIONS[0]);
+  const [currentPage, setCurrentPage] = useState(() => {
+    const storedPage = state?.get("torrentListPage");
+    const parsedPage = Number(storedPage);
+    return Number.isFinite(parsedPage) && parsedPage > 0 ? parsedPage : 1;
+  });
+  const [pageSize, setPageSize] = useState(() => {
+    const storedSize = state?.get("torrentListPageSize");
+    const parsedSize = Number(storedSize);
+    if (Number.isFinite(parsedSize) && PAGE_SIZE_OPTIONS.includes(parsedSize)) {
+      return parsedSize;
+    }
+    return PAGE_SIZE_OPTIONS[0];
+  });
   const [totalTorrents, setTotalTorrents] = useState(0);
   const [pageInput, setPageInput] = useState("1");
 
@@ -110,6 +121,14 @@ export default function TorrentList({ state, onPathChange }) {
   useEffect(() => {
     setPageInput(String(currentPage));
   }, [currentPage]);
+
+  useEffect(() => {
+    state?.set("torrentListPage", currentPage);
+  }, [state, currentPage]);
+
+  useEffect(() => {
+    state?.set("torrentListPageSize", pageSize);
+  }, [state, pageSize]);
 
   const handlePageSizeChange = (value) => {
     const parsedSize = Number(value);

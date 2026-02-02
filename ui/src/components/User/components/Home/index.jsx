@@ -5,6 +5,7 @@ import FileExplorer from "./components/FileExplorer";
 
 export default function Home({ state }) {
   const [currentPath, setCurrentPath] = useState(null);
+  const isListView = !currentPath;
 
   const handlePathChange = (newPath) => {
     // If we're navigating to /downloads or an invalid path, clear the current path
