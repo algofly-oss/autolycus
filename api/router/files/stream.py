@@ -1,106 +1,95 @@
 from fastapi import APIRouter, HTTPException, Request
 from ..auth.common import authenticate_user
-from fastapi.responses import FileResponse
-from starlette.responses import Response as StreamingResponse
+from starlette.responses import StreamingResponse, FileResponse
 from pathlib import Path
 import os
 import mimetypes
 import re
-import contextlib
-import mmap
+import asyncio
 
 router = APIRouter()
 
 
-def get_chunk(full_path, byte1=None, byte2=None):
-    file_size = os.stat(full_path).st_size
-    start = 0
-    length = 1024
+async def async_file_iterator(path, start=0, length=None, chunk_size=4 * 1024 * 1024):
+    with open(path, "rb") as f:
+        f.seek(start)
+        remaining = length
+        while True:
+            if remaining is not None:
+                if remaining <= 0:
+                    break
+                read_size = min(chunk_size, remaining)
+            else:
+                read_size = chunk_size
 
-    if byte1 < file_size:
-        start = byte1
-    if byte2:
-        length = byte2 + 1 - byte1
-    else:
-        length = file_size - start
+            data = f.read(read_size)
+            if not data:
+                break
 
-    with open(full_path, "rb") as f:
-        with contextlib.closing(
-            mmap.mmap(f.fileno(), length=0, access=mmap.ACCESS_READ)
-        ) as m:
-            m.seek(start)
-            chunk = m.read(length)
-            m.flush()
+            if remaining is not None:
+                remaining -= len(data)
 
-    return chunk, start, length, file_size
+            yield data
+            await asyncio.sleep(0)
 
 
 def handle_stream_file(request, path, download=False):
-    try:
-        # Convert the relative path to absolute path
-        base_path = Path(os.getenv("DOWNLOAD_PATH", "/downloads"))
-        abs_path = base_path / path
+    base_path = Path(os.getenv("DOWNLOAD_PATH", "/downloads")).resolve()
+    abs_path = (base_path / path).resolve()
 
-        # Ensure the path exists and is a file
-        if not abs_path.exists():
-            raise HTTPException(status_code=404, detail="File not found")
-        if not abs_path.is_file():
-            raise HTTPException(status_code=400, detail="Not a file")
+    if not abs_path.exists():
+        raise HTTPException(status_code=404, detail="File not found")
+    if not abs_path.is_file():
+        raise HTTPException(status_code=400, detail="Not a file")
+    if not str(abs_path).startswith(str(base_path)):
+        raise HTTPException(status_code=403, detail="Access denied")
 
-        # Ensure the path is within the base directory
-        if not str(abs_path.resolve()).startswith(str(base_path.resolve())):
-            raise HTTPException(status_code=403, detail="Access denied")
+    if download:
+        return FileResponse(abs_path, filename=abs_path.name)
 
-        if download:
-            return FileResponse(
-                path=abs_path,
-                media_type="application/octet-stream",
-                filename=os.path.basename(abs_path),
-                headers={
-                    "Content-Disposition": f"attachment; filename={os.path.basename(abs_path)}"
-                },
-            )
+    file_size = abs_path.stat().st_size
+    range_header = request.headers.get("Range")
 
-        # Handle byte range requests
-        range_header = request.headers.get("Range", None)
-        byte1, byte2 = 0, None
-        if range_header:
-            match = re.search(r"(\d+)-(\d*)", range_header)
-            groups = match.groups()
+    mimetype = mimetypes.guess_type(abs_path)[0] or "application/octet-stream"
+    if mimetype.startswith("video"):
+        mimetype = "video/mp4"
 
-            if groups[0]:
-                byte1 = int(groups[0])
-            if groups[1]:
-                byte2 = int(groups[1])
-
-        try:
-            mimetype = mimetypes.guess_type(abs_path)[0]
-            if mimetype is None:
-                mimetype = "text/plain"
-            elif mimetype.startswith("video"):
-                mimetype = "video/mp4"
-        except:
-            return FileResponse(
-                path=path,
-                media_type="application/octet-stream",
-                filename=os.path.basename(abs_path),
-                headers={
-                    "Content-Disposition": f"attachment; filename={os.path.basename(abs_path)}"
-                },
-            )
-
-        chunk, start, length, file_size = get_chunk(abs_path, byte1, byte2)
-        headers = {
-            "Content-Range": f"bytes {start}-{start + length - 1}/{file_size}",
-            "Accept-Ranges": "bytes",
-        }
-
-        return StreamingResponse(
-            chunk, status_code=206, headers=headers, media_type=mimetype
+    # --------------------
+    # NO RANGE -> FileResponse (zero RAM)
+    # --------------------
+    if not range_header:
+        return FileResponse(
+            abs_path,
+            media_type=mimetype,
+            headers={"Accept-Ranges": "bytes"},
         )
 
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    # --------------------
+    # RANGE REQUEST
+    # --------------------
+    match = re.match(r"bytes=(\d+)-(\d*)", range_header)
+    if not match:
+        raise HTTPException(status_code=416, detail="Invalid range")
+
+    start = int(match.group(1))
+    end = int(match.group(2)) if match.group(2) else file_size - 1
+
+    if start >= file_size:
+        raise HTTPException(status_code=416, detail="Range not satisfiable")
+
+    end = min(end, file_size - 1)
+    length = end - start + 1
+
+    return StreamingResponse(
+        async_file_iterator(abs_path, start, length),
+        status_code=206,
+        media_type=mimetype,
+        headers={
+            "Content-Range": f"bytes {start}-{end}/{file_size}",
+            "Content-Length": str(length),
+            "Accept-Ranges": "bytes",
+        },
+    )
 
 
 @router.get("/stream")
