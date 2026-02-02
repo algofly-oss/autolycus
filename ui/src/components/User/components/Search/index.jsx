@@ -250,7 +250,7 @@ const Search = ({ torrentSearchState }) => {
     const controller = new AbortController();
     abortRef.current = controller;
 
-    setTitleFilter("");
+    setTitleFilter(trimmed);
     setResults([]);
     updateSort(INITIAL_SORT);
     setActiveSource("All");

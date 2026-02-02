@@ -15,8 +15,8 @@ export const DEFAULT_SORT_DIR = {
 export const MOBILE_BREAKPOINT = 768;
 
 export const INITIAL_SORT = {
-  key: SORT_KEYS.name,
-  dir: "asc",
+  key: SORT_KEYS.seeds,
+  dir: "desc",
 };
 
 export const formatBytes = (bytes) => {
@@ -63,13 +63,16 @@ export const truncateText = (text, length = 100) => {
   return text.length > length ? text.slice(0, length) + "..." : text;
 };
 
-export const sortResults = (data, { key = SORT_KEYS.name, dir = "asc" } = {}) => {
+export const sortResults = (
+  data,
+  { key = SORT_KEYS.name, dir = "asc" } = {}
+) => {
   const factor = dir === "asc" ? 1 : -1;
 
   return [...data].sort((a, b) => {
     switch (key) {
       case SORT_KEYS.name:
-        return factor * ((a.Title || "").localeCompare(b.Title || ""));
+        return factor * (a.Title || "").localeCompare(b.Title || "");
       case SORT_KEYS.seeds:
         return factor * ((a.Seeders ?? 0) - (b.Seeders ?? 0));
       case SORT_KEYS.size:
