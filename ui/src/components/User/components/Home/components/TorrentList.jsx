@@ -193,7 +193,7 @@ export default function TorrentList({ state, onPathChange }) {
   const shouldShowPagination = torrentList.length > 0;
 
   return (
-    <div className="mt-5 flex flex-col gap-1.5 pb-[4rem] md:pb-4">
+    <div className="flex flex-col gap-1.5 pb-[4rem] md:pb-4">
       {torrentList.map((torrent) => (
         <div
           key={torrent.id}
@@ -225,6 +225,7 @@ export default function TorrentList({ state, onPathChange }) {
           onPageSizeChange={handlePageSizeChange}
         />
       )}
+      <div className="h-16 md:h-6" aria-hidden="true" />
     </div>
   );
 }

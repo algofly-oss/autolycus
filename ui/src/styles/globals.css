@@ -6,12 +6,18 @@ html,
 body {
   padding: 0;
   margin: 0;
+  height: 100%;
+  overflow: hidden;
   font-family: -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Oxygen,
     Ubuntu, Cantarell, Fira Sans, Droid Sans, Helvetica Neue, sans-serif;
   scroll-behavior: smooth;
   -webkit-tap-highlight-color: transparent;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+#__next {
+  height: 100%;
 }
 
 code {
@@ -66,6 +72,10 @@ input[type="number"] {
   .dark-scrollbar::-webkit-scrollbar-thumb {
     background-color: #323236;
     border-radius: 1em;
+  }
+
+  .touch-scroll {
+    -webkit-overflow-scrolling: touch;
   }
 
   .bg-light {

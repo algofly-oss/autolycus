@@ -104,7 +104,8 @@ export default function FileExplorer({ initialPath, onPathChange }) {
 
       if (response.status === 200) {
         toast.success(
-          `Item ${copiedItem.action === "copy" ? "copied" : "moved"
+          `Item ${
+            copiedItem.action === "copy" ? "copied" : "moved"
           } successfully`
         );
         setCopiedItem(null);
@@ -167,7 +168,7 @@ export default function FileExplorer({ initialPath, onPathChange }) {
   };
 
   return (
-    <div className="mt-6">
+    <div className="mt-5">
       {archiving && (
         <div className="fixed inset-0 z-50 flex items-center justify-center">
           <div className="absolute inset-0 bg-black opacity-80 z-40"></div>
