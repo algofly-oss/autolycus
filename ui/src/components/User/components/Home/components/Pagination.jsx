@@ -37,7 +37,7 @@ export default function FloatingPagination({
   };
 
   return (
-    <div className="fixed bottom-4 left-1/2 z-50 -translate-x-1/2">
+    <div className="fixed bottom-[4.5rem] md:bottom-4 left-1/2 z-50 -translate-x-1/2">
       <div className="flex items-center gap-2 rounded-md border border-neutral-200/70 bg-white/90 px-3 py-2 text-sm shadow-lg backdrop-blur dark:border-neutral-800 dark:bg-neutral-900/90">
         {/* Page size */}
         <div className="flex items-center gap-1 text-xs font-medium text-neutral-700 dark:text-neutral-100">
