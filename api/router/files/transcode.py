@@ -42,7 +42,7 @@ async def transcode(path: str, resolution: str, request: Request):
 
         with open(output_path, "w") as f:
             f.write("")
-            redis.set(key, json.dumps({"progress": 0.01, "eta": 0}))
+            redis.set(key, json.dumps({"progress": 0.01, "eta": 0, "file_size": 0}))
 
         result = transcode_video.delay(path, output_path, resolution, user_id.decode())
         return {

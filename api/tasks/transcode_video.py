@@ -51,7 +51,11 @@ def transcode_video(input_path, output_path, resolution, user_id):
         if progress_match and eta_match:
             progress = float(progress_match.group(1))  # 1-100
             eta = convert_to_seconds(eta_match.group(1))
-            redis.set(key, json.dumps({"progress": progress, "eta": eta}))
+            file_size = os.path.getsize(output_path)
+            redis.set(
+                key,
+                json.dumps({"progress": progress, "eta": eta, "file_size": file_size}),
+            )
             # print(f"\nProgress: {progress}% | ETA: {eta / 60:.2f} min")
 
     if redis.get(f"{key}/kill"):

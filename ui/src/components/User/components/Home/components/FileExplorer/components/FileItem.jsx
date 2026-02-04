@@ -288,8 +288,11 @@ const FileItem = ({
                   progress_height={"h-1.5"}
                 />
                 <div className="text-sm text-gray-500 mt-1">
-                  {transcodingProgress.progress}% - Time Remaining{" "}
-                  {formatTimeRemaining(transcodingProgress.eta)}
+                  {typeof transcodingProgress.progress === "number"
+                    ? transcodingProgress.progress.toFixed(2)
+                    : "0.00"}
+                  % &ndash; ETA {formatTimeRemaining(transcodingProgress.eta)}{" "}
+                  &ndash; {formatFileSize(transcodingProgress?.file_size)}
                 </div>
               </div>
             ) : (
