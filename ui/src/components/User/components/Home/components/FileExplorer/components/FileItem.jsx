@@ -291,8 +291,8 @@ const FileItem = ({
                   {typeof transcodingProgress.progress === "number"
                     ? transcodingProgress.progress.toFixed(2)
                     : "0.00"}
-                  % &ndash; ETA {formatTimeRemaining(transcodingProgress.eta)}{" "}
-                  &ndash; {formatFileSize(transcodingProgress?.file_size)}
+                  % {"•"} ETA {formatTimeRemaining(transcodingProgress.eta)}{" "}
+                  {"•"} {formatFileSize(transcodingProgress?.file_size)}
                 </div>
               </div>
             ) : (
