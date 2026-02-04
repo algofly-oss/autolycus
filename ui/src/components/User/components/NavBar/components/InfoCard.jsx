@@ -73,11 +73,20 @@ export default function InfoCard() {
   const circumference = 2 * Math.PI * radius;
 
   const segments = [
-    { start: 0, end: 50, color: "#34C759" }, // iOS Green
-    { start: 50, end: 75, color: "#0A84FF" }, // iOS Blue
-    { start: 75, end: 90, color: "#FF9F0A" }, // iOS Orange
-    { start: 90, end: 100, color: "#FF3B30" }, // iOS Red
+    { start: 0, end: 30, color: "#34C759" },
+    { start: 30, end: 60, color: "#0A84FF" },
+    { start: 60, end: 80, color: "#FF9F0A" },
+    { start: 80, end: 100, color: "#FF3B30" },
   ];
+  const getSegmentForValue = (value) => {
+    if (!segments.length) return null;
+    for (let i = 0; i < segments.length; i++) {
+      if (value >= segments[i].start && value <= segments[i].end) {
+        return segments[i];
+      }
+    }
+    return segments[segments.length - 1] ?? segments[0];
+  };
 
   return (
     <div className="bg-zinc-200 dark:bg-zinc-900 p-4 rounded-lg text-sm">
@@ -102,7 +111,6 @@ export default function InfoCard() {
             stroke={theme?.isDarkTheme ? "#c3c4c7" : "#282829"}
             strokeWidth="2"
           />
-          {/* Segmented progress circle */}
           {segments.map((segment) => {
             const segmentFill = Math.max(
               0,
@@ -134,15 +142,11 @@ export default function InfoCard() {
         </svg>
         <div className="py-0.5">
           <p
-            className={`inline-block ${
-              usagePercentage > 90
-                ? "text-red-600"
-                : usagePercentage > 75
-                ? "text-yellow-500"
-                : usagePercentage > 50
-                ? "text-blue-500"
-                : "text-green-500"
-            }`}
+            className={`inline-block`}
+            style={{
+              color: (getSegmentForValue(normalizedUsage) ?? segments[0])
+                ?.color,
+            }}
           >
             {bytesToHumanReadable(diskStatus?.used)}
           </p>
