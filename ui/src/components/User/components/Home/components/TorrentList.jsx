@@ -165,6 +165,7 @@ export default function TorrentList({ state, onPathChange }) {
   const handleTorrentClick = (torrent) => {
     if (torrent.is_finished) {
       state.set("hoveredTorrentInfoHash", torrent?.info_hash);
+      state.set("activeTorrent", torrent);
       onPathChange(torrent.save_dir);
     }
   };
@@ -214,9 +215,9 @@ export default function TorrentList({ state, onPathChange }) {
         <div
           key={torrent.id}
           onClick={() => handleTorrentClick(torrent)}
-          onMouseEnter={() =>
-            state.set("hoveredTorrentInfoHash", torrent?.info_hash)
-          }
+          onMouseEnter={() => {
+            state.set("hoveredTorrentInfoHash", torrent?.info_hash);
+          }}
           onMouseLeave={() => state.set("hoveredTorrentInfoHash", null)}
           className={`${
             torrent.is_finished ? "cursor-pointer" : ""

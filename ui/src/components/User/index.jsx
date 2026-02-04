@@ -10,6 +10,7 @@ export default function UserHome() {
   const [tab, setTab] = useState("Home");
   const state = reactState({
     hoveredTorrent: null,
+    activeTorrent: null,
     isFileView: false,
     hoveredTorrentInfoHash: null,
     torrentListPage: 1,
@@ -61,7 +62,11 @@ export default function UserHome() {
       </div>
       <div className="hidden lg:block w-[26rem] 2xl:w-[25%]- 2xl:w-[30rem] h-screen bg-neutral-100 dark:bg-black overflow-y-auto md:light-scrollbar dark:md:dark-scrollbar">
         <TorrentDetails
-          torrent={state.get("hoveredTorrent")}
+          torrent={
+            state.get("isFileView") & (tab === "Home")
+              ? state.get("activeTorrent")
+              : state.get("hoveredTorrent")
+          }
           isFileView={state.get("isFileView")}
         />
       </div>
