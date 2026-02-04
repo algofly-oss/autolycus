@@ -158,7 +158,9 @@ const TorrentCard = ({ torrentData }) => {
               <BsCircleFill className="w-1 h-1 flex-shrink-0" />
             )}
             {total_bytes && (
-              <span className="text-sm">{formatFileSize(total_bytes)}</span>
+              <span className="text-sm">
+                {formatFileSize(torrentData?.disk_bytes || total_bytes)}
+              </span>
             )}
           </div>
         </div>

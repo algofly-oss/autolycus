@@ -66,12 +66,18 @@ export default function InfoCard() {
   // Calculate percentage used
   const usagePercentage =
     diskStatus.total > 0 ? (diskStatus.used / diskStatus.total) * 100 : 0;
+  const normalizedUsage = Math.min(Math.max(usagePercentage, 0), 100);
 
   // Calculate circle circumference and dash offset
   const radius = 8;
   const circumference = 2 * Math.PI * radius;
-  const strokeDashoffset =
-    circumference - (usagePercentage / 100) * circumference;
+
+  const segments = [
+    { start: 0, end: 50, color: "#34C759" }, // iOS Green
+    { start: 50, end: 75, color: "#0A84FF" }, // iOS Blue
+    { start: 75, end: 90, color: "#FF9F0A" }, // iOS Orange
+    { start: 90, end: 100, color: "#FF3B30" }, // iOS Red
+  ];
 
   return (
     <div className="bg-zinc-200 dark:bg-zinc-900 p-4 rounded-lg text-sm">
@@ -96,24 +102,35 @@ export default function InfoCard() {
             stroke={theme?.isDarkTheme ? "#c3c4c7" : "#282829"}
             strokeWidth="2"
           />
-          {/* Progress circle */}
-          <circle
-            cx="10"
-            cy="10"
-            r={radius}
-            fill="none"
-            stroke={
-              usagePercentage > 90
-                ? "#ef4444" // Red for high usage
-                : usagePercentage > 75
-                ? "#f59e0b" // Amber for medium usage
-                : "#10b981" // Green for low usage
-            }
-            strokeWidth="2"
-            strokeDasharray={circumference}
-            strokeDashoffset={strokeDashoffset}
-            transform="rotate(-90 10 10)"
-          />
+          {/* Segmented progress circle */}
+          {segments.map((segment) => {
+            const segmentFill = Math.max(
+              0,
+              Math.min(normalizedUsage, segment.end) - segment.start
+            );
+            if (segmentFill <= 0) return null;
+
+            const segmentLength = (segmentFill / 100) * circumference;
+            const segmentOffset =
+              circumference - (segment.start / 100) * circumference;
+
+            return (
+              <circle
+                key={`${segment.start}-${segment.end}`}
+                cx="10"
+                cy="10"
+                r={radius}
+                fill="none"
+                stroke={segment.color}
+                strokeWidth="2"
+                strokeDasharray={`${segmentLength} ${
+                  circumference - segmentLength
+                }`}
+                strokeDashoffset={segmentOffset}
+                transform="rotate(-90 10 10)"
+              />
+            );
+          })}
         </svg>
         <div className="py-0.5">
           <p
@@ -122,6 +139,8 @@ export default function InfoCard() {
                 ? "text-red-600"
                 : usagePercentage > 75
                 ? "text-yellow-500"
+                : usagePercentage > 50
+                ? "text-blue-500"
                 : "text-green-500"
             }`}
           >
