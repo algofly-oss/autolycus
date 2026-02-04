@@ -44,8 +44,18 @@ export default function UserHome() {
       </div>
 
       <div className="w-full h-screen overflow-hidden relative">
-        {tab === "Home" && <Home state={state} />}
-        {tab === "Search" && <Search torrentSearchState={torrentSearchState} />}
+        <div
+          className={`h-full ${tab === "Home" ? "block" : "hidden"}`}
+          aria-hidden={tab !== "Home"}
+        >
+          <Home state={state} />
+        </div>
+        <div
+          className={`h-full ${tab === "Search" ? "block" : "hidden"}`}
+          aria-hidden={tab !== "Search"}
+        >
+          <Search torrentSearchState={torrentSearchState} />
+        </div>
       </div>
       <div className="hidden lg:block w-[26rem] 2xl:w-[25%]- 2xl:w-[30rem] h-screen bg-neutral-100 dark:bg-black overflow-y-auto md:light-scrollbar dark:md:dark-scrollbar">
         <TorrentDetails
