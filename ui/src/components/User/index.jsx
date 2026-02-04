@@ -14,6 +14,8 @@ export default function UserHome() {
     hoveredTorrentInfoHash: null,
     torrentListPage: 1,
     torrentListPageSize: 50,
+    torrentListCache: [],
+    torrentListTotal: 0,
   });
 
   const torrentSearchState = reactState({});
