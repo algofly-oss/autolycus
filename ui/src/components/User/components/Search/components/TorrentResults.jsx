@@ -6,8 +6,8 @@ import { formatBytes, formatDate, truncateText } from "../utils";
 
 const TorrentCardContent = ({ item, onCopy, onDownload }) => (
   <>
-    <div className="flex items-start justify-between gap-3">
-      <p className="font-semibold leading-snug text-sm">
+    <div className="flex items-start justify-between gap-3 min-w-0">
+      <p className="min-w-0 flex-1 font-semibold leading-snug text-sm break-all">
         {truncateText(item?.Title) || "Untitled"}
       </p>
 
@@ -70,10 +70,15 @@ const VirtualizedResults = ({
   onDownload,
   scrollOffset,
   onScrollOffsetChange,
+  scrollResetKey,
 }) => {
   const parentRef = useRef(null);
   const restoringRef = useRef(false);
   const rafRef = useRef(null);
+  const scrollSaveTimeoutRef = useRef(null);
+  const lastScrollTopRef = useRef(0);
+  const userScrollRef = useRef(false);
+  const userScrollTimeoutRef = useRef(null);
 
   const rowVirtualizer = useVirtualizer({
     count: items.length,
@@ -93,7 +98,10 @@ const VirtualizedResults = ({
 
   useEffect(() => {
     if (!parentRef.current) return;
+    if (scrollResetKey !== undefined) userScrollRef.current = false;
+    if (userScrollRef.current) return;
     const offset = Number.isFinite(scrollOffset) ? scrollOffset : 0;
+    if (Math.abs(parentRef.current.scrollTop - offset) < 1) return;
     restoringRef.current = true;
     requestAnimationFrame(() => {
       rowVirtualizer.scrollToOffset(offset, { align: "start" });
@@ -101,11 +109,15 @@ const VirtualizedResults = ({
         restoringRef.current = false;
       });
     });
-  }, [rowVirtualizer, scrollOffset]);
+  }, [rowVirtualizer, scrollOffset, scrollResetKey]);
 
   useEffect(() => {
     return () => {
       if (rafRef.current) cancelAnimationFrame(rafRef.current);
+      if (userScrollTimeoutRef.current)
+        clearTimeout(userScrollTimeoutRef.current);
+      if (scrollSaveTimeoutRef.current)
+        clearTimeout(scrollSaveTimeoutRef.current);
     };
   }, []);
 
@@ -115,14 +127,20 @@ const VirtualizedResults = ({
       onScroll={() => {
         if (!parentRef.current || !onScrollOffsetChange) return;
         if (restoringRef.current) return;
-        const nextOffset = parentRef.current.scrollTop;
-        if (rafRef.current) cancelAnimationFrame(rafRef.current);
-        rafRef.current = requestAnimationFrame(() => {
-          onScrollOffsetChange(nextOffset);
-          rafRef.current = null;
-        });
+        userScrollRef.current = true;
+        if (userScrollTimeoutRef.current)
+          clearTimeout(userScrollTimeoutRef.current);
+        userScrollTimeoutRef.current = setTimeout(() => {
+          userScrollRef.current = false;
+        }, 120);
+        lastScrollTopRef.current = parentRef.current.scrollTop;
+        if (scrollSaveTimeoutRef.current)
+          clearTimeout(scrollSaveTimeoutRef.current);
+        scrollSaveTimeoutRef.current = setTimeout(() => {
+          onScrollOffsetChange(lastScrollTopRef.current);
+        }, 140);
       }}
-      className={`h-[calc(100vh-var(--results-offset))] overflow-auto light-scrolbar dark:dark-scrollbar pr-1 rounded-lg`}
+      className={`h-[calc(100vh-var(--results-offset))] overflow-auto scroll-auto touch-scroll light-scrolbar dark:dark-scrollbar pr-1 rounded-lg`}
     >
       <ul className="relative w-full" style={{ height: rowVirtualizer.getTotalSize() }}>
         {rowVirtualizer.getVirtualItems().map((virtualRow) => {
@@ -159,14 +177,22 @@ const PlainResults = ({
   onDownload,
   scrollOffset,
   onScrollOffsetChange,
+  scrollResetKey,
 }) => {
   const parentRef = useRef(null);
   const restoringRef = useRef(false);
   const rafRef = useRef(null);
+  const scrollSaveTimeoutRef = useRef(null);
+  const lastScrollTopRef = useRef(0);
+  const userScrollRef = useRef(false);
+  const userScrollTimeoutRef = useRef(null);
 
   useEffect(() => {
     if (!parentRef.current) return;
+    if (scrollResetKey !== undefined) userScrollRef.current = false;
+    if (userScrollRef.current) return;
     const offset = Number.isFinite(scrollOffset) ? scrollOffset : 0;
+    if (Math.abs(parentRef.current.scrollTop - offset) < 1) return;
     restoringRef.current = true;
     requestAnimationFrame(() => {
       if (parentRef.current) parentRef.current.scrollTop = offset;
@@ -174,11 +200,15 @@ const PlainResults = ({
         restoringRef.current = false;
       });
     });
-  }, [scrollOffset]);
+  }, [scrollOffset, scrollResetKey]);
 
   useEffect(() => {
     return () => {
       if (rafRef.current) cancelAnimationFrame(rafRef.current);
+      if (userScrollTimeoutRef.current)
+        clearTimeout(userScrollTimeoutRef.current);
+      if (scrollSaveTimeoutRef.current)
+        clearTimeout(scrollSaveTimeoutRef.current);
     };
   }, []);
 
@@ -188,14 +218,20 @@ const PlainResults = ({
       onScroll={() => {
         if (!parentRef.current || !onScrollOffsetChange) return;
         if (restoringRef.current) return;
-        const nextOffset = parentRef.current.scrollTop;
-        if (rafRef.current) cancelAnimationFrame(rafRef.current);
-        rafRef.current = requestAnimationFrame(() => {
-          onScrollOffsetChange(nextOffset);
-          rafRef.current = null;
-        });
+        userScrollRef.current = true;
+        if (userScrollTimeoutRef.current)
+          clearTimeout(userScrollTimeoutRef.current);
+        userScrollTimeoutRef.current = setTimeout(() => {
+          userScrollRef.current = false;
+        }, 120);
+        lastScrollTopRef.current = parentRef.current.scrollTop;
+        if (scrollSaveTimeoutRef.current)
+          clearTimeout(scrollSaveTimeoutRef.current);
+        scrollSaveTimeoutRef.current = setTimeout(() => {
+          onScrollOffsetChange(lastScrollTopRef.current);
+        }, 140);
       }}
-      className={`h-[calc(100vh-var(--results-offset))] overflow-auto light-scrolbar dark:dark-scrollbar pr-1 rounded-lg`}
+      className={`h-[calc(100vh-var(--results-offset))] overflow-auto scroll-auto touch-scroll light-scrolbar dark:dark-scrollbar pr-1 rounded-lg`}
     >
       <ul className="flex flex-col gap-2">
         {items.map((item, index) => (
@@ -220,6 +256,7 @@ const TorrentResults = ({
   isMobile,
   scrollOffset,
   onScrollOffsetChange,
+  scrollResetKey,
 }) => {
   if (!items?.length) return null;
 
@@ -230,6 +267,7 @@ const TorrentResults = ({
       onDownload={onDownload}
       scrollOffset={scrollOffset}
       onScrollOffsetChange={onScrollOffsetChange}
+      scrollResetKey={scrollResetKey}
     />
   ) : (
     <VirtualizedResults
@@ -238,6 +276,7 @@ const TorrentResults = ({
       onDownload={onDownload}
       scrollOffset={scrollOffset}
       onScrollOffsetChange={onScrollOffsetChange}
+      scrollResetKey={scrollResetKey}
     />
   );
 };

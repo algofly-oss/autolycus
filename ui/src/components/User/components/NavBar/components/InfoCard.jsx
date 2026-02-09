@@ -66,12 +66,27 @@ export default function InfoCard() {
   // Calculate percentage used
   const usagePercentage =
     diskStatus.total > 0 ? (diskStatus.used / diskStatus.total) * 100 : 0;
+  const normalizedUsage = Math.min(Math.max(usagePercentage, 0), 100);
 
   // Calculate circle circumference and dash offset
   const radius = 8;
   const circumference = 2 * Math.PI * radius;
-  const strokeDashoffset =
-    circumference - (usagePercentage / 100) * circumference;
+
+  const segments = [
+    { start: 0, end: 30, color: "#34C759" },
+    { start: 30, end: 60, color: "#0A84FF" },
+    { start: 60, end: 80, color: "#FF9F0A" },
+    { start: 80, end: 100, color: "#FF3B30" },
+  ];
+  const getSegmentForValue = (value) => {
+    if (!segments.length) return null;
+    for (let i = 0; i < segments.length; i++) {
+      if (value >= segments[i].start && value <= segments[i].end) {
+        return segments[i];
+      }
+    }
+    return segments[segments.length - 1] ?? segments[0];
+  };
 
   return (
     <div className="bg-zinc-200 dark:bg-zinc-900 p-4 rounded-lg text-sm">
@@ -96,34 +111,42 @@ export default function InfoCard() {
             stroke={theme?.isDarkTheme ? "#c3c4c7" : "#282829"}
             strokeWidth="2"
           />
-          {/* Progress circle */}
-          <circle
-            cx="10"
-            cy="10"
-            r={radius}
-            fill="none"
-            stroke={
-              usagePercentage > 90
-                ? "#ef4444" // Red for high usage
-                : usagePercentage > 75
-                ? "#f59e0b" // Amber for medium usage
-                : "#10b981" // Green for low usage
-            }
-            strokeWidth="2"
-            strokeDasharray={circumference}
-            strokeDashoffset={strokeDashoffset}
-            transform="rotate(-90 10 10)"
-          />
+          {segments.map((segment) => {
+            const segmentFill = Math.max(
+              0,
+              Math.min(normalizedUsage, segment.end) - segment.start
+            );
+            if (segmentFill <= 0) return null;
+
+            const segmentLength = (segmentFill / 100) * circumference;
+            const segmentOffset =
+              circumference - (segment.start / 100) * circumference;
+
+            return (
+              <circle
+                key={`${segment.start}-${segment.end}`}
+                cx="10"
+                cy="10"
+                r={radius}
+                fill="none"
+                stroke={segment.color}
+                strokeWidth="2"
+                strokeDasharray={`${segmentLength} ${
+                  circumference - segmentLength
+                }`}
+                strokeDashoffset={segmentOffset}
+                transform="rotate(-90 10 10)"
+              />
+            );
+          })}
         </svg>
         <div className="py-0.5">
           <p
-            className={`inline-block ${
-              usagePercentage > 90
-                ? "text-red-600"
-                : usagePercentage > 75
-                ? "text-yellow-500"
-                : "text-green-500"
-            }`}
+            className={`inline-block`}
+            style={{
+              color: (getSegmentForValue(normalizedUsage) ?? segments[0])
+                ?.color,
+            }}
           >
             {bytesToHumanReadable(diskStatus?.used)}
           </p>

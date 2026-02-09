@@ -16,7 +16,10 @@ const PAGE_SIZE_OPTIONS = [10, 20, 50, 100, 200];
 
 export default function TorrentList({ state, onPathChange }) {
   const socket = useContext(SocketContext);
-  const [torrentList, setTorrentList] = useState([]);
+  const [torrentList, setTorrentList] = useState(() => {
+    const cachedList = state?.get("torrentListCache");
+    return Array.isArray(cachedList) ? cachedList : [];
+  });
   const [currentPage, setCurrentPage] = useState(() => {
     const storedPage = state?.get("torrentListPage");
     const parsedPage = Number(storedPage);
@@ -30,7 +33,14 @@ export default function TorrentList({ state, onPathChange }) {
     }
     return PAGE_SIZE_OPTIONS[0];
   });
-  const [totalTorrents, setTotalTorrents] = useState(0);
+  const [totalTorrents, setTotalTorrents] = useState(() => {
+    const cachedTotal = state?.get("torrentListTotal");
+    if (typeof cachedTotal === "number" && cachedTotal >= 0) {
+      return cachedTotal;
+    }
+    const cachedList = state?.get("torrentListCache");
+    return Array.isArray(cachedList) ? cachedList.length : 0;
+  });
   const [pageInput, setPageInput] = useState("1");
 
   const totalPages = useMemo(
@@ -68,7 +78,6 @@ export default function TorrentList({ state, onPathChange }) {
       setTotalTorrents(total);
 
       if (currentPage > computedPages) {
-        setTorrentList([]);
         setCurrentPage(computedPages);
         return;
       }
@@ -130,6 +139,13 @@ export default function TorrentList({ state, onPathChange }) {
     state?.set("torrentListPageSize", pageSize);
   }, [state, pageSize]);
 
+  useEffect(() => {
+    state?.set({
+      torrentListCache: torrentList,
+      torrentListTotal: totalTorrents,
+    });
+  }, [state, torrentList, totalTorrents]);
+
   const handlePageSizeChange = (value) => {
     const parsedSize = Number(value);
     if (Number.isNaN(parsedSize) || parsedSize <= 0) {
@@ -149,6 +165,7 @@ export default function TorrentList({ state, onPathChange }) {
   const handleTorrentClick = (torrent) => {
     if (torrent.is_finished) {
       state.set("hoveredTorrentInfoHash", torrent?.info_hash);
+      state.set("activeTorrent", torrent);
       onPathChange(torrent.save_dir);
     }
   };
@@ -193,14 +210,14 @@ export default function TorrentList({ state, onPathChange }) {
   const shouldShowPagination = torrentList.length > 0;
 
   return (
-    <div className="mt-5 flex flex-col gap-1.5">
+    <div className="flex flex-col gap-1.5 pb-[4rem] md:pb-4">
       {torrentList.map((torrent) => (
         <div
           key={torrent.id}
           onClick={() => handleTorrentClick(torrent)}
-          onMouseEnter={() =>
-            state.set("hoveredTorrentInfoHash", torrent?.info_hash)
-          }
+          onMouseEnter={() => {
+            state.set("hoveredTorrentInfoHash", torrent?.info_hash);
+          }}
           onMouseLeave={() => state.set("hoveredTorrentInfoHash", null)}
           className={`${
             torrent.is_finished ? "cursor-pointer" : ""
@@ -225,6 +242,7 @@ export default function TorrentList({ state, onPathChange }) {
           onPageSizeChange={handlePageSizeChange}
         />
       )}
+      <div className="h-16 md:h-6" aria-hidden="true" />
     </div>
   );
 }

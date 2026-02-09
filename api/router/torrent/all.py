@@ -6,6 +6,7 @@ from shared.sockets import emit
 from ..auth.common import authenticate_user
 from ..files.status import get_disk_usage
 from .download_status import get_download_status
+from pathlib import Path
 
 router = APIRouter()
 
@@ -36,6 +37,14 @@ async def all_torrent(
     for torrent in torrents:
         del torrent["_id"]
         del torrent["user_id"]
+        try:
+            torrent["disk_bytes"] = sum(
+                f.stat().st_blocks * 512
+                for f in Path(torrent.get("save_dir")).rglob("*")
+                if f.is_file()
+            )
+        except Exception as e:
+            print(e)
 
     emit(f"/stc/disk-usage", get_disk_usage(user_id), user_id)
     emit(f"/stc/download_status", await get_download_status(user_id), user_id)

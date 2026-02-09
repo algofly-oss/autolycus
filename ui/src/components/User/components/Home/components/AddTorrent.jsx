@@ -1,5 +1,5 @@
 import { FiFilePlus } from "react-icons/fi";
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef } from "react";
 import axios from "axios";
 import apiRoutes from "@/shared/routes/apiRoutes";
 import useToast from "@/shared/hooks/useToast";

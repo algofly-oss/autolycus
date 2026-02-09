@@ -10,10 +10,13 @@ export default function UserHome() {
   const [tab, setTab] = useState("Home");
   const state = reactState({
     hoveredTorrent: null,
+    activeTorrent: null,
     isFileView: false,
     hoveredTorrentInfoHash: null,
     torrentListPage: 1,
-    torrentListPageSize: 10,
+    torrentListPageSize: 50,
+    torrentListCache: [],
+    torrentListTotal: 0,
   });
 
   const torrentSearchState = reactState({});
@@ -26,7 +29,7 @@ export default function UserHome() {
   }, [tab]);
 
   return (
-    <div className="flex">
+    <div className="flex h-screen overflow-hidden">
       <div
         className="bg-neutral-100 dark:bg-black flex items-center w-full md:px-4 fixed inset-x-0 bottom-0 z-10 h-16
         md:relative md:block md:h-screen md:w-96 2xl:w-[25%]- 2xl:w-[30rem] md:p-4 md:overflow-y-auto md:light-scrollbar dark:md:dark-scrollbar"
@@ -43,13 +46,27 @@ export default function UserHome() {
         <UserNavBar tab={tab} setTab={setTab} />
       </div>
 
-      <div className="w-full md:h-screen md:overflow-y-auto md:light-scrollbar dark:md:dark-scrollbar ">
-        {tab === "Home" && <Home state={state} />}
-        {tab === "Search" && <Search torrentSearchState={torrentSearchState} />}
+      <div className="w-full h-screen overflow-hidden relative">
+        <div
+          className={`h-full ${tab === "Home" ? "block" : "hidden"}`}
+          aria-hidden={tab !== "Home"}
+        >
+          <Home state={state} />
+        </div>
+        <div
+          className={`h-full ${tab === "Search" ? "block" : "hidden"}`}
+          aria-hidden={tab !== "Search"}
+        >
+          <Search torrentSearchState={torrentSearchState} />
+        </div>
       </div>
       <div className="hidden lg:block w-[26rem] 2xl:w-[25%]- 2xl:w-[30rem] h-screen bg-neutral-100 dark:bg-black overflow-y-auto md:light-scrollbar dark:md:dark-scrollbar">
         <TorrentDetails
-          torrent={state.get("hoveredTorrent")}
+          torrent={
+            state.get("isFileView") & (tab === "Home")
+              ? state.get("activeTorrent")
+              : state.get("hoveredTorrent")
+          }
           isFileView={state.get("isFileView")}
         />
       </div>

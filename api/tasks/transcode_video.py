@@ -6,14 +6,14 @@ from shared.factory import redis
 import json
 
 PRESETS = {
-    "144p": "--width 256 --height 144 -e x264 --encopts preset=medium -q 27 --auto-anamorphic -f mp4 --all-audio --aencoder av_aac --ab 96 --mixdown stereo",
-    "240p": "--width 426 --height 240 -e x264 --encopts preset=medium -q 26 --auto-anamorphic -f mp4 --all-audio --aencoder av_aac --ab 64 --mixdown stereo",
-    "360p": "--width 640 --height 360 -e x264 --encopts preset=medium -q 25 --auto-anamorphic -f mp4 --all-audio --aencoder av_aac --ab 128 --mixdown stereo",
-    "480p": "--width 854 --height 480 -e x264 --encopts preset=medium -q 24 --auto-anamorphic -f mp4 --all-audio --aencoder av_aac --ab 256 --mixdown stereo",
-    "720p": "--width 1280 --height 720 -e x264 --encopts preset=medium -q 23 --auto-anamorphic -f mp4 --all-audio --aencoder av_aac --ab 320 --mixdown stereo",
-    "1080p": "--width 1920 --height 1080 -e x264 --encopts preset=medium -q 22 --auto-anamorphic -f mp4 --all-audio --aencoder av_aac --ab 320 --mixdown stereo",
-    "1440p": "--width 2560 --height 1440 -e x264 --encopts preset=medium -q 21 --auto-anamorphic -f mp4 --all-audio --aencoder av_aac --ab 320 --mixdown stereo",
-    "2160p": "--width 3840 --height 2160 -e x264 --encopts preset=medium -q 20 --auto-anamorphic -f mp4 --all-audio --aencoder av_aac --ab 320 --mixdown stereo",
+    "144p": "--width 256 --height 144 -e x264 --encopts preset=medium -q 27 --auto-anamorphic -f mp4 --all-audio --aencoder av_aac --ab 128 --mixdown stereo --all-subtitles --subtitle-lang-list all --subtitle-default=none",
+    "240p": "--width 426 --height 240 -e x264 --encopts preset=medium -q 26 --auto-anamorphic -f mp4 --all-audio --aencoder av_aac --ab 128 --mixdown stereo --all-subtitles --subtitle-lang-list all --subtitle-default=none",
+    "360p": "--width 640 --height 360 -e x264 --encopts preset=medium -q 25 --auto-anamorphic -f mp4 --all-audio --aencoder av_aac --ab 128 --mixdown stereo --all-subtitles --subtitle-lang-list all --subtitle-default=none",
+    "480p": "--width 854 --height 480 -e x264 --encopts preset=medium -q 24 --auto-anamorphic -f mp4 --all-audio --aencoder av_aac --ab 256 --mixdown stereo --all-subtitles --subtitle-lang-list all --subtitle-default=none",
+    "720p": "--width 1280 --height 720 -e x264 --encopts preset=medium -q 23 --auto-anamorphic -f mp4 --all-audio --aencoder av_aac --ab 320 --mixdown stereo --all-subtitles --subtitle-lang-list all --subtitle-default=none",
+    "1080p": "--width 1920 --height 1080 -e x264 --encopts preset=medium -q 22 --auto-anamorphic -f mp4 --all-audio --aencoder av_aac --ab 320 --mixdown stereo --all-subtitles --subtitle-lang-list all --subtitle-default=none",
+    "1440p": "--width 2560 --height 1440 -e x264 --encopts preset=medium -q 21 --auto-anamorphic -f mp4 --all-audio --aencoder av_aac --ab 320 --mixdown stereo --all-subtitles --subtitle-lang-list all --subtitle-default=none",
+    "2160p": "--width 3840 --height 2160 -e x264 --encopts preset=medium -q 20 --auto-anamorphic -f mp4 --all-audio --aencoder av_aac --ab 320 --mixdown stereo --all-subtitles --subtitle-lang-list all --subtitle-default=none",
 }
 
 ETA_PATTERN = re.compile(r"(?:(\d+)h)?(?:(\d+)m)?(?:(\d+)s)?")
@@ -51,7 +51,11 @@ def transcode_video(input_path, output_path, resolution, user_id):
         if progress_match and eta_match:
             progress = float(progress_match.group(1))  # 1-100
             eta = convert_to_seconds(eta_match.group(1))
-            redis.set(key, json.dumps({"progress": progress, "eta": eta}))
+            file_size = os.path.getsize(output_path)
+            redis.set(
+                key,
+                json.dumps({"progress": progress, "eta": eta, "file_size": file_size}),
+            )
             # print(f"\nProgress: {progress}% | ETA: {eta / 60:.2f} min")
 
     if redis.get(f"{key}/kill"):

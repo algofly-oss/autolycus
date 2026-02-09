@@ -20,17 +20,19 @@ export default function Home({ state }) {
   };
 
   return (
-    <div className="flex justify-center">
-      <div className="m-4 pb-16 md:pb-6 xl:m-8 relative overflow-y-auto overflow-x-hidden 2xl:w-[80rem] w-full">
+    <div className="flex justify-center h-full min-h-0">
+      <div className="pt-2 px-2 md:px-4 xl:pt-4 relative 2xl:w-[80rem] w-full h-full min-h-0 flex flex-col">
         <AddTorrent />
-        {currentPath ? (
-          <FileExplorer
-            initialPath={currentPath}
-            onPathChange={handlePathChange}
-          />
-        ) : (
-          <TorrentList state={state} onPathChange={handlePathChange} />
-        )}
+        <div className="overflow-y-auto overflow-x-hidden no-scrollbar flex-1 min-h-0 pb-[7rem] md:pb-6 mt-2 rounded-xl">
+          {currentPath ? (
+            <FileExplorer
+              initialPath={currentPath}
+              onPathChange={handlePathChange}
+            />
+          ) : (
+            <TorrentList state={state} onPathChange={handlePathChange} />
+          )}
+        </div>
       </div>
     </div>
   );

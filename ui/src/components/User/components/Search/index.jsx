@@ -73,6 +73,7 @@ const Search = ({ torrentSearchState }) => {
   const [sourceOrder, setSourceOrder] = useState([]);
   const [reorderPulse, setReorderPulse] = useState(false);
   const [scrollOffset, setScrollOffset] = useState(0);
+  const [scrollResetKey, setScrollResetKey] = useState(0);
 
   const [sort, setSortState] = useState(INITIAL_SORT);
   const sortRef = useRef(INITIAL_SORT);
@@ -85,6 +86,7 @@ const Search = ({ torrentSearchState }) => {
 
   const [activeSource, setActiveSource] = useState("All");
   const [titleFilter, setTitleFilter] = useState("");
+  const resultsKey = `${activeSource}-${sort.key}-${sort.dir}-${titleFilter}`;
   const abortRef = useRef(null);
   const filtersRef = useRef(null);
   const searchSessionRef = useRef(0);
@@ -135,6 +137,7 @@ const Search = ({ torrentSearchState }) => {
       return;
     }
     setScrollOffset(0);
+    setScrollResetKey((k) => k + 1);
   }, [activeSource, titleFilter, firstLoadFinished]);
 
   useEffect(() => {
@@ -366,8 +369,8 @@ const Search = ({ torrentSearchState }) => {
   };
 
   return (
-    <div className="flex justify-center">
-      <div className="mt-4 pb-16 md:pb-6 relative overflow-y-auto overflow-x-hidden 2xl:w-[82rem] w-full p-4 space-y-4">
+    <div className="flex justify-center -mt-4">
+      <div className="mt-4 pb-16 md:pb-6 relative overflow-y-auto overflow-x-hidden 2xl:w-[82rem] w-full p-2 md:p-4 space-y-2 md:space-y-4">
         <SearchBar
           query={query}
           setQuery={setQuery}
@@ -400,14 +403,18 @@ const Search = ({ torrentSearchState }) => {
         )}
 
         {visibleResults.length > 0 && (
-          <TorrentResults
-            items={visibleResults}
-            onCopy={handleCopyMagnet}
-            onDownload={handleDownload}
-            isMobile={isMobile}
-            scrollOffset={scrollOffset}
-            onScrollOffsetChange={setScrollOffset}
-          />
+          <div className="-mt-6 md:mt-0">
+            <TorrentResults
+              key={resultsKey}
+              items={visibleResults}
+              onCopy={handleCopyMagnet}
+              onDownload={handleDownload}
+              isMobile={isMobile}
+              scrollOffset={scrollOffset}
+              onScrollOffsetChange={setScrollOffset}
+              scrollResetKey={scrollResetKey}
+            />
+          </div>
         )}
 
         {hasSearched && !loading && results.length === 0 && (
