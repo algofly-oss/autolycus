@@ -14,12 +14,29 @@ const readObject = (obj, path) => {
   }
 };
 
+const cloneValue = (val) => {
+  if (Array.isArray(val)) {
+    return [...val];
+  }
+  if (val && typeof val === "object") {
+    return { ...val };
+  }
+  return {};
+};
+
 const writeObject = (obj, path, val) => {
   const keys = path.split(".");
   const lastKey = keys.pop();
-  const lastObj = keys.reduce((obj, key) => (obj[key] = obj[key] || {}), obj);
-  lastObj[lastKey] = val;
-  return obj;
+  const nextRoot = cloneValue(obj);
+  let cursor = nextRoot;
+
+  keys.forEach((key) => {
+    cursor[key] = cloneValue(cursor[key]);
+    cursor = cursor[key];
+  });
+
+  cursor[lastKey] = val;
+  return nextRoot;
 };
 
 export default function reactState(defaultState) {
@@ -48,10 +65,28 @@ export default function reactState(defaultState) {
 
   const set = (key, val) => {
     if (typeof key === "string") {
+      const current = readObject(value, key);
+      if (Object.is(current, val)) {
+        return;
+      }
       setValue(writeObject(value, key, val));
-    } else {
-      setValue(key);
+      return;
     }
+
+    if (!key || typeof key !== "object") {
+      return;
+    }
+
+    const updates = key;
+    const hasChanges = Object.keys(updates).some(
+      (updateKey) => !Object.is(value[updateKey], updates[updateKey])
+    );
+
+    if (!hasChanges) {
+      return;
+    }
+
+    setValue(updates);
   };
 
   return { value, setValue, get, set, reset };
