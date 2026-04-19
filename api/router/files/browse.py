@@ -38,7 +38,7 @@ def is_transcoded_file(filename):
 
 @router.get("/browse", response_model=List[FileItem])
 async def browse_directory(path: str, request: Request):
-    user_id = authenticate_user(request.cookies.get("session_token"))
+    user_id = authenticate_user(request)
     try:
         # Convert the relative path to absolute path
         base_path = Path(os.getenv("DOWNLOAD_PATH", "/downloads"))

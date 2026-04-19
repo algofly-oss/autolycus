@@ -33,7 +33,7 @@ asyncio.create_task(pause_unfinished_torrents())
 
 @router.post("/add")
 async def add_torrent(dto: MagnetDto, request: Request):
-    user_id = authenticate_user(request.cookies.get("session_token")).decode("utf-8")
+    user_id = authenticate_user(request).decode("utf-8")
 
     # extract info_hash from magnet
     info_hash = magnet_utils._clean_magnet_uri(dto.magnet).split(":")[3][:40]
@@ -81,7 +81,7 @@ async def add_torrent(dto: MagnetDto, request: Request):
 
 @router.post("/add-file")
 async def add_torrent_file(request: Request, torrent: UploadFile = File(...)):
-    user_id = authenticate_user(request.cookies.get("session_token")).decode("utf-8")
+    user_id = authenticate_user(request).decode("utf-8")
 
     # Save the uploaded file temporarily
     with tempfile.NamedTemporaryFile(delete=False, suffix=".torrent") as temp_file:
@@ -179,7 +179,7 @@ def get_filename_from_url(url):
 
 @router.post("/add-url")
 async def direct_download(dto: UrlDto, request: Request):
-    user_id = authenticate_user(request.cookies.get("session_token")).decode("utf-8")
+    user_id = authenticate_user(request).decode("utf-8")
 
     try:
         file_info = get_filename_from_url(dto.url)

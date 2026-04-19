@@ -9,7 +9,7 @@ router = APIRouter()
 
 @router.post("/rename")
 async def rename_item(source_path: str, new_name: str, request: Request):
-    user_id = authenticate_user(request.cookies.get("session_token"))
+    user_id = authenticate_user(request)
     try:
         base_path = Path(os.getenv("DOWNLOAD_PATH", "/downloads"))
         abs_source_path = base_path / source_path

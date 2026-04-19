@@ -12,7 +12,7 @@ router = APIRouter()
 
 @router.post("/resume")
 async def resume_torrent(info_hash: str, request: Request):
-    user_id = authenticate_user(request.cookies.get("session_token")).decode("utf-8")
+    user_id = authenticate_user(request).decode("utf-8")
 
     if info_hash.startswith("url_hash_"):
         url_hash = info_hash.lstrip("url_hash_")

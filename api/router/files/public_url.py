@@ -18,7 +18,7 @@ class Payload(BaseModel):
 
 @router.post("/generate-public-url")
 async def generate_public_url(payload: Payload, request: Request):
-    user_id = authenticate_user(request.cookies.get("session_token"))
+    user_id = authenticate_user(request)
     path_user_id = payload.path.split("/")[2]
     info_hash = payload.path.split("/")[3]
 

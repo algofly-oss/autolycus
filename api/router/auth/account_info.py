@@ -9,7 +9,7 @@ router = APIRouter()
 @router.get("/me")
 async def account_info(request: Request, response: Response):
     # Check if user is logged in
-    user_id = authenticate_user(request.cookies.get("session_token"))
+    user_id = authenticate_user(request)
 
     user = await db.users.find_one({"_id": ObjectId(user_id.decode("utf-8"))})
 

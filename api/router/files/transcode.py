@@ -25,7 +25,7 @@ async def transcode(path: str, resolution: str, request: Request):
         "1440p",
         "2160p",
     ], "Invalid Resolution"
-    user_id = authenticate_user(request.cookies.get("session_token"))
+    user_id = authenticate_user(request)
 
     if not os.path.exists(path):
         raise HTTPException(status_code=400, detail="Invalid Path")
@@ -54,7 +54,7 @@ async def transcode(path: str, resolution: str, request: Request):
 
 @router.post("/transcode/stop")
 async def transcode(path: str, request: Request):
-    user_id = authenticate_user(request.cookies.get("session_token"))
+    user_id = authenticate_user(request)
     if not path.lstrip("/downloads/").startswith(user_id.decode()):
         raise HTTPException(status_code=403, detail="Unauthorized Path")
 
@@ -69,7 +69,7 @@ async def transcode(path: str, request: Request):
 
 @router.post("/transcode/progress")
 async def transcode(path: str, request: Request, stream: bool = False):
-    user_id = authenticate_user(request.cookies.get("session_token"))
+    user_id = authenticate_user(request)
     if user_id:
         user_id = str(user_id.decode())
     if not path.lstrip("/downloads/").startswith(user_id):

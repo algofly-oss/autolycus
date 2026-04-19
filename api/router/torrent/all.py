@@ -17,7 +17,7 @@ async def all_torrent(
     page: int = Query(1, ge=1),
     page_size: int = Query(10, ge=1, le=500),
 ):
-    user_id = authenticate_user(request.cookies.get("session_token"))
+    user_id = authenticate_user(request)
     if user_id:
         user_id = str(user_id.decode())
 

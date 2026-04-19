@@ -13,7 +13,7 @@ router = APIRouter()
 
 @router.post("/search")
 async def search_torrent(query: str, request: Request):
-    authenticate_user(request.cookies.get("session_token"))
+    authenticate_user(request)
 
     cancel_event = asyncio.Event()
 
@@ -41,7 +41,7 @@ async def search_torrent(query: str, request: Request):
 
 @router.get("/search/imdb-redirect")
 async def search_imdb_title(q: str, request: Request):
-    authenticate_user(request.cookies.get("session_token"))
+    authenticate_user(request)
     url = f"https://www.imdb.com/find/?q={quote_plus(q)}&s=tt"
     headers = {"User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)"}
     r = requests.get(url, headers=headers, timeout=20)

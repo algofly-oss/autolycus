@@ -94,5 +94,5 @@ def handle_stream_file(request, path, download=False):
 
 @router.get("/stream")
 async def stream_file(request: Request, path: str = "", download: bool = False):
-    user_id = authenticate_user(request.cookies.get("session_token"))
+    user_id = authenticate_user(request)
     return handle_stream_file(request, path, download)

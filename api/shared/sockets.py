@@ -1,6 +1,7 @@
 import socketio
 from shared.factory import redis
-import re
+from http.cookies import SimpleCookie
+from shared.env import SESSION_COOKIE_NAME
 import os
 import asyncio
 import traceback
@@ -72,9 +73,10 @@ threading.Thread(target=subscriber, daemon=True).start()
 
 @sio.event
 async def connect(sid, environ, auth):
-    pattern = r"session_token=([^;]+)"
-    match = re.search(pattern, environ.get("HTTP_COOKIE", ""))
-    session_token = match.group(1) if match else None
+    cookie = SimpleCookie()
+    cookie.load(environ.get("HTTP_COOKIE", ""))
+    morsel = cookie.get(SESSION_COOKIE_NAME)
+    session_token = morsel.value if morsel else None
 
     if session_token:
         user_id = redis.get(session_token)

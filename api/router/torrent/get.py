@@ -8,7 +8,7 @@ router = APIRouter()
 
 @router.post("/get")
 async def get_torrent(dto: MagnetDto, request: Request):
-    user_id = authenticate_user(request.cookies.get("session_token"))
+    user_id = authenticate_user(request)
 
     # extract info_hash from magnet
     info_hash = magnet_utils._clean_magnet_uri(dto.magnet).split(":")[3][:40]
