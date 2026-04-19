@@ -283,7 +283,7 @@ const Search = ({ torrentSearchState }) => {
   useResultsOffset(filtersRef, visibleResults.length);
 
   const handleSearch = async () => {
-    const trimmed = query.trim();
+    const trimmed = query?.trim();
     if (!trimmed) return;
 
     setHasSearched(true);
