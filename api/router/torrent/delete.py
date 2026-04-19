@@ -18,9 +18,7 @@ class DeleteTorrentRequest(BaseModel):
 
 @router.post("/delete")
 async def delete_torrent(request: DeleteTorrentRequest, request_obj: Request):
-    user_id = authenticate_user(request_obj.cookies.get("session_token")).decode(
-        "utf-8"
-    )
+    user_id = authenticate_user(request_obj).decode("utf-8")
 
     if request.info_hash.startswith("url_hash_"):
         url_hash = request.info_hash.lstrip("url_hash_")

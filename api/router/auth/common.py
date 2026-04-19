@@ -1,5 +1,6 @@
-from fastapi import HTTPException
+from fastapi import HTTPException, Request
 from shared.factory import redis
+from shared.env import SESSION_COOKIE_NAME
 from pydantic import BaseModel
 
 
@@ -14,8 +15,14 @@ class UserSigninDto(BaseModel):
     password: str
 
 
-def authenticate_user(session_token):
+def get_session_token(request: Request, default=None):
+    return request.cookies.get(SESSION_COOKIE_NAME, default)
+
+
+def authenticate_user(request: Request):
     login_error = HTTPException(status_code=400, detail="User not logged in")
+    session_token = get_session_token(request)
+
     # Check if session token exists
     if not session_token:
         raise login_error

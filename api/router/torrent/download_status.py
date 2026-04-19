@@ -54,7 +54,7 @@ async def download_status(request: Request):
     API endpoint to get download status for authenticated user.
     """
     try:
-        user_id = authenticate_user(request.cookies.get("session_token")).decode()
+        user_id = authenticate_user(request).decode()
         status = await get_download_status(user_id)
         return status
     except Exception as e:

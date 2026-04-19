@@ -16,7 +16,7 @@ def delete_dir(abs_path: Path):
 
 @router.delete("/delete")
 async def delete_file(path: str, request: Request):
-    user_id = authenticate_user(request.cookies.get("session_token"))
+    user_id = authenticate_user(request)
     try:
         info_hash = path.split("/")[1]
         full_path = os.path.join(os.getenv("DOWNLOAD_PATH", "/downloads"), path)

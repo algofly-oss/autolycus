@@ -13,7 +13,7 @@ router = APIRouter()
 async def copy_file(
     source_path: str, destination_path: str, is_directory: bool, request: Request
 ):
-    user_id = authenticate_user(request.cookies.get("session_token"))
+    user_id = authenticate_user(request)
     try:
         base_path = Path(os.getenv("DOWNLOAD_PATH", "/downloads"))
         abs_source_path = base_path / source_path

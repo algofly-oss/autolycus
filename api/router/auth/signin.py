@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Request, Response, HTTPException
 from shared.factory import db, redis
-from .common import UserSigninDto
+from shared.env import SESSION_COOKIE_NAME
+from .common import UserSigninDto, get_session_token
 import bcrypt
 import uuid
 
@@ -22,7 +23,7 @@ async def signin(user: UserSigninDto, request: Request, response: Response):
     """
 
     # Check if user is already logged in
-    if redis.get(request.cookies.get("session_token", "")):
+    if redis.get(get_session_token(request, "")):
         return {"msg": "success"}
 
     # Check if user exists
@@ -36,7 +37,9 @@ async def signin(user: UserSigninDto, request: Request, response: Response):
         # create a new session token
         session_token = str(uuid.uuid4())
         redis.set(session_token, str(existing_user.get("_id")))
-        response.set_cookie(key="session_token", value=session_token, httponly=True)
+        response.set_cookie(
+            key=SESSION_COOKIE_NAME, value=session_token, httponly=True
+        )
         return {"msg": "success"}
 
     raise HTTPException(status_code=400, detail="incorrect password")

@@ -8,6 +8,7 @@ if API_SECRET_KEY is None:
 # Load env configuration
 API_ALGORITHM = os.environ.get("API_ALGORITHM", "HS256")
 API_COOKIES_EXPIRE_MINUTES = int(os.environ.get("API_COOKIES_EXPIRE_MINUTES", 43200))
+SESSION_COOKIE_NAME = os.environ.get("SESSION_COOKIE_NAME", "session_token")
 
 # Load Redis credentials
 REDIS_HOST = os.environ.get("REDIS_HOST", None)

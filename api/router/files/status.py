@@ -29,7 +29,7 @@ def get_disk_usage(user_id):
 
 @router.get("/status")
 async def disk_usage_status(request: Request):
-    user_id = authenticate_user(request.cookies.get("session_token")).decode()
+    user_id = authenticate_user(request).decode()
     disk_usage = get_disk_usage(str(user_id))
     # emit(f"/stc/disk-usage", disk_usage, user_id)
     return disk_usage
