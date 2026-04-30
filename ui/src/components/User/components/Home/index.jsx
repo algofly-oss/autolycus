@@ -11,12 +11,16 @@ export default function Home({ state }) {
     // If we're navigating to /downloads or an invalid path, clear the current path
     if (!newPath || newPath === "/downloads") {
       setCurrentPath(null);
-      state.set("hoveredTorrent", null);
-      state.set("isFileView", false);
+      state.set({
+        activeTorrent: null,
+        hoveredTorrent: null,
+        hoveredTorrentInfoHash: null,
+        isFileView: false,
+      });
       return;
     }
     setCurrentPath(newPath);
-    state.set("isFileView", true);
+    state.set({ isFileView: true });
   };
 
   return (

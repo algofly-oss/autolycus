@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import UserNavBar from "./components/NavBar";
 import { BiMeteor } from "react-icons/bi";
 import Home from "./components/Home";
@@ -20,13 +20,31 @@ export default function UserHome() {
   });
 
   const torrentSearchState = reactState({});
+  const isHomeTab = tab === "Home";
+  const isFileView = Boolean(state.get("isFileView"));
+  const detailsTorrent = useMemo(
+    () =>
+      isFileView
+        ? state.get("activeTorrent")
+        : isHomeTab
+        ? state.get("hoveredTorrent")
+        : null,
+    [
+      isFileView,
+      isHomeTab,
+      state.value.activeTorrent,
+      state.value.hoveredTorrent,
+    ]
+  );
 
   useEffect(() => {
-    if (tab !== "Home") {
-      state.set("hoveredTorrent", null);
-      state.set("hoveredTorrentInfoHash", null);
+    if (!isHomeTab) {
+      state.set({
+        hoveredTorrent: null,
+        hoveredTorrentInfoHash: null,
+      });
     }
-  }, [tab]);
+  }, [isHomeTab]);
 
   return (
     <div className="flex h-screen overflow-hidden">
@@ -48,8 +66,8 @@ export default function UserHome() {
 
       <div className="w-full h-screen overflow-hidden relative">
         <div
-          className={`h-full ${tab === "Home" ? "block" : "hidden"}`}
-          aria-hidden={tab !== "Home"}
+          className={`h-full ${isHomeTab ? "block" : "hidden"}`}
+          aria-hidden={!isHomeTab}
         >
           <Home state={state} />
         </div>
@@ -62,12 +80,8 @@ export default function UserHome() {
       </div>
       <div className="hidden lg:block w-[26rem] 2xl:w-[25%]- 2xl:w-[30rem] h-screen bg-neutral-100 dark:bg-black overflow-y-auto md:light-scrollbar dark:md:dark-scrollbar">
         <TorrentDetails
-          torrent={
-            state.get("isFileView") & (tab === "Home")
-              ? state.get("activeTorrent")
-              : state.get("hoveredTorrent")
-          }
-          isFileView={state.get("isFileView")}
+          torrent={isHomeTab ? detailsTorrent : null}
+          isFileView={isFileView}
         />
       </div>
     </div>

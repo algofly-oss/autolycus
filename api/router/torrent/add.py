@@ -183,13 +183,6 @@ async def direct_download(dto: UrlDto, request: Request):
 
     try:
         file_info = get_filename_from_url(dto.url)
-        print(file_info)
-        if (not file_info.get("filename")) or file_info.get("content_type") not in [
-            "application/octet-stream",
-            "application/zip",
-        ]:
-            raise HTTPException(status_code=404, detail="Invalid URL")
-
         url_hash = hashlib.md5(dto.url.encode()).hexdigest()
         save_dir = f"/downloads/{user_id}/{url_hash}"
 

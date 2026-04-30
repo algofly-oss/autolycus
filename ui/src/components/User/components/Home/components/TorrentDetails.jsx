@@ -7,13 +7,14 @@ import reactState from "@/shared/hooks/reactState";
 import { MdContentCopy } from "react-icons/md";
 
 export default function TorrentDetails({ torrent }) {
-  if (!torrent) {
-    return null;
-  }
-
   const torrentState = reactState({});
+  const toast = useToast();
 
   useEffect(() => {
+    if (!torrent) {
+      return;
+    }
+
     torrentState.set({
       remainingBytes: torrent.total_bytes - torrent.downloaded_bytes,
       timeLeftSeconds:
@@ -28,7 +29,10 @@ export default function TorrentDetails({ torrent }) {
     });
   }, [torrent]);
 
-  const toast = useToast();
+  if (!torrent) {
+    return null;
+  }
+
   const { resolution, source } = getQuality(torrent.name);
 
   const copyMagnetToClipBoard = async () => {

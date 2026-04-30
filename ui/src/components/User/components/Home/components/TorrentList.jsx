@@ -13,6 +13,7 @@ import socketRoutes from "@/shared/routes/socketRoutes";
 import Pagination from "./Pagination";
 
 const PAGE_SIZE_OPTIONS = [10, 20, 50, 100, 200];
+const getTorrentKey = (torrent) => torrent?.info_hash || torrent?.url_hash;
 
 export default function TorrentList({ state, onPathChange }) {
   const socket = useContext(SocketContext);
@@ -164,33 +165,53 @@ export default function TorrentList({ state, onPathChange }) {
 
   const handleTorrentClick = (torrent) => {
     if (torrent.is_finished) {
-      state.set("hoveredTorrentInfoHash", torrent?.info_hash);
-      state.set("activeTorrent", torrent);
+      state.set({
+        hoveredTorrentInfoHash: getTorrentKey(torrent),
+        activeTorrent: torrent,
+      });
       onPathChange(torrent.save_dir);
+    }
+  };
+
+  const handleTorrentMouseEnter = (torrent) => {
+    state.set({
+      hoveredTorrentInfoHash: getTorrentKey(torrent),
+      hoveredTorrent: torrent,
+    });
+  };
+
+  const handleTorrentMouseLeave = (torrent) => {
+    if (state.get("hoveredTorrentInfoHash") === getTorrentKey(torrent)) {
+      state.set({
+        hoveredTorrentInfoHash: null,
+        hoveredTorrent: null,
+      });
     }
   };
 
   useEffect(() => {
     if (state.get("hoveredTorrentInfoHash")) {
       let hoveredTorrent = torrentList.find(
-        (torrent) => torrent.info_hash === state.get("hoveredTorrentInfoHash")
+        (torrent) =>
+          getTorrentKey(torrent) === state.get("hoveredTorrentInfoHash")
       );
-      state.set("hoveredTorrent", hoveredTorrent || null);
+      state.set({ hoveredTorrent: hoveredTorrent || null });
     } else {
-      state.set("hoveredTorrent", null);
+      state.set({ hoveredTorrent: null });
     }
   }, [state.get("hoveredTorrentInfoHash"), torrentList]);
 
   useEffect(() => {
     torrentList.forEach((torrent) => {
       socket.on(
-        socketRoutes.stcTorrentPropsUpdate +
-          `/${torrent?.info_hash || torrent?.url_hash}`,
+        socketRoutes.stcTorrentPropsUpdate + `/${getTorrentKey(torrent)}`,
         (data) => {
           if (data?.info_hash || data?.url_hash) {
             setTorrentList((prevTorrentList) =>
               prevTorrentList.map((t) =>
-                t.info_hash === data?.info_hash ? { ...t, ...data } : t
+                getTorrentKey(t) === getTorrentKey(data)
+                  ? { ...t, ...data }
+                  : t
               )
             );
           }
@@ -201,7 +222,7 @@ export default function TorrentList({ state, onPathChange }) {
     return () => {
       torrentList.forEach((torrent) => {
         socket.off(
-          socketRoutes.stcTorrentPropsUpdate + `/${torrent.info_hash}`
+          socketRoutes.stcTorrentPropsUpdate + `/${getTorrentKey(torrent)}`
         );
       });
     };
@@ -215,10 +236,8 @@ export default function TorrentList({ state, onPathChange }) {
         <div
           key={torrent.id}
           onClick={() => handleTorrentClick(torrent)}
-          onMouseEnter={() => {
-            state.set("hoveredTorrentInfoHash", torrent?.info_hash);
-          }}
-          onMouseLeave={() => state.set("hoveredTorrentInfoHash", null)}
+          onMouseEnter={() => handleTorrentMouseEnter(torrent)}
+          onMouseLeave={() => handleTorrentMouseLeave(torrent)}
           className={`${
             torrent.is_finished ? "cursor-pointer" : ""
           } hover:bg-gray-50 dark:hover:bg-gray-900 rounded-xl transition-colors`}
