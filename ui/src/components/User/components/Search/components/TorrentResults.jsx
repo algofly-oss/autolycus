@@ -1,68 +1,104 @@
 import { FiClipboard, FiDownload } from "react-icons/fi";
 import { useRef, useEffect } from "react";
 import { useVirtualizer } from "@tanstack/react-virtual";
-import apiRoutes from "@/shared/routes/apiRoutes";
 import { formatBytes, formatDate, truncateText } from "../utils";
 
-const TorrentCardContent = ({ item, onCopy, onDownload }) => (
-  <>
-    <div className="flex items-start justify-between gap-3 min-w-0">
-      <p className="min-w-0 flex-1 font-semibold leading-snug text-sm break-all">
-        {truncateText(item?.Title) || "Untitled"}
-      </p>
+const buildImdbSearchUrl = (item) => {
+  const title = item?.parsed?.title
+    ? `${item.parsed.title} ${item?.parsed?.year || ""}`.trim()
+    : item?.Title;
 
-      <div className="flex items-center gap-2 shrink-0">
-        <button
-          onClick={() => onCopy(item)}
-          className="p-1.5 rounded-md bg-zinc-200 hover:bg-zinc-300
-                    dark:bg-zinc-900 dark:hover:bg-zinc-700 transition"
-          title="Copy magnet link"
-        >
-          <FiClipboard size={14} />
-        </button>
+  if (!title) return null;
 
-        <button
-          onClick={() => onDownload(item)}
-          className="p-1.5 rounded-md bg-blue-500 text-white
-                    hover:bg-blue-600 transition"
-          title="Download"
-        >
-          <FiDownload size={14} />
-        </button>
+  return `https://www.imdb.com/find/?q=${encodeURIComponent(title)}&s=tt`;
+};
+
+const buildProxiedUrl = (url, browserProxyBaseUrl) => {
+  if (!url || !browserProxyBaseUrl) return null;
+  return `${browserProxyBaseUrl}/tor/${url}`;
+};
+
+const TorrentCardContent = ({
+  item,
+  onCopy,
+  onDownload,
+  browserProxyBaseUrl,
+}) => {
+  const imdbSearchUrl = buildImdbSearchUrl(item);
+  const sourceUrl = item.Details || item.Link || item.Url || item.URL;
+  const proxiedSourceUrl = buildProxiedUrl(sourceUrl, browserProxyBaseUrl);
+
+  return (
+    <>
+      <div className="flex items-start justify-between gap-3 min-w-0">
+        <p className="min-w-0 flex-1 font-semibold leading-snug text-sm break-all">
+          {truncateText(item?.Title) || "Untitled"}
+        </p>
+
+        <div className="flex items-center gap-2 shrink-0">
+          <button
+            onClick={() => onCopy(item)}
+            className="p-1.5 rounded-md bg-zinc-200 hover:bg-zinc-300
+                      dark:bg-zinc-900 dark:hover:bg-zinc-700 transition"
+            title="Copy magnet link"
+          >
+            <FiClipboard size={14} />
+          </button>
+
+          <button
+            onClick={() => onDownload(item)}
+            className="p-1.5 rounded-md bg-blue-500 text-white
+                      hover:bg-blue-600 transition"
+            title="Download"
+          >
+            <FiDownload size={14} />
+          </button>
+        </div>
       </div>
-    </div>
 
-    <div className="text-xs text-zinc-500 flex gap-4 flex-wrap mt-1">
-      {item?.Seeders !== undefined && <span>🌱 {item.Seeders}</span>}
-      {item?.Size && <span>📦 {formatBytes(item.Size)}</span>}
-      {item?.PublishDate && <span>📅 {formatDate(item.PublishDate)}</span>}
+      <div className="text-xs text-zinc-500 flex gap-4 flex-wrap mt-1">
+        {item?.Seeders !== undefined && <span>🌱 {item.Seeders}</span>}
+        {item?.Size && <span>📦 {formatBytes(item.Size)}</span>}
+        {item?.PublishDate && <span>📅 {formatDate(item.PublishDate)}</span>}
       {item?.Tracker && (
         <a
-          href={item.Details}
+          href={sourceUrl || undefined}
+          data-proxy-href={proxiedSourceUrl || undefined}
+          title={sourceUrl || undefined}
           target="_blank"
           rel="noopener noreferrer"
+          onClick={(e) => {
+            const proxyHref = e.currentTarget.dataset.proxyHref;
+            if (!proxyHref) return;
+            e.preventDefault();
+
+            const link = document.createElement("a");
+            link.href = proxyHref;
+            link.target = "_blank";
+            link.rel = "noopener noreferrer";
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+          }}
           className="hover:text-blue-500 transition"
         >
-          🔎 {item.Tracker}
-        </a>
-      )}
-      {item?.Details && (
-        <a
-          href={`${apiRoutes?.searchImdbRedirect}?q=${
-            item?.parsed?.title
-              ? `${item?.parsed?.title} ${item?.parsed?.year || ""}`
-              : item.Title?.slice(0, 20)
-          }`}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="hover:text-blue-500 transition"
-        >
-          🌐 IMDB
-        </a>
-      )}
-    </div>
-  </>
-);
+            🔎 {item.Tracker}
+          </a>
+        )}
+        {imdbSearchUrl && (
+          <a
+            href={imdbSearchUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="hover:text-blue-500 transition"
+          >
+            🌐 IMDB
+          </a>
+        )}
+      </div>
+    </>
+  );
+};
 
 const VirtualizedResults = ({
   items,
@@ -71,6 +107,7 @@ const VirtualizedResults = ({
   scrollOffset,
   onScrollOffsetChange,
   scrollResetKey,
+  browserProxyBaseUrl,
 }) => {
   const parentRef = useRef(null);
   const restoringRef = useRef(false);
@@ -159,7 +196,12 @@ const VirtualizedResults = ({
                 transform: `translateY(${virtualRow.start}px)`,
               }}
             >
-              <TorrentCardContent item={item} onCopy={onCopy} onDownload={onDownload} />
+              <TorrentCardContent
+                item={item}
+                onCopy={onCopy}
+                onDownload={onDownload}
+                browserProxyBaseUrl={browserProxyBaseUrl}
+              />
             </li>
           );
         })}
@@ -178,6 +220,7 @@ const PlainResults = ({
   scrollOffset,
   onScrollOffsetChange,
   scrollResetKey,
+  browserProxyBaseUrl,
 }) => {
   const parentRef = useRef(null);
   const restoringRef = useRef(false);
@@ -241,7 +284,12 @@ const PlainResults = ({
                      bg-neutral-50 dark:bg-black
                      hover:bg-zinc-100 dark:hover:bg-zinc-800 transition"
           >
-            <TorrentCardContent item={item} onCopy={onCopy} onDownload={onDownload} />
+            <TorrentCardContent
+              item={item}
+              onCopy={onCopy}
+              onDownload={onDownload}
+              browserProxyBaseUrl={browserProxyBaseUrl}
+            />
           </li>
         ))}
       </ul>
@@ -257,6 +305,7 @@ const TorrentResults = ({
   scrollOffset,
   onScrollOffsetChange,
   scrollResetKey,
+  browserProxyBaseUrl,
 }) => {
   if (!items?.length) return null;
 
@@ -268,6 +317,7 @@ const TorrentResults = ({
       scrollOffset={scrollOffset}
       onScrollOffsetChange={onScrollOffsetChange}
       scrollResetKey={scrollResetKey}
+      browserProxyBaseUrl={browserProxyBaseUrl}
     />
   ) : (
     <VirtualizedResults
@@ -277,6 +327,7 @@ const TorrentResults = ({
       scrollOffset={scrollOffset}
       onScrollOffsetChange={onScrollOffsetChange}
       scrollResetKey={scrollResetKey}
+      browserProxyBaseUrl={browserProxyBaseUrl}
     />
   );
 };

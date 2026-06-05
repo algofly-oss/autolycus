@@ -1,12 +1,11 @@
-import json
 import asyncio
-from fastapi import APIRouter, Request, HTTPException
+import json
+
+from fastapi import APIRouter, Request
+from fastapi.responses import StreamingResponse
+
 from ..auth.common import authenticate_user
-from fastapi.responses import StreamingResponse, RedirectResponse
 from shared.factory import jackett
-import requests
-from bs4 import BeautifulSoup
-from urllib.parse import quote_plus
 
 router = APIRouter()
 
@@ -37,23 +36,3 @@ async def search_torrent(query: str, request: Request):
         stream(),
         media_type="application/json",
     )
-
-
-@router.get("/search/imdb-redirect")
-async def search_imdb_title(q: str, request: Request):
-    authenticate_user(request)
-    url = f"https://www.imdb.com/find/?q={quote_plus(q)}&s=tt"
-    headers = {"User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)"}
-    r = requests.get(url, headers=headers, timeout=20)
-    r.raise_for_status()
-
-    soup = BeautifulSoup(r.text, "html.parser")
-    section = soup.select_one('section[data-testid="find-results-section-title"]')
-    if not section:
-        return None
-
-    link = section.select_one('a[href^="/title/"]')
-    if not link:
-        return None
-
-    return RedirectResponse("https://www.imdb.com" + link["href"].split("?")[0])

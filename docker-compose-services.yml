@@ -1,0 +1,106 @@
+services:
+  mongodb:
+    image: mongo:5.0
+    container_name: autolycus_mongodb
+    ports:
+      - ${MONGO_HOST_PORT_MAP:-27017}:27017
+    env_file:
+      - ./.env
+    volumes:
+      - ./volumes/mongodb:/data/db
+    restart: always
+    networks:
+      - autolycus_network
+
+  redis:
+    image: redis:6.2-alpine
+    container_name: autolycus_redis
+    command: redis-server --save 20 1 --loglevel warning --requirepass ${REDIS_PASSWORD}
+    env_file:
+      - ./.env
+    volumes:
+      - ./volumes/redis:/data
+    restart: always
+    networks:
+      - autolycus_network
+
+  tor:
+    image: dockage/tor-privoxy:latest
+    container_name: autolycus_tor
+    restart: always
+    ports:
+      - ${TOR_HOST_PORT_MAP:-9050}:9050
+    networks:
+      - autolycus_network
+
+  womginx:
+    build:
+      context: ./proxy/womginx-tor
+    image: autolycus_womginx
+    container_name: autolycus_womginx
+    environment:
+      - PORT=8080
+    cap_add:
+      - NET_ADMIN
+    restart: always
+    depends_on:
+      - tor
+    networks:
+      - autolycus_network
+
+  flaresolverr:
+    image: ghcr.io/flaresolverr/flaresolverr:latest
+    container_name: autolycus_flaresolverr
+    environment:
+      - LOG_LEVEL=info
+      - LOG_HTML=false
+      - CAPTCHA_SOLVER=none
+    restart: always
+    networks:
+      - autolycus_network
+
+  jackett:
+    image: lscr.io/linuxserver/jackett:latest
+    container_name: autolycus_jackett
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=Etc/UTC
+      - AUTO_UPDATE=true
+    volumes:
+      - ./api/jackett/config:/config
+    restart: always
+    depends_on:
+      - api
+    ports:
+      - ${JACKETT_HOST_PORT_MAP:-9117}:9117
+    networks:
+      - autolycus_network
+
+  proxy:
+    image: nginx:1.19-alpine
+    container_name: autolycus_proxy
+    environment:
+      API_ADDRESS: api:8080
+      UI_ADDRESS: ui:3000
+      BROWSER_PROXY_ADDRESS: ${BROWSER_PROXY_ADDRESS:-womginx:8080}
+    env_file:
+      - ./.env
+    ports:
+      - ${APP_HTTP_PORT}:80
+      - ${APP_HTTPS_PORT}:443
+    volumes:
+      - ./proxy/nginx.conf:/etc/nginx/templates/default.conf.template
+      - ./proxy/certificate/server.crt:/etc/ssl/certs/server.crt
+      - ./proxy/certificate/server.key:/etc/ssl/certs/server.key
+    restart: always
+    depends_on:
+      - api
+      - ui
+      - womginx
+    networks:
+      - autolycus_network
+
+networks:
+  autolycus_network:
+    name: autolycus_network
