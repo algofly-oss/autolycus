@@ -7,7 +7,7 @@ if [ -z "$TOR_IP" ]; then
     exit 1
 fi
 
-sed -i "s/listen 80/listen ${PORT}/" /etc/nginx/nginx.conf
+sed -i "s/listen 80;/listen ${PORT};/" /etc/nginx/nginx.conf
 sed -i "s/ip = TOR_IP;/ip = ${TOR_IP};/" /etc/redsocks.conf
 rm -f /etc/nginx/conf.d/default.conf
 
