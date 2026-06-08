@@ -20,6 +20,8 @@ awk '
 mv "$file.tmp" "$file"
 
 sed -i 's|$relativescheme://$host|$relativescheme://$http_host|g' "$file"
+sed -i 's|resolver 1.1.1.1;|resolver 1.1.1.1 ipv6=off;|' "$file"
+sed -i 's|resolver 1.1.1.3;|resolver 1.1.1.3 ipv6=off;|' "$file"
 
 sed -i "/sub_filter 'src=\\\"\\/\\//a\\                sub_filter 'href=\\\"//' '\$processed_flag_attribute href=\\\"/main/\$relativescheme://';" "$file"
 sed -i "/sub_filter 'src=\\\"\\/'/a\\                sub_filter 'href=\\\"/' '\$processed_flag_attribute href=\\\"/main/\$dest_hostwithscheme/';" "$file"

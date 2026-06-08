@@ -1,14 +1,7 @@
 #!/bin/sh
 set -eu
 
-TOR_IP="$(getent hosts tor | awk '{print $1; exit}')"
-if [ -z "$TOR_IP" ]; then
-    echo "Could not resolve tor container" >&2
-    exit 1
-fi
-
 sed -i "s/listen 80;/listen ${PORT};/" /etc/nginx/nginx.conf
-sed -i "s/ip = TOR_IP;/ip = ${TOR_IP};/" /etc/redsocks.conf
 rm -f /etc/nginx/conf.d/default.conf
 
 redsocks -c /etc/redsocks.conf &
