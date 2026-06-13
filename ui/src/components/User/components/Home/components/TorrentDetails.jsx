@@ -5,6 +5,10 @@ import { FiDownload } from "react-icons/fi";
 import useToast from "@/shared/hooks/useToast";
 import reactState from "@/shared/hooks/reactState";
 import { MdContentCopy } from "react-icons/md";
+import {
+  CLIPBOARD_COPY_STATUS,
+  copyTextToClipboard,
+} from "@/shared/utils/clipboard";
 
 export default function TorrentDetails({ torrent }) {
   const torrentState = reactState({});
@@ -30,20 +34,35 @@ export default function TorrentDetails({ torrent }) {
   }, [torrent]);
 
   if (!torrent) {
-    return null;
+    return (
+      <div className="p-6 text-gray-500 dark:text-gray-400">
+        <h2 className="text-lg font-semibold text-gray-700 dark:text-gray-200">
+          Torrent Details
+        </h2>
+        <p className="mt-3 text-sm leading-relaxed">
+          Hover a torrent to preview its quality, magnet, and transfer
+          information here.
+        </p>
+      </div>
+    );
   }
 
   const { resolution, source } = getQuality(torrent.name);
 
   const copyMagnetToClipBoard = async () => {
-    if (torrent?.magnet) {
-      const el = document.createElement("textarea");
-      el.value = torrent?.magnet;
-      document.body.appendChild(el);
-      el.select();
-      document.execCommand("copy");
-      document.body.removeChild(el);
+    if (!torrent?.magnet) {
+      toast.error("Magnet not found");
+      return;
+    }
+
+    const status = await copyTextToClipboard(torrent.magnet);
+
+    if (status === CLIPBOARD_COPY_STATUS.COPIED) {
       toast.success("Magnet copied to clipboard");
+    } else if (status === CLIPBOARD_COPY_STATUS.MANUAL) {
+      toast.success("Magnet opened for manual copy");
+    } else {
+      toast.error("Failed to copy magnet");
     }
   };
 

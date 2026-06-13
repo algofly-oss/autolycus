@@ -15,6 +15,10 @@ import ProgressBar from "@/shared/components/ProgressBar/ProgressBar";
 import { formatTimeRemaining } from "@/shared/utils/timeUtils";
 import axios from "axios";
 import useToast from "@/shared/hooks/useToast";
+import {
+  CLIPBOARD_COPY_STATUS,
+  copyTextToClipboard,
+} from "@/shared/utils/clipboard";
 
 const TRANSCODE_RESOLUTIONS = [
   { name: "Low 144p", action: "transcode_144p" },
@@ -123,20 +127,22 @@ const FileItem = ({
     let filePath = `${initialPath}/${item?.name}`;
     axios
       .post(apiRoutes?.generatePublicUrl, { path: filePath })
-      .then((res) => {
+      .then(async (res) => {
         if (res?.data?.key) {
           let url = `${window.location.origin}/api/files/public/${res?.data?.key}`;
-          const el = document.createElement("textarea");
-          el.value = url;
-          document.body.appendChild(el);
-          el.select();
-          document.execCommand("copy");
-          document.body.removeChild(el);
-          toast.success("Link Copied to Clipboard");
+          const status = await copyTextToClipboard(url);
+
+          if (status === CLIPBOARD_COPY_STATUS.COPIED) {
+            toast.success("Link copied to clipboard");
+          } else if (status === CLIPBOARD_COPY_STATUS.MANUAL) {
+            toast.success("Link opened for manual copy");
+          } else {
+            toast.error("Failed to copy link");
+          }
         }
       })
       .catch((err) => {
-        //
+        toast.error("Failed to generate public link");
       });
   };
 

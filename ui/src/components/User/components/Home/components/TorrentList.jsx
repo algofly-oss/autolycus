@@ -180,15 +180,6 @@ export default function TorrentList({ state, onPathChange }) {
     });
   };
 
-  const handleTorrentMouseLeave = (torrent) => {
-    if (state.get("hoveredTorrentInfoHash") === getTorrentKey(torrent)) {
-      state.set({
-        hoveredTorrentInfoHash: null,
-        hoveredTorrent: null,
-      });
-    }
-  };
-
   useEffect(() => {
     if (state.get("hoveredTorrentInfoHash")) {
       let hoveredTorrent = torrentList.find(
@@ -196,8 +187,6 @@ export default function TorrentList({ state, onPathChange }) {
           getTorrentKey(torrent) === state.get("hoveredTorrentInfoHash")
       );
       state.set({ hoveredTorrent: hoveredTorrent || null });
-    } else {
-      state.set({ hoveredTorrent: null });
     }
   }, [state.get("hoveredTorrentInfoHash"), torrentList]);
 
@@ -237,7 +226,6 @@ export default function TorrentList({ state, onPathChange }) {
           key={torrent.id}
           onClick={() => handleTorrentClick(torrent)}
           onMouseEnter={() => handleTorrentMouseEnter(torrent)}
-          onMouseLeave={() => handleTorrentMouseLeave(torrent)}
           className={`${
             torrent.is_finished ? "cursor-pointer" : ""
           } hover:bg-gray-50 dark:hover:bg-gray-900 rounded-xl transition-colors`}

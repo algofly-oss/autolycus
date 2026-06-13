@@ -11,6 +11,10 @@ import { MdMovie, MdLaptop, MdHelp, MdOutlineAudioFile } from "react-icons/md";
 import { CgGames } from "react-icons/cg";
 import { TbRating18Plus } from "react-icons/tb";
 import useToast from "@/shared/hooks/useToast";
+import {
+  CLIPBOARD_COPY_STATUS,
+  copyTextToClipboard,
+} from "@/shared/utils/clipboard";
 
 const getIconForType = (type) => {
   if (!type)
@@ -62,13 +66,15 @@ const SearchResults = ({
       return;
     }
 
-    const el = document.createElement("textarea");
-    el.value = magnet;
-    document.body.appendChild(el);
-    el.select();
-    document.execCommand("copy");
-    document.body.removeChild(el);
-    toast.success("Magnet copied to clipboard");
+    const status = await copyTextToClipboard(magnet);
+
+    if (status === CLIPBOARD_COPY_STATUS.COPIED) {
+      toast.success("Magnet copied to clipboard");
+    } else if (status === CLIPBOARD_COPY_STATUS.MANUAL) {
+      toast.success("Magnet opened for manual copy");
+    } else {
+      toast.error("Failed to copy magnet");
+    }
   };
 
   if (loading) {

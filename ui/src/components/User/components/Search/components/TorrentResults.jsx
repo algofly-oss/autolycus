@@ -60,30 +60,30 @@ const TorrentCardContent = ({
         {item?.Seeders !== undefined && <span>🌱 {item.Seeders}</span>}
         {item?.Size && <span>📦 {formatBytes(item.Size)}</span>}
         {item?.PublishDate && <span>📅 {formatDate(item.PublishDate)}</span>}
-      {item?.Tracker && (
-        <a
-          href={sourceUrl || undefined}
-          data-proxy-href={proxiedSourceUrl || undefined}
-          title={sourceUrl || undefined}
-          target="_blank"
-          rel="noopener noreferrer"
-          onClick={(e) => {
-            const proxyHref = e.currentTarget.dataset.proxyHref;
-            if (!proxyHref) return;
-            e.preventDefault();
-
-            const link = document.createElement("a");
-            link.href = proxyHref;
-            link.target = "_blank";
-            link.rel = "noopener noreferrer";
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-          }}
-          className="hover:text-blue-500 transition"
-        >
-            🔎 {item.Tracker}
-          </a>
+        {item?.Tracker && (
+          <span className="inline-flex items-center gap-1.5">
+            <a
+              href={sourceUrl || undefined}
+              title={sourceUrl || undefined}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="hover:text-blue-500 transition"
+            >
+              🔎 {item.Tracker}
+            </a>
+            {proxiedSourceUrl && (
+              <a
+                href={proxiedSourceUrl}
+                title="Open via Tor proxy"
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label={`Open ${item.Tracker} via Tor proxy`}
+                className="hover:text-purple-500 transition"
+              >
+                🌍 Proxy
+              </a>
+            )}
+          </span>
         )}
         {imdbSearchUrl && (
           <a
@@ -104,6 +104,7 @@ const VirtualizedResults = ({
   items,
   onCopy,
   onDownload,
+  onItemHover,
   scrollOffset,
   onScrollOffsetChange,
   scrollResetKey,
@@ -179,13 +180,17 @@ const VirtualizedResults = ({
       }}
       className={`h-[calc(100vh-var(--results-offset))] overflow-auto scroll-auto touch-scroll light-scrolbar dark:dark-scrollbar pr-1 rounded-lg`}
     >
-      <ul className="relative w-full" style={{ height: rowVirtualizer.getTotalSize() }}>
+      <ul
+        className="relative w-full"
+        style={{ height: rowVirtualizer.getTotalSize() }}
+      >
         {rowVirtualizer.getVirtualItems().map((virtualRow) => {
           const item = items[virtualRow.index];
 
           return (
             <li
               key={virtualRow.key}
+              onMouseEnter={() => onItemHover?.(item)}
               className="absolute left-0 w-full p-4 rounded-md
                         bg-neutral-50 dark:bg-black
                         hover:bg-zinc-100 dark:hover:bg-zinc-800 transition"
@@ -217,6 +222,7 @@ const PlainResults = ({
   items,
   onCopy,
   onDownload,
+  onItemHover,
   scrollOffset,
   onScrollOffsetChange,
   scrollResetKey,
@@ -280,6 +286,7 @@ const PlainResults = ({
         {items.map((item, index) => (
           <li
             key={getTorrentKey(item, index)}
+            onMouseEnter={() => onItemHover?.(item)}
             className="w-full p-4 rounded-md
                      bg-neutral-50 dark:bg-black
                      hover:bg-zinc-100 dark:hover:bg-zinc-800 transition"
@@ -301,6 +308,7 @@ const TorrentResults = ({
   items,
   onCopy,
   onDownload,
+  onItemHover,
   isMobile,
   scrollOffset,
   onScrollOffsetChange,
@@ -314,6 +322,7 @@ const TorrentResults = ({
       items={items}
       onCopy={onCopy}
       onDownload={onDownload}
+      onItemHover={onItemHover}
       scrollOffset={scrollOffset}
       onScrollOffsetChange={onScrollOffsetChange}
       scrollResetKey={scrollResetKey}
@@ -324,6 +333,7 @@ const TorrentResults = ({
       items={items}
       onCopy={onCopy}
       onDownload={onDownload}
+      onItemHover={onItemHover}
       scrollOffset={scrollOffset}
       onScrollOffsetChange={onScrollOffsetChange}
       scrollResetKey={scrollResetKey}

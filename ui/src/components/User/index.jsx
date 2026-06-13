@@ -5,6 +5,7 @@ import Home from "./components/Home";
 import TorrentDetails from "./components/Home/components/TorrentDetails";
 import reactState from "@/shared/hooks/reactState";
 import Search from "./components/Search";
+import SearchResultDetails from "./components/Search/components/SearchResultDetails";
 
 export default function UserHome() {
   const [tab, setTab] = useState("Home");
@@ -21,6 +22,7 @@ export default function UserHome() {
 
   const torrentSearchState = reactState({});
   const isHomeTab = tab === "Home";
+  const isSearchTab = tab === "Search";
   const isFileView = Boolean(state.get("isFileView"));
   const detailsTorrent = useMemo(
     () =>
@@ -45,6 +47,14 @@ export default function UserHome() {
       });
     }
   }, [isHomeTab]);
+
+  useEffect(() => {
+    if (!isSearchTab) {
+      torrentSearchState.set({
+        hoveredResult: null,
+      });
+    }
+  }, [isSearchTab]);
 
   return (
     <div className="flex h-screen overflow-hidden">
@@ -79,10 +89,14 @@ export default function UserHome() {
         </div>
       </div>
       <div className="hidden lg:block w-[26rem] 2xl:w-[25%]- 2xl:w-[30rem] h-screen bg-neutral-100 dark:bg-black overflow-y-auto md:light-scrollbar dark:md:dark-scrollbar">
-        <TorrentDetails
-          torrent={isHomeTab ? detailsTorrent : null}
-          isFileView={isFileView}
-        />
+        {isSearchTab ? (
+          <SearchResultDetails item={torrentSearchState.get("hoveredResult")} />
+        ) : (
+          <TorrentDetails
+            torrent={isHomeTab ? detailsTorrent : null}
+            isFileView={isFileView}
+          />
+        )}
       </div>
     </div>
   );

@@ -8,6 +8,10 @@ import SearchBar from "./components/SearchBar";
 import SortFilters from "./components/SortFilters";
 import TorrentResults from "./components/TorrentResults";
 import {
+  CLIPBOARD_COPY_STATUS,
+  copyTextToClipboard,
+} from "@/shared/utils/clipboard";
+import {
   DEFAULT_SORT_DIR,
   INITIAL_SORT,
   MOBILE_BREAKPOINT,
@@ -201,13 +205,15 @@ const Search = ({ torrentSearchState }) => {
     const magnet = await resolveMagnet(item);
 
     if (magnet) {
-      const el = document.createElement("textarea");
-      el.value = magnet;
-      document.body.appendChild(el);
-      el.select();
-      document.execCommand("copy");
-      document.body.removeChild(el);
-      toast.success(`Magnet copied to clipboard`);
+      const status = await copyTextToClipboard(magnet);
+
+      if (status === CLIPBOARD_COPY_STATUS.COPIED) {
+        toast.success(`Magnet copied to clipboard`);
+      } else if (status === CLIPBOARD_COPY_STATUS.MANUAL) {
+        toast.success(`Magnet opened for manual copy`);
+      } else {
+        toast.error(`Failed to copy magnet`);
+      }
     } else {
       toast.error(`Magnet not Found`);
     }
@@ -419,6 +425,9 @@ const Search = ({ torrentSearchState }) => {
               onScrollOffsetChange={setScrollOffset}
               scrollResetKey={scrollResetKey}
               browserProxyBaseUrl={browserProxyBaseUrl}
+              onItemHover={(item) => {
+                torrentSearchState.set({ hoveredResult: item });
+              }}
             />
           </div>
         )}

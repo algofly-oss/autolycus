@@ -14,6 +14,10 @@ import DeleteDialog from "./FileExplorer/components/DeleteDialog";
 import { AnimatePresence } from "framer-motion";
 import TorrentDeleteDialog from "./TorrentDeleteDialog";
 import { BiCopy } from "react-icons/bi";
+import {
+  CLIPBOARD_COPY_STATUS,
+  copyTextToClipboard,
+} from "@/shared/utils/clipboard";
 
 const TorrentCard = ({ torrentData }) => {
   const {
@@ -82,20 +86,21 @@ const TorrentCard = ({ torrentData }) => {
   };
 
   const copyMagnetToClipBoard = async () => {
-    if (torrentData?.magnet || torrentData?.url) {
-      const el = document.createElement("textarea");
-      el.value = torrentData?.magnet || torrentData?.url;
-      document.body.appendChild(el);
-      el.select();
-      document.execCommand("copy");
-      document.body.removeChild(el);
-      if (torrentData?.magnet) {
-        toast.success("Magnet copied to clipboard");
-      } else if (torrentData?.url) {
-        toast.success("URL copied to clipboard");
-      } else {
-        toast.error("Magnet not found");
-      }
+    const text = torrentData?.magnet || torrentData?.url;
+    if (!text) {
+      toast.error("Magnet not found");
+      return;
+    }
+
+    const status = await copyTextToClipboard(text);
+    const label = torrentData?.magnet ? "Magnet" : "URL";
+
+    if (status === CLIPBOARD_COPY_STATUS.COPIED) {
+      toast.success(`${label} copied to clipboard`);
+    } else if (status === CLIPBOARD_COPY_STATUS.MANUAL) {
+      toast.success(`${label} opened for manual copy`);
+    } else {
+      toast.error(`Failed to copy ${label.toLowerCase()}`);
     }
   };
 
@@ -158,9 +163,7 @@ const TorrentCard = ({ torrentData }) => {
               <BsCircleFill className="w-1 h-1 flex-shrink-0" />
             )}
             {total_bytes && (
-              <span className="text-sm">
-                {formatFileSize(torrentData?.disk_bytes || total_bytes)}
-              </span>
+              <span className="text-sm">{formatFileSize(total_bytes)}</span>
             )}
           </div>
         </div>
