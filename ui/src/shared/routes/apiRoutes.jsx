@@ -9,6 +9,7 @@ let apiRoutes = {
   updateAccount: "/auth/account",
   updatePassword: "/auth/password",
   updatePreferences: "/auth/preferences",
+  ftpSettings: "/auth/ftp",
   listSessions: "/auth/sessions",
   revokeSession: "/auth/sessions",
   updateCurrentSessionIp: "/auth/sessions/current/ip",
@@ -39,6 +40,9 @@ let apiRoutes = {
   transcodeStop: "/files/transcode/stop",
   transcodeProgress: "/files/transcode/progress",
   generatePublicUrl: "/files/generate-public-url",
+  listPublicUrls: "/files/public-urls",
+  deactivatePublicUrl: "/files/public-urls",
+  bulkDeactivatePublicUrls: "/files/public-urls/deactivate",
 };
 
 Object.entries(apiRoutes).forEach(([key, value]) => {

@@ -31,6 +31,11 @@ const extractEpisodeInfo = (value) => {
   return null;
 };
 
+const extractYearInfo = (value) => {
+  const match = String(value || "").match(/\b(19\d{2}|20\d{2})\b/);
+  return match ? match[1] : null;
+};
+
 const extractLanguageInfo = (value) => {
   const text = String(value || "").toLowerCase();
   const languages = [
@@ -225,6 +230,7 @@ const TorrentCard = ({ torrentData, compact = false }) => {
 
   const resolutionLabel = torrentData?.media_metadata?.quality?.resolution || resolution;
   const sourceLabel = torrentData?.media_metadata?.quality?.source || source;
+  const yearLabel = torrentData?.media_metadata?.year || extractYearInfo(name);
   const totalSizeLabel =
     total_bytes || torrentData?.size
       ? formatFileSize(total_bytes || torrentData.size)
@@ -255,12 +261,21 @@ const TorrentCard = ({ torrentData, compact = false }) => {
   const parsedDisplayTitle = hasParsedTitle
     ? compactDisplayTitle(
         parsedTitle,
+        yearLabel ? `(${yearLabel})` : null,
         extractEpisodeInfo(name),
         extractLanguageInfo(name)
       )
     : name;
   const posterUrl = torrentData?.media_metadata?.poster_url;
   const imdbUrl = torrentData?.media_metadata?.imdb_url;
+  const torrentHash = (
+    info_hash ||
+    torrentData?.url_hash ||
+    torrentData?.torrent_id ||
+    ""
+  )
+    .toString();
+  const torrentHashLabel = torrentHash.slice(0, 5);
 
   if (compact) {
     return (
@@ -324,9 +339,31 @@ const TorrentCard = ({ torrentData, compact = false }) => {
                           <span>{compactEndLabel}</span>
                         </span>
                       ) : null}
+                      {torrentHashLabel ? (
+                        <span
+                          className="flex shrink-0 items-center gap-1.5 font-mono font-semibold"
+                          title={torrentHash}
+                        >
+                          {(compactInfoItems.length || compactEndLabel) ? (
+                            <BsCircleFill className="h-1 w-1 shrink-0" />
+                          ) : null}
+                          <span>{torrentHashLabel}</span>
+                        </span>
+                      ) : null}
                     </>
                   ) : (
-                    <span className="truncate">Metadata pending</span>
+                    <>
+                      <span className="truncate">Metadata pending</span>
+                      {torrentHashLabel ? (
+                        <span
+                          className="flex shrink-0 items-center gap-1.5 font-mono font-semibold"
+                          title={torrentHash}
+                        >
+                          <BsCircleFill className="h-1 w-1 shrink-0" />
+                          <span>{torrentHashLabel}</span>
+                        </span>
+                      ) : null}
+                    </>
                   )}
                 </div>
               </div>
@@ -521,6 +558,14 @@ const TorrentCard = ({ torrentData, compact = false }) => {
                   {!is_finished ? (
                     <span className="max-w-[9rem] truncate rounded bg-neutral-200/70 px-1.5 py-0.5 text-[11px] font-medium text-neutral-600 dark:bg-neutral-900 dark:text-neutral-400">
                       {formatTimeRemaining(timeLeftSeconds)}
+                    </span>
+                  ) : null}
+                  {torrentHashLabel ? (
+                    <span
+                      className="shrink-0 rounded bg-neutral-200/70 px-1.5 py-0.5 font-mono text-[11px] font-semibold text-neutral-600 dark:bg-neutral-900 dark:text-neutral-400"
+                      title={torrentHash}
+                    >
+                      {torrentHashLabel}
                     </span>
                   ) : null}
                 </div>

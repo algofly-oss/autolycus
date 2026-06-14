@@ -12,6 +12,7 @@ from pymongo.errors import DuplicateKeyError
 from shared.factory import db
 
 from .common import authenticate_user
+from .preferences_utils import serialize_preferences
 
 router = APIRouter()
 
@@ -63,7 +64,7 @@ def _serialize_user(user):
         "created_at": user["created_at"],
         "profile_picture": user.get("profile_picture"),
         "has_password": bool(user.get("password")),
-        "preferences": user.get("preferences") or {},
+        "preferences": serialize_preferences(user.get("preferences")),
     }
 
 
@@ -191,7 +192,7 @@ async def update_preferences(preferences: PreferencesUpdate, request: Request):
         )
 
     updated_user = await db.users.find_one({"_id": user_object_id})
-    return {"preferences": updated_user.get("preferences") or {}}
+    return {"preferences": serialize_preferences(updated_user.get("preferences"))}
 
 
 @router.patch("/password")

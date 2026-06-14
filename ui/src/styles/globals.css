@@ -87,6 +87,18 @@ input[type="number"] {
   }
 }
 
+@layer components {
+  .public-url-delete-button:hover {
+    background-color: #fef2f2;
+    color: #b91c1c;
+  }
+
+  .dark .public-url-delete-button:hover {
+    background-color: rgba(69, 10, 10, 0.46) !important;
+    color: #fecaca !important;
+  }
+}
+
 @keyframes bubble-reorder {
   from {
     opacity: 0.6;

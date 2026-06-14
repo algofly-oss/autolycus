@@ -1,19 +1,30 @@
 import { useEffect, useRef, useState } from "react";
 import axios from "axios";
 import { useDispatch } from "react-redux";
-import { FiRefreshCw, FiTrash2, FiUpload } from "react-icons/fi";
+import { FiCopy, FiEdit3, FiRefreshCw, FiTrash2, FiUpload } from "react-icons/fi";
 import { FaSignOutAlt } from "react-icons/fa";
+import { AiOutlineEye, AiOutlineEyeInvisible } from "react-icons/ai";
 import apiRoutes from "@/shared/routes/apiRoutes";
 import { syncCurrentSessionPublicIp } from "@/shared/sessionPublicIp";
 import useAuth from "@/shared/hooks/useAuth";
 import useToast from "@/shared/hooks/useToast";
 import { authActions } from "@/redux/features/authSlice";
+import {
+  CLIPBOARD_COPY_STATUS,
+  copyTextToClipboard,
+} from "@/shared/utils/clipboard";
 
 const settingsPanelClass =
   "rounded-lg border border-neutral-200 bg-white dark:border-[#33363b] dark:bg-[#202124]";
 const settingsDividerClass = "border-neutral-200 dark:border-[#33363b]";
 const accountInputClass =
   "mt-1 w-full rounded-md border border-neutral-300 bg-white px-3 py-2 text-sm text-neutral-900 outline-none ring-0 focus:border-neutral-300 focus:outline-none focus:ring-0 dark:border-[#33363b] dark:bg-[#18191b] dark:text-neutral-100 dark:focus:border-[#33363b]";
+const passwordInputClass = `${accountInputClass} pr-10`;
+const passwordToggleClass =
+  "absolute right-2 top-1/2 inline-flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-md text-neutral-500 transition hover:bg-neutral-100 hover:text-neutral-800 dark:text-neutral-400 dark:hover:bg-[#2a2b2f] dark:hover:text-neutral-100";
+const publicUrlDeleteButtonClass =
+  "public-url-delete-button rounded-md border border-red-300 px-3 py-2 text-sm font-medium text-red-600 transition disabled:cursor-not-allowed disabled:opacity-60 dark:border-red-900/70 dark:text-red-300";
+const PUBLIC_URL_PAGE_SIZE = 10;
 const MAX_PROFILE_PICTURE_BYTES = 10 * 1024 * 1024;
 const ALLOWED_PROFILE_PICTURE_TYPES = new Set([
   "image/png",
@@ -138,6 +149,13 @@ export default function Settings() {
     newPassword: "",
     confirmPassword: "",
   });
+  const [passwordVisibility, setPasswordVisibility] = useState({
+    profileCurrent: false,
+    accountCurrent: false,
+    accountNew: false,
+    accountConfirm: false,
+    ftp: false,
+  });
   const [profileEditing, setProfileEditing] = useState(false);
   const [passwordEditing, setPasswordEditing] = useState(false);
   const [profilePicturePayload, setProfilePicturePayload] = useState(null);
@@ -148,6 +166,28 @@ export default function Settings() {
   const [isLoadingSessions, setIsLoadingSessions] = useState(true);
   const [activeSessionId, setActiveSessionId] = useState(null);
   const [sessionPendingSignOut, setSessionPendingSignOut] = useState(null);
+  const [ftpSettings, setFtpSettings] = useState({
+    enabled: false,
+    username: "",
+    has_password: false,
+    url: "",
+  });
+  const [ftpForm, setFtpForm] = useState({
+    enabled: false,
+    username: "",
+    password: "",
+  });
+  const [isLoadingFtp, setIsLoadingFtp] = useState(true);
+  const [isSavingFtp, setIsSavingFtp] = useState(false);
+  const [ftpEditing, setFtpEditing] = useState(false);
+  const [publicUrls, setPublicUrls] = useState([]);
+  const [publicUrlsPage, setPublicUrlsPage] = useState(1);
+  const [publicUrlsTotal, setPublicUrlsTotal] = useState(0);
+  const [selectedPublicUrlHashes, setSelectedPublicUrlHashes] = useState([]);
+  const [isLoadingPublicUrls, setIsLoadingPublicUrls] = useState(true);
+  const [deactivatingPublicUrl, setDeactivatingPublicUrl] = useState("");
+  const [confirmDeleteAllPublicUrls, setConfirmDeleteAllPublicUrls] =
+    useState(false);
 
   useEffect(() => {
     setProfileForm({
@@ -195,6 +235,92 @@ export default function Settings() {
     loadSessions();
   }, [user?.username]);
 
+  const loadFtpSettings = async () => {
+    setIsLoadingFtp(true);
+    try {
+      const response = await axios.get(apiRoutes.ftpSettings);
+      const nextSettings = response?.data?.ftp || {};
+      setFtpSettings(nextSettings);
+      setFtpForm({
+        enabled: Boolean(nextSettings.enabled),
+        username: nextSettings.username || "",
+        password: "",
+      });
+      setFtpEditing(false);
+    } catch (error) {
+      toast.error(
+        error?.response?.data?.detail || "Failed to load FTP settings."
+      );
+    } finally {
+      setIsLoadingFtp(false);
+    }
+  };
+
+  useEffect(() => {
+    loadFtpSettings();
+  }, [user?.username]);
+
+  const publicUrlsTotalPages = Math.max(
+    1,
+    Math.ceil((publicUrlsTotal || 0) / PUBLIC_URL_PAGE_SIZE)
+  );
+  const publicUrlPageNumbers = (() => {
+    if (publicUrlsTotalPages <= 1) return [];
+
+    const visiblePages = new Set([1, publicUrlsTotalPages]);
+    const startPage = Math.max(1, publicUrlsPage - 2);
+    const endPage = Math.min(publicUrlsTotalPages, publicUrlsPage + 2);
+
+    for (let page = startPage; page <= endPage; page += 1) {
+      visiblePages.add(page);
+    }
+
+    return Array.from(visiblePages)
+      .sort((firstPage, secondPage) => firstPage - secondPage)
+      .reduce((pages, page) => {
+        const previousPage = pages[pages.length - 1];
+        if (typeof previousPage === "number" && page - previousPage > 1) {
+          pages.push(`ellipsis-${previousPage}-${page}`);
+        }
+        pages.push(page);
+        return pages;
+      }, []);
+  })();
+
+  const loadPublicUrls = async (page = publicUrlsPage) => {
+    setIsLoadingPublicUrls(true);
+    try {
+      const response = await axios.get(apiRoutes.listPublicUrls, {
+        params: { page, page_size: PUBLIC_URL_PAGE_SIZE },
+      });
+      const nextUrls = response?.data?.data || [];
+      const meta = response?.data?.meta || {};
+      const total = Number(meta.total || 0);
+      const totalPages = Math.max(1, Math.ceil(total / PUBLIC_URL_PAGE_SIZE));
+      if (page > totalPages) {
+        setPublicUrlsPage(totalPages);
+        return;
+      }
+      setPublicUrls(nextUrls);
+      setPublicUrlsTotal(total);
+      setSelectedPublicUrlHashes((currentHashes) =>
+        currentHashes.filter((hash) =>
+          nextUrls.some((item) => item.path_hash === hash)
+        )
+      );
+    } catch (error) {
+      toast.error(
+        error?.response?.data?.detail || "Failed to load public URLs."
+      );
+    } finally {
+      setIsLoadingPublicUrls(false);
+    }
+  };
+
+  useEffect(() => {
+    loadPublicUrls(publicUrlsPage);
+  }, [user?.username, publicUrlsPage]);
+
   const initials = String(user?.name || user?.username || "A")
     .trim()
     .slice(0, 1)
@@ -237,6 +363,29 @@ export default function Settings() {
       return !editing;
     });
   };
+
+  const togglePasswordVisibility = (key) => {
+    setPasswordVisibility((currentVisibility) => ({
+      ...currentVisibility,
+      [key]: !currentVisibility[key],
+    }));
+  };
+
+  const renderPasswordToggle = (key, isVisible) => (
+    <button
+      type="button"
+      className={passwordToggleClass}
+      onClick={() => togglePasswordVisibility(key)}
+      aria-label={isVisible ? "Hide password" : "Show password"}
+      title={isVisible ? "Hide password" : "Show password"}
+    >
+      {isVisible ? (
+        <AiOutlineEyeInvisible size={18} />
+      ) : (
+        <AiOutlineEye size={18} />
+      )}
+    </button>
+  );
 
   const handleSaveProfile = async () => {
     const name = profileForm.name.trim();
@@ -318,12 +467,365 @@ export default function Settings() {
     }
   };
 
+  const resetFtpForm = (settings = ftpSettings) => {
+    setFtpForm({
+      enabled: Boolean(settings.enabled),
+      username: settings.username || "",
+      password: "",
+    });
+  };
+
+  const openFtpEditor = () => {
+    setFtpEditing(true);
+    setFtpForm({
+      enabled: Boolean(ftpSettings.enabled),
+      username: ftpSettings.username || "",
+      password: "",
+    });
+  };
+
+  const cancelFtpEditor = () => {
+    resetFtpForm();
+    setFtpEditing(false);
+  };
+
+  const persistFtpSettings = async ({ enabled, username, password }) => {
+    setIsSavingFtp(true);
+    try {
+      const response = await axios.patch(apiRoutes.ftpSettings, {
+        enabled,
+        username,
+        password,
+      });
+      const nextSettings = response?.data?.ftp || {};
+      setFtpSettings(nextSettings);
+      setFtpForm({
+        enabled: Boolean(nextSettings.enabled),
+        username: nextSettings.username || "",
+        password: "",
+      });
+      setFtpEditing(false);
+      if (response?.data?.preferences) {
+        dispatch(
+          authActions.updateAccountInfo({
+            preferences: response.data.preferences,
+          })
+        );
+      }
+      toast.success("FTP settings updated.");
+    } catch (error) {
+      toast.error(
+        error?.response?.data?.detail || "Failed to update FTP settings."
+      );
+    } finally {
+      setIsSavingFtp(false);
+    }
+  };
+
+  const handleSaveFtpSettings = () => {
+    const nextUsername = ftpForm.username.trim();
+    const nextPassword = ftpForm.password;
+
+    if (ftpForm.enabled && !nextUsername) {
+      toast.error("FTP username is required.");
+      return;
+    }
+
+    if (ftpForm.enabled && !ftpSettings.has_password && !nextPassword) {
+      toast.error("FTP password is required the first time you enable FTP.");
+      return;
+    }
+
+    if (nextPassword && nextPassword.length < 8) {
+      toast.error("FTP password must be at least 8 characters.");
+      return;
+    }
+
+    const payload = {
+      enabled: ftpForm.enabled,
+      username: nextUsername,
+      password: nextPassword,
+    };
+
+    persistFtpSettings(payload);
+  };
+
+  const handleCopyFtpUrl = async () => {
+    if (!ftpSettings?.url) {
+      toast.error("FTP URL is not available.");
+      return;
+    }
+
+    const status = await copyTextToClipboard(ftpSettings.url);
+    if (status === CLIPBOARD_COPY_STATUS.COPIED) {
+      toast.success("FTP URL copied to clipboard");
+    } else if (status === CLIPBOARD_COPY_STATUS.MANUAL) {
+      toast.success("FTP URL opened for manual copy");
+    } else {
+      toast.error("Failed to copy FTP URL");
+    }
+  };
+
+  const publicUrlForKey = (key) => {
+    if (!key || typeof window === "undefined") return "";
+    return `${window.location.origin}/api/files/public/${key}`;
+  };
+
+  const handleCopyPublicUrl = async (item) => {
+    const url = publicUrlForKey(item?.key);
+    if (!url) {
+      toast.error("Public URL is not available.");
+      return;
+    }
+
+    const status = await copyTextToClipboard(url);
+    if (status === CLIPBOARD_COPY_STATUS.COPIED) {
+      toast.success("Public URL copied to clipboard");
+    } else if (status === CLIPBOARD_COPY_STATUS.MANUAL) {
+      toast.success("Public URL opened for manual copy");
+    } else {
+      toast.error("Failed to copy public URL");
+    }
+  };
+
+  const handleDeactivatePublicUrl = async (item) => {
+    if (!item?.path_hash) return;
+
+    setDeactivatingPublicUrl(item.path_hash);
+    try {
+      await axios.patch(
+        `${apiRoutes.deactivatePublicUrl}/${encodeURIComponent(
+          item.path_hash
+        )}/deactivate`
+      );
+      setPublicUrls((currentUrls) =>
+        currentUrls.filter((url) => url.path_hash !== item.path_hash)
+      );
+      setSelectedPublicUrlHashes((currentHashes) =>
+        currentHashes.filter((hash) => hash !== item.path_hash)
+      );
+      setPublicUrlsTotal((currentTotal) => Math.max(0, currentTotal - 1));
+      toast.success("Public URL deleted.");
+    } catch (error) {
+      toast.error(
+        error?.response?.data?.detail || "Failed to delete public URL."
+      );
+    } finally {
+      setDeactivatingPublicUrl("");
+    }
+  };
+
+  const togglePublicUrlSelection = (pathHash) => {
+    setSelectedPublicUrlHashes((currentHashes) =>
+      currentHashes.includes(pathHash)
+        ? currentHashes.filter((hash) => hash !== pathHash)
+        : [...currentHashes, pathHash]
+    );
+  };
+
+  const handleBulkDeletePublicUrls = async ({ all = false } = {}) => {
+    if (!all && selectedPublicUrlHashes.length === 0) {
+      toast.error("Select at least one public URL.");
+      return;
+    }
+
+    setDeactivatingPublicUrl(all ? "__all__" : "__selected__");
+    try {
+      await axios.patch(apiRoutes.bulkDeactivatePublicUrls, {
+        all,
+        path_hashes: all ? [] : selectedPublicUrlHashes,
+      });
+      setSelectedPublicUrlHashes([]);
+      if (all) {
+        setPublicUrls([]);
+        setPublicUrlsTotal(0);
+        setPublicUrlsPage(1);
+        setConfirmDeleteAllPublicUrls(false);
+      } else {
+        await loadPublicUrls(publicUrlsPage);
+      }
+      toast.success(all ? "All public URLs deleted." : "Selected public URLs deleted.");
+    } catch (error) {
+      toast.error(
+        error?.response?.data?.detail || "Failed to delete public URLs."
+      );
+    } finally {
+      setDeactivatingPublicUrl("");
+    }
+  };
+
   const confirmSessionSignOut = async () => {
     if (!sessionPendingSignOut) return;
 
     await handleRevokeSession(sessionPendingSignOut);
     setSessionPendingSignOut(null);
   };
+
+  const renderPublicUrlsSection = () => (
+    <section className={settingsPanelClass}>
+      <div
+        className={`flex flex-wrap items-center justify-between gap-3 border-b px-5 py-4 ${settingsDividerClass}`}
+      >
+        <div>
+          <p className="text-sm font-semibold text-neutral-900 dark:text-neutral-100">
+            Public URLs
+          </p>
+          <p className="mt-1 text-sm text-neutral-500 dark:text-neutral-400">
+            Manage active public file links.
+          </p>
+        </div>
+        <div className="flex shrink-0 flex-wrap items-center gap-2">
+          {publicUrlsTotal > 0 ? (
+            <button
+              type="button"
+              className={publicUrlDeleteButtonClass}
+              onClick={() =>
+                selectedPublicUrlHashes.length > 0
+                  ? handleBulkDeletePublicUrls()
+                  : setConfirmDeleteAllPublicUrls(true)
+              }
+              disabled={Boolean(deactivatingPublicUrl)}
+            >
+              {deactivatingPublicUrl === "__selected__"
+                ? "Deleting..."
+                : deactivatingPublicUrl === "__all__"
+                ? "Deleting..."
+                : selectedPublicUrlHashes.length > 0
+                ? `Delete selected (${selectedPublicUrlHashes.length})`
+                : "Delete all"}
+            </button>
+          ) : null}
+          <button
+            type="button"
+            className="inline-flex items-center gap-2 rounded-md border border-neutral-300 px-3 py-2 text-sm font-medium text-neutral-700 transition hover:bg-neutral-100 disabled:cursor-not-allowed disabled:opacity-60 dark:border-[#33363b] dark:text-neutral-200 dark:hover:bg-[#2a2b2f]"
+            onClick={() => loadPublicUrls(publicUrlsPage)}
+            disabled={isLoadingPublicUrls}
+          >
+            <FiRefreshCw size={14} />
+            Refresh
+          </button>
+        </div>
+      </div>
+      <div className="divide-y divide-neutral-100 dark:divide-[#33363b]">
+        {isLoadingPublicUrls ? (
+          <div className="px-5 py-6 text-sm text-neutral-500 dark:text-neutral-400">
+            Loading public URLs...
+          </div>
+        ) : publicUrls.length ? (
+          <>
+            {publicUrls.map((item) => {
+              const publicUrl = publicUrlForKey(item.key);
+              const isDeactivating = deactivatingPublicUrl === item.path_hash;
+              const isSelected = selectedPublicUrlHashes.includes(item.path_hash);
+
+              return (
+                <div
+                  key={item.path_hash}
+                  className="flex items-center justify-between gap-4 px-5 py-4"
+                >
+                  <div className="flex min-w-0 items-center gap-3">
+                    <input
+                      type="checkbox"
+                      className="h-4 w-4 shrink-0 rounded border-neutral-300 text-blue-600 focus:ring-blue-500 dark:border-[#33363b] dark:bg-[#18191b]"
+                      checked={isSelected}
+                      onChange={() => togglePublicUrlSelection(item.path_hash)}
+                    />
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-medium text-neutral-900 dark:text-neutral-100">
+                        {item.name || item.key}
+                      </p>
+                      <p className="mt-1 truncate text-xs text-neutral-500 dark:text-neutral-400">
+                        {publicUrl}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex shrink-0 items-center gap-2">
+                    <button
+                      type="button"
+                      className="inline-flex items-center gap-2 rounded-md border border-neutral-300 px-3 py-2 text-sm font-medium text-neutral-700 transition hover:bg-neutral-100 dark:border-[#33363b] dark:text-neutral-200 dark:hover:bg-[#2a2b2f]"
+                      onClick={() => handleCopyPublicUrl(item)}
+                    >
+                      <FiCopy size={14} />
+                      Copy
+                    </button>
+                    <button
+                      type="button"
+                      className={publicUrlDeleteButtonClass}
+                      onClick={() => handleDeactivatePublicUrl(item)}
+                      disabled={isDeactivating || Boolean(deactivatingPublicUrl)}
+                    >
+                      {isDeactivating ? "Deleting..." : "Delete"}
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+            <div className="flex flex-wrap items-center justify-between gap-3 px-5 py-3">
+              <p className="text-xs text-neutral-500 dark:text-neutral-400">
+                Page {publicUrlsPage} of {publicUrlsTotalPages}
+              </p>
+              <div className="flex flex-wrap items-center justify-end gap-2">
+                <button
+                  type="button"
+                  className="rounded-md border border-neutral-300 px-3 py-1.5 text-sm font-medium text-neutral-700 transition hover:bg-neutral-100 disabled:cursor-not-allowed disabled:opacity-60 dark:border-[#33363b] dark:text-neutral-200 dark:hover:bg-[#2a2b2f]"
+                  onClick={() =>
+                    setPublicUrlsPage((currentPage) =>
+                      Math.max(1, currentPage - 1)
+                    )
+                  }
+                  disabled={publicUrlsPage <= 1 || isLoadingPublicUrls}
+                >
+                  Previous
+                </button>
+                {publicUrlPageNumbers.map((page) =>
+                  typeof page === "number" ? (
+                    <button
+                      key={page}
+                      type="button"
+                      className={`min-w-[2.25rem] rounded-md border px-3 py-1.5 text-sm font-medium transition disabled:cursor-not-allowed disabled:opacity-60 ${
+                        page === publicUrlsPage
+                          ? "border-blue-500 bg-blue-600 text-white dark:border-blue-500 dark:bg-blue-500 dark:text-white"
+                          : "border-neutral-300 text-neutral-700 hover:bg-neutral-100 dark:border-[#33363b] dark:text-neutral-200 dark:hover:bg-[#2a2b2f]"
+                      }`}
+                      onClick={() => setPublicUrlsPage(page)}
+                      disabled={page === publicUrlsPage || isLoadingPublicUrls}
+                    >
+                      {page}
+                    </button>
+                  ) : (
+                    <span
+                      key={page}
+                      className="px-1 text-sm text-neutral-400 dark:text-neutral-500"
+                    >
+                      ...
+                    </span>
+                  )
+                )}
+                <button
+                  type="button"
+                  className="rounded-md border border-neutral-300 px-3 py-1.5 text-sm font-medium text-neutral-700 transition hover:bg-neutral-100 disabled:cursor-not-allowed disabled:opacity-60 dark:border-[#33363b] dark:text-neutral-200 dark:hover:bg-[#2a2b2f]"
+                  onClick={() =>
+                    setPublicUrlsPage((currentPage) =>
+                      Math.min(publicUrlsTotalPages, currentPage + 1)
+                    )
+                  }
+                  disabled={
+                    publicUrlsPage >= publicUrlsTotalPages || isLoadingPublicUrls
+                  }
+                >
+                  Next
+                </button>
+              </div>
+            </div>
+          </>
+        ) : (
+          <div className="px-5 py-6 text-sm text-neutral-500 dark:text-neutral-400">
+            No active public URLs.
+          </div>
+        )}
+      </div>
+    </section>
+  );
 
   const handleRevokeSession = async (session) => {
     setActiveSessionId(session.id);
@@ -517,17 +1019,25 @@ export default function Settings() {
                   <span className="text-xs font-medium text-neutral-500 dark:text-neutral-400">
                     Current password for email changes
                   </span>
-                  <input
-                    type="password"
-                    className={accountInputClass}
-                    value={profileForm.currentPassword}
-                    onChange={(event) =>
-                      setProfileForm((currentForm) => ({
-                        ...currentForm,
-                        currentPassword: event.target.value,
-                      }))
-                    }
-                  />
+                  <div className="relative">
+                    <input
+                      type={
+                        passwordVisibility.profileCurrent ? "text" : "password"
+                      }
+                      className={passwordInputClass}
+                      value={profileForm.currentPassword}
+                      onChange={(event) =>
+                        setProfileForm((currentForm) => ({
+                          ...currentForm,
+                          currentPassword: event.target.value,
+                        }))
+                      }
+                    />
+                    {renderPasswordToggle(
+                      "profileCurrent",
+                      passwordVisibility.profileCurrent
+                    )}
+                  </div>
                 </label>
               ) : null}
 
@@ -571,42 +1081,60 @@ export default function Settings() {
 
           {passwordEditing ? (
             <div className="space-y-3 p-5">
-              <input
-                type="password"
-                placeholder="Current password"
-                className={accountInputClass}
-                value={passwordForm.currentPassword}
-                onChange={(event) =>
-                  setPasswordForm((currentForm) => ({
-                    ...currentForm,
-                    currentPassword: event.target.value,
-                  }))
-                }
-              />
-              <input
-                type="password"
-                placeholder="New password"
-                className={accountInputClass}
-                value={passwordForm.newPassword}
-                onChange={(event) =>
-                  setPasswordForm((currentForm) => ({
-                    ...currentForm,
-                    newPassword: event.target.value,
-                  }))
-                }
-              />
-              <input
-                type="password"
-                placeholder="Confirm new password"
-                className={accountInputClass}
-                value={passwordForm.confirmPassword}
-                onChange={(event) =>
-                  setPasswordForm((currentForm) => ({
-                    ...currentForm,
-                    confirmPassword: event.target.value,
-                  }))
-                }
-              />
+              <div className="relative">
+                <input
+                  type={passwordVisibility.accountCurrent ? "text" : "password"}
+                  placeholder="Current password"
+                  className={passwordInputClass}
+                  value={passwordForm.currentPassword}
+                  onChange={(event) =>
+                    setPasswordForm((currentForm) => ({
+                      ...currentForm,
+                      currentPassword: event.target.value,
+                    }))
+                  }
+                />
+                {renderPasswordToggle(
+                  "accountCurrent",
+                  passwordVisibility.accountCurrent
+                )}
+              </div>
+              <div className="relative">
+                <input
+                  type={passwordVisibility.accountNew ? "text" : "password"}
+                  placeholder="New password"
+                  className={passwordInputClass}
+                  value={passwordForm.newPassword}
+                  onChange={(event) =>
+                    setPasswordForm((currentForm) => ({
+                      ...currentForm,
+                      newPassword: event.target.value,
+                    }))
+                  }
+                />
+                {renderPasswordToggle(
+                  "accountNew",
+                  passwordVisibility.accountNew
+                )}
+              </div>
+              <div className="relative">
+                <input
+                  type={passwordVisibility.accountConfirm ? "text" : "password"}
+                  placeholder="Confirm new password"
+                  className={passwordInputClass}
+                  value={passwordForm.confirmPassword}
+                  onChange={(event) =>
+                    setPasswordForm((currentForm) => ({
+                      ...currentForm,
+                      confirmPassword: event.target.value,
+                    }))
+                  }
+                />
+                {renderPasswordToggle(
+                  "accountConfirm",
+                  passwordVisibility.accountConfirm
+                )}
+              </div>
               <button
                 type="button"
                 className="whitespace-nowrap rounded-md border border-neutral-300 px-3 py-2 text-sm font-medium text-neutral-700 transition hover:bg-neutral-100 disabled:cursor-not-allowed disabled:opacity-60 dark:border-[#33363b] dark:text-neutral-200 dark:hover:bg-[#2a2b2f]"
@@ -622,6 +1150,197 @@ export default function Settings() {
             </div>
           )}
         </section>
+
+        <section className={settingsPanelClass}>
+          <div
+            className={`flex items-center justify-between gap-4 border-b px-5 py-4 ${settingsDividerClass}`}
+          >
+            <div className="min-w-0">
+              <div className="flex flex-wrap items-center gap-2">
+                <p className="text-sm font-semibold text-neutral-900 dark:text-neutral-100">
+                  FTP share
+                </p>
+                {!isLoadingFtp ? (
+                  <span
+                    className={`shrink-0 rounded-md px-2 py-0.5 text-[11px] font-semibold ${
+                      ftpSettings.enabled
+                        ? "bg-emerald-500/15 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-300"
+                        : "bg-neutral-200 text-neutral-600 dark:bg-[#2a2b2f] dark:text-neutral-300"
+                    }`}
+                  >
+                    {ftpSettings.enabled ? "Enabled" : "Disabled"}
+                  </span>
+                ) : null}
+              </div>
+              <p className="mt-1 text-sm text-neutral-500 dark:text-neutral-400">
+                Enable FTP access to your downloads.
+              </p>
+            </div>
+            <div className="flex shrink-0 items-center">
+              <button
+                type="button"
+                className="inline-flex min-w-[7.75rem] items-center justify-center gap-2 rounded-md border border-neutral-300 px-3 py-2 text-sm font-medium text-neutral-700 transition hover:bg-neutral-100 disabled:cursor-not-allowed disabled:opacity-60 dark:border-[#33363b] dark:text-neutral-200 dark:hover:bg-[#2a2b2f]"
+                onClick={ftpEditing ? cancelFtpEditor : openFtpEditor}
+                disabled={isLoadingFtp || isSavingFtp}
+              >
+                {!ftpEditing ? <FiEdit3 size={14} /> : null}
+                {ftpEditing
+                  ? "Cancel"
+                  : ftpSettings.enabled
+                  ? "Edit FTP"
+                  : "Set up FTP"}
+              </button>
+            </div>
+          </div>
+
+          <div className="space-y-3 p-5">
+            {isLoadingFtp ? (
+              <div className="text-sm text-neutral-500 dark:text-neutral-400">
+                Loading FTP settings...
+              </div>
+            ) : !ftpEditing ? (
+              <>
+                {ftpSettings?.url ? (
+                  <div className="rounded-md bg-neutral-50 p-3 dark:bg-[#18191b]">
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="min-w-0">
+                        <p className="text-xs font-medium text-neutral-500 dark:text-neutral-400">
+                          FTP URL
+                        </p>
+                        <p className="mt-1 truncate text-sm font-medium text-neutral-900 dark:text-neutral-100">
+                          {ftpSettings.url}
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        className="inline-flex shrink-0 items-center gap-2 rounded-md border border-neutral-300 px-3 py-2 text-sm font-medium text-neutral-700 transition hover:bg-neutral-100 dark:border-[#33363b] dark:text-neutral-200 dark:hover:bg-[#2a2b2f]"
+                        onClick={handleCopyFtpUrl}
+                      >
+                        <FiCopy size={14} />
+                        Copy
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="rounded-md bg-neutral-50 p-3 text-sm text-neutral-500 dark:bg-[#18191b] dark:text-neutral-400">
+                    Configure FTP credentials to generate a client URL.
+                  </div>
+                )}
+
+              </>
+            ) : (
+              <>
+                <div className="flex flex-wrap items-center justify-between gap-3 rounded-md bg-neutral-50 p-3 dark:bg-[#18191b]">
+                  <div>
+                    <p className="text-xs font-medium text-neutral-500 dark:text-neutral-400">
+                      FTP access
+                    </p>
+                    <p className="mt-1 text-sm font-medium text-neutral-900 dark:text-neutral-100">
+                      {ftpForm.enabled
+                        ? ftpSettings.enabled
+                          ? "Enabled"
+                          : "Will be enabled after saving"
+                        : ftpSettings.enabled
+                        ? "Will be disabled after saving"
+                        : "Disabled"}
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    role="switch"
+                    aria-checked={ftpForm.enabled}
+                    className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full border p-0.5 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 disabled:cursor-not-allowed disabled:opacity-60 ${
+                      ftpForm.enabled
+                        ? "border-blue-500/40 bg-blue-600/75 dark:border-blue-400/30 dark:bg-blue-500/55"
+                        : "border-neutral-300 bg-neutral-200 dark:border-[#33363b] dark:bg-[#2a2b2f]"
+                    }`}
+                    onClick={() =>
+                      setFtpForm((currentForm) => ({
+                        ...currentForm,
+                        enabled: !currentForm.enabled,
+                      }))
+                    }
+                    disabled={isSavingFtp}
+                    title={ftpForm.enabled ? "Disable FTP" : "Enable FTP"}
+                  >
+                    <span
+                      className={`inline-block h-5 w-5 rounded-full bg-white shadow-sm ring-1 ring-black/10 transition-transform dark:bg-neutral-100 ${
+                        ftpForm.enabled ? "translate-x-5" : "translate-x-0"
+                      }`}
+                    />
+                    <span className="sr-only">
+                      {ftpForm.enabled ? "Disable FTP" : "Enable FTP"}
+                    </span>
+                  </button>
+                </div>
+
+                <div className="grid gap-3 md:grid-cols-2">
+                  <label className="block">
+                    <span className="text-xs font-medium text-neutral-500 dark:text-neutral-400">
+                      FTP username
+                    </span>
+                    <input
+                      className={accountInputClass}
+                      value={ftpForm.username}
+                      placeholder="Choose FTP username"
+                      onChange={(event) =>
+                        setFtpForm((currentForm) => ({
+                          ...currentForm,
+                          username: event.target.value,
+                        }))
+                      }
+                    />
+                  </label>
+                  <label className="block">
+                    <span className="text-xs font-medium text-neutral-500 dark:text-neutral-400">
+                      {ftpSettings.has_password ? "New FTP password" : "FTP password"}
+                    </span>
+                    <div className="relative">
+                      <input
+                        type={passwordVisibility.ftp ? "text" : "password"}
+                        className={passwordInputClass}
+                        value={ftpForm.password}
+                        placeholder={
+                          ftpSettings.has_password
+                            ? "Leave blank to keep current"
+                            : "Set FTP password"
+                        }
+                        onChange={(event) =>
+                          setFtpForm((currentForm) => ({
+                            ...currentForm,
+                            password: event.target.value,
+                          }))
+                        }
+                      />
+                      {renderPasswordToggle("ftp", passwordVisibility.ftp)}
+                    </div>
+                  </label>
+                </div>
+
+                <div className="flex items-center justify-end gap-2 border-t border-neutral-100 pt-4 dark:border-[#33363b]">
+                  <button
+                    type="button"
+                    className="whitespace-nowrap rounded-md border border-neutral-300 px-3 py-2 text-sm font-medium text-neutral-700 transition hover:bg-neutral-100 disabled:cursor-not-allowed disabled:opacity-60 dark:border-[#33363b] dark:text-neutral-200 dark:hover:bg-[#2a2b2f]"
+                    onClick={cancelFtpEditor}
+                    disabled={isSavingFtp}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    className="whitespace-nowrap rounded-md bg-blue-600 px-3 py-2 text-sm font-medium text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
+                    onClick={handleSaveFtpSettings}
+                    disabled={isSavingFtp}
+                  >
+                    {isSavingFtp ? "Saving..." : "Save FTP settings"}
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
+        </section>
+
+        {renderPublicUrlsSection()}
 
         <section className={settingsPanelClass}>
           <div
@@ -746,6 +1465,45 @@ export default function Settings() {
           </div>
         </div>
       ) : null}
+
+      {confirmDeleteAllPublicUrls ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 px-4 backdrop-blur-[1px]">
+          <div className="w-full max-w-sm rounded-lg border border-neutral-200 bg-white p-4 shadow-lg dark:border-[#33363b] dark:bg-[#202124]">
+            <p className="text-sm font-semibold text-neutral-900 dark:text-neutral-100">
+              Delete all public URLs?
+            </p>
+            <p className="mt-2 text-sm leading-6 text-neutral-500 dark:text-neutral-400">
+              All active public file links will stop working for clients.
+            </p>
+            <div className="mt-4 rounded-md bg-neutral-50 px-3 py-2 dark:bg-[#18191b]">
+              <p className="text-sm font-medium text-neutral-900 dark:text-neutral-100">
+                {publicUrlsTotal} active public URLs
+              </p>
+            </div>
+            <div className="mt-4 flex items-center justify-end gap-2">
+              <button
+                type="button"
+                className="rounded-md border border-neutral-200 px-3 py-2 text-sm text-neutral-600 transition-colors hover:bg-neutral-100 disabled:cursor-not-allowed disabled:opacity-60 dark:border-[#33363b] dark:text-neutral-300 dark:hover:bg-[#2a2b2f]"
+                onClick={() => setConfirmDeleteAllPublicUrls(false)}
+                disabled={deactivatingPublicUrl === "__all__"}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="rounded-md bg-red-500 px-3 py-2 text-sm font-medium text-white transition-colors hover:bg-red-600 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-red-600 dark:hover:bg-red-500"
+                onClick={() => handleBulkDeletePublicUrls({ all: true })}
+                disabled={deactivatingPublicUrl === "__all__"}
+              >
+                {deactivatingPublicUrl === "__all__"
+                  ? "Deleting..."
+                  : "Delete all"}
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
     </div>
   );
 }

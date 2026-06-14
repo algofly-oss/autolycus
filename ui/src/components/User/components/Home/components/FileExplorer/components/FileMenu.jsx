@@ -17,8 +17,9 @@ export default function FileMenu({ item, onAction, actions }) {
     >
       <Menu.Target>
         <button
-          className="flex h-7 w-7 items-center justify-center rounded-full hover:bg-neutral-200/45 dark:hover:bg-neutral-800/45"
+          className="flex h-7 w-7 items-center justify-center rounded-md transition-colors hover:bg-neutral-200/60 dark:hover:bg-neutral-800/60"
           onClick={(e) => e.stopPropagation()}
+          aria-label="Open file actions"
         >
           <GoKebabHorizontal className="h-3.5 w-3.5 rotate-90 text-gray-600 dark:text-gray-100" />
         </button>

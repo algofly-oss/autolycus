@@ -13,6 +13,7 @@ from .session_utils import (
     serialize_session,
     touch_session_record,
 )
+from .preferences_utils import serialize_preferences
 
 router = APIRouter()
 
@@ -43,7 +44,7 @@ async def account_info(request: Request, response: Response):
         "created_at": user["created_at"],
         "profile_picture": user.get("profile_picture"),
         "has_password": bool(user.get("password")),
-        "preferences": user.get("preferences") or {},
+        "preferences": serialize_preferences(user.get("preferences")),
     }
 
 

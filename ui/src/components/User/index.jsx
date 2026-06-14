@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/router";
 import UserNavBar from "./components/NavBar";
 import { BiMeteor } from "react-icons/bi";
 import Home from "./components/Home";
@@ -9,8 +10,18 @@ import SearchResultDetails from "./components/Search/components/SearchResultDeta
 import Settings from "./components/Settings";
 
 const NAV_COLLAPSED_STORAGE_KEY = "autolycus:nav-collapsed";
+const TAB_QUERY_VALUE = {
+  Home: "home",
+  Search: "search",
+  Settings: "settings",
+};
+const TAB_FROM_QUERY_VALUE = Object.entries(TAB_QUERY_VALUE).reduce(
+  (tabs, [tab, queryValue]) => ({ ...tabs, [queryValue]: tab }),
+  {}
+);
 
 export default function UserHome() {
+  const router = useRouter();
   const [tab, setTab] = useState("Home");
   const [navReady, setNavReady] = useState(false);
   const [navCollapsed, setNavCollapsed] = useState(true);
@@ -63,6 +74,40 @@ export default function UserHome() {
   }, [isSearchTab]);
 
   useEffect(() => {
+    if (!router.isReady) return;
+
+    const queryTab = Array.isArray(router.query.tab)
+      ? router.query.tab[0]
+      : router.query.tab;
+    const nextTab =
+      TAB_FROM_QUERY_VALUE[String(queryTab || "home").toLowerCase()] || "Home";
+
+    setTab(nextTab);
+  }, [router.isReady, router.query.tab]);
+
+  const handleTabChange = (nextTab) => {
+    setTab(nextTab);
+
+    if (!router.isReady) return;
+
+    const nextQuery = { ...router.query };
+    if (nextTab === "Home") {
+      delete nextQuery.tab;
+    } else {
+      nextQuery.tab = TAB_QUERY_VALUE[nextTab];
+    }
+
+    router.push(
+      {
+        pathname: router.pathname,
+        query: nextQuery,
+      },
+      undefined,
+      { shallow: true, scroll: false }
+    );
+  };
+
+  useEffect(() => {
     if (typeof window === "undefined") return;
     const storedValue = window.localStorage.getItem(NAV_COLLAPSED_STORAGE_KEY);
     setNavCollapsed(storedValue === null ? true : storedValue === "true");
@@ -82,7 +127,7 @@ export default function UserHome() {
   return (
     <div className="flex h-screen overflow-hidden">
       <div
-        className={`bg-neutral-100 dark:bg-black flex items-center w-full md:px-4 fixed inset-x-0 bottom-0 z-10 h-16
+        className={`bg-neutral-100 dark:bg-black flex items-center w-full md:px-4 fixed inset-x-0 bottom-0 z-50 h-16
         ${
           navCollapsed
             ? "md:relative md:flex md:h-screen md:w-16 md:shrink-0 md:flex-col md:overflow-hidden md:border-r md:border-neutral-200/70 md:px-2 md:py-4 dark:md:border-neutral-800/80"
@@ -105,14 +150,14 @@ export default function UserHome() {
             </div>
             <UserNavBar
               tab={tab}
-              setTab={setTab}
+              setTab={handleTabChange}
               collapsed={navCollapsed}
             />
           </>
         )}
       </div>
 
-      <div className="min-w-0 flex-1 h-screen overflow-hidden relative">
+      <div className="relative z-0 min-w-0 flex-1 h-screen overflow-hidden">
         <div
           className={`h-full ${isHomeTab ? "block" : "hidden"}`}
           aria-hidden={!isHomeTab}
@@ -126,7 +171,9 @@ export default function UserHome() {
           <Search torrentSearchState={torrentSearchState} />
         </div>
         <div
-          className={`h-full ${isSettingsTab ? "block" : "hidden"}`}
+          className={`h-full overflow-y-auto pb-24 md:pb-0 md:light-scrollbar dark:md:dark-scrollbar ${
+            isSettingsTab ? "block" : "hidden"
+          }`}
           aria-hidden={!isSettingsTab}
         >
           <Settings />

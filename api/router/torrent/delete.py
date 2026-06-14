@@ -9,6 +9,7 @@ from ..files.delete import delete_dir
 import asyncio
 from shared.sockets import emit
 from .download_status import get_download_status
+from ..files.status import get_disk_usage
 from shared.modules.file_search_index import (
     delete_document_ids,
     document_ids_for_tree,
@@ -21,6 +22,63 @@ router = APIRouter()
 
 class DeleteTorrentRequest(BaseModel):
     info_hash: str
+
+
+def _download_root():
+    return Path(os.getenv("DOWNLOAD_PATH", "/downloads")).resolve()
+
+
+def _is_within_path(path: Path, parent: Path):
+    try:
+        path.relative_to(parent)
+        return True
+    except ValueError:
+        return False
+
+
+def _remove_empty_parent_dirs(start: Path, stop_at: Path):
+    current = start.resolve()
+    stop_at = stop_at.resolve()
+    while current != stop_at and _is_within_path(current, stop_at):
+        try:
+            current.rmdir()
+        except OSError:
+            break
+        current = current.parent
+
+
+def _torrent_storage_paths(user_id: str, torrent: dict, torrent_id: str):
+    user_root = (_download_root() / str(user_id)).resolve()
+    candidates = []
+    save_dir = torrent.get("save_dir")
+    if save_dir:
+        candidates.append(Path(save_dir))
+    if torrent_id:
+        candidates.append(user_root / str(torrent_id))
+
+    seen = set()
+    for candidate in candidates:
+        resolved = candidate.resolve()
+        if resolved in seen:
+            continue
+        seen.add(resolved)
+        if resolved == user_root or not _is_within_path(resolved, user_root):
+            continue
+        yield resolved, user_root
+
+
+def _delete_torrent_storage(user_id: str, torrent: dict, torrent_id: str):
+    document_ids = []
+    for storage_path, user_root in _torrent_storage_paths(user_id, torrent, torrent_id):
+        if not storage_path.exists():
+            continue
+
+        document_ids.extend(document_ids_for_tree(storage_path, user_id))
+        delete_dir(storage_path)
+        _remove_empty_parent_dirs(storage_path.parent, user_root)
+        break
+
+    return document_ids
 
 
 @router.post("/delete")
@@ -63,12 +121,8 @@ async def delete_torrent(request: DeleteTorrentRequest, request_obj: Request):
                 }
             )
 
-        # Delete the folder stored at save_dir
-        save_dir = torrent.get("save_dir")
         document_ids = [torrent_root_document_id(user_id, url_hash)]
-        if save_dir and os.path.exists(save_dir):
-            document_ids.extend(document_ids_for_tree(Path(save_dir), user_id))
-            delete_dir(save_dir)
+        document_ids.extend(_delete_torrent_storage(user_id, torrent, url_hash))
         await delete_document_ids(document_ids)
 
         await db.torrents.delete_one({"_id": torrent["_id"]})
@@ -79,6 +133,7 @@ async def delete_torrent(request: DeleteTorrentRequest, request_obj: Request):
             {"action": "removed", "url_hash": url_hash},
             user_id,
         )
+        emit(f"/stc/disk-usage", get_disk_usage(user_id), user_id)
         emit(f"/stc/download_status", await get_download_status(user_id), user_id)
         return {"message": "URL and associated files deleted successfully"}
     else:
@@ -122,12 +177,10 @@ async def delete_torrent(request: DeleteTorrentRequest, request_obj: Request):
                     }
                 )
 
-            # Delete the folder stored at save_dir
-            save_dir = torrent.get("save_dir")
             document_ids = [torrent_root_document_id(user_id, request.info_hash)]
-            if save_dir and os.path.exists(save_dir):
-                document_ids.extend(document_ids_for_tree(Path(save_dir), user_id))
-                delete_dir(save_dir)
+            document_ids.extend(
+                _delete_torrent_storage(user_id, torrent, request.info_hash)
+            )
             await delete_document_ids(document_ids)
 
             await db.torrents.delete_one({"_id": torrent["_id"]})
@@ -138,6 +191,7 @@ async def delete_torrent(request: DeleteTorrentRequest, request_obj: Request):
                 {"action": "removed", "info_hash": request.info_hash},
                 user_id,
             )
+            emit(f"/stc/disk-usage", get_disk_usage(user_id), user_id)
             emit(f"/stc/download_status", await get_download_status(user_id), user_id)
             return {"message": "Torrent and associated files deleted successfully"}
         else:

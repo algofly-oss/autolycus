@@ -37,6 +37,31 @@ services:
     networks:
       - autolycus_network
 
+  ftp:
+    image: drakkan/sftpgo:v2
+    container_name: autolycus_ftp
+    user: "0:0"
+    env_file:
+      - ./.env
+    environment:
+      SFTPGO_FTPD__BINDINGS__0__PORT: 2121
+      SFTPGO_FTPD__BINDINGS__0__FORCE_PASSIVE_IP: ${FTP_FORCE_PASSIVE_IP:-}
+      SFTPGO_FTPD__PASSIVE_PORT_RANGE__START: ${FTP_PASSIVE_PORT_START:-50000}
+      SFTPGO_FTPD__PASSIVE_PORT_RANGE__END: ${FTP_PASSIVE_PORT_END:-50100}
+      SFTPGO_DATA_PROVIDER__EXTERNAL_AUTH_HOOK: http://api:8080/api/auth/ftp/hook?secret=${FTP_HOOK_SECRET}
+      SFTPGO_DATA_PROVIDER__EXTERNAL_AUTH_SCOPE: 1
+    ports:
+      - ${FTP_HOST_PORT:-2121}:2121
+      - ${FTP_PASSIVE_PORT_START:-50000}-${FTP_PASSIVE_PORT_END:-50100}:${FTP_PASSIVE_PORT_START:-50000}-${FTP_PASSIVE_PORT_END:-50100}
+    volumes:
+      - ./volumes/sftpgo:/var/lib/sftpgo
+      - ${DOWNLOADS_PATH:-./volumes/downloads}:/downloads
+    restart: always
+    depends_on:
+      - api
+    networks:
+      - autolycus_network
+
   tor:
     image: dockage/tor-privoxy:latest
     container_name: autolycus_tor

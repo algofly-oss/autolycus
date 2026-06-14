@@ -38,6 +38,16 @@ const DEFAULT_ACTIONS = [
   { name: "Rename", icon: MdDriveFileRenameOutline, action: "rename" },
 ];
 
+const generatePublicKey = () => {
+  if (typeof crypto !== "undefined" && crypto.randomUUID) {
+    return crypto.randomUUID();
+  }
+
+  return `${Date.now().toString(36)}-${Math.random()
+    .toString(36)
+    .slice(2, 14)}`;
+};
+
 const FileItem = ({
   item,
   initialPath,
@@ -129,25 +139,29 @@ const FileItem = ({
   };
 
   const generatePublicUrl = (initialPath, item) => {
-    let filePath = `${initialPath}/${item?.name}`;
-    axios
-      .post(apiRoutes?.generatePublicUrl, { path: filePath })
-      .then(async (res) => {
-        if (res?.data?.key) {
-          let url = `${window.location.origin}/api/files/public/${res?.data?.key}`;
-          const status = await copyTextToClipboard(url);
+    const filePath = `${initialPath}/${item?.name}`;
+    const publicKey = item?.public_url_key || generatePublicKey();
+    const url = `${window.location.origin}/api/files/public/${publicKey}`;
 
-          if (status === CLIPBOARD_COPY_STATUS.COPIED) {
-            toast.success("Link copied to clipboard");
-          } else if (status === CLIPBOARD_COPY_STATUS.MANUAL) {
-            toast.success("Link opened for manual copy");
-          } else {
-            toast.error("Failed to copy link");
-          }
-        }
-      })
+    copyTextToClipboard(url).then((status) => {
+      if (status === CLIPBOARD_COPY_STATUS.COPIED) {
+        toast.success("Link copied to clipboard");
+      } else if (status === CLIPBOARD_COPY_STATUS.MANUAL) {
+        toast.success("Link opened for manual copy");
+      } else {
+        toast.error("Failed to copy link");
+      }
+    });
+
+    const payload = { path: filePath };
+    if (!item?.public_url_key) {
+      payload.key = publicKey;
+    }
+
+    axios
+      .post(apiRoutes?.generatePublicUrl, payload)
       .catch((err) => {
-        toast.error("Failed to generate public link");
+        toast.error("Copied link could not be activated");
       });
   };
 
@@ -289,10 +303,10 @@ const FileItem = ({
           : "dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800"
       }`}
     >
-      <div className="flex items-center gap-3">
+      <div className="flex min-w-0 items-center gap-3">
         <FileIcon item={item} />
-        <div className="truncate flex w-full items-center justify-between">
-          <div className="flex flex-col w-[95%]">
+        <div className="flex min-w-0 flex-1 items-center gap-3">
+          <div className="flex min-w-0 flex-1 flex-col">
             <div className="font-medium truncate">{item.name}</div>
 
             {item.is_transcoding ? (
@@ -321,7 +335,10 @@ const FileItem = ({
               </div>
             )}
           </div>
-          <div className="w-[5%]">
+          <div
+            className="flex h-8 w-8 shrink-0 items-center justify-center"
+            onClick={(event) => event.stopPropagation()}
+          >
             <FileMenu
               item={item}
               onAction={handleFileAction}

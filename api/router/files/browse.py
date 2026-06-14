@@ -9,6 +9,7 @@ from typing import List, Optional
 from pydantic import BaseModel
 from bson import ObjectId
 from shared.factory import db, redis
+from .public_url import ensure_public_url_record
 
 
 
@@ -23,6 +24,7 @@ class FileItem(BaseModel):
     total_size: Optional[int] = None
     is_partial: bool = False
     is_transcoding: bool = False
+    public_url_key: Optional[str] = None
 
 def is_transcoded_file(filename):  
     # Regular expression pattern to match resolution part (e.g., _360)  
@@ -106,6 +108,8 @@ async def browse_directory(path: str, request: Request):
         # List directory contents
         files = []
         use_allocated_size = await is_unfinished_torrent_path(path, user_id)
+        path_parts = Path(path).parts
+        torrent_id = path_parts[1] if len(path_parts) >= 2 else None
         for item in abs_path.iterdir():
             if item.is_dir():
                 current_size, total_size = tree_display_sizes(item, use_allocated_size)
@@ -118,6 +122,14 @@ async def browse_directory(path: str, request: Request):
             if item.is_file() and is_transcoded_file(item.name) and redis.get(f"transcoding_progress/{abs_path}/{item.name}"):
                 transcode_in_progress = True
 
+            public_url_key = None
+            if item.is_file() and torrent_id:
+                public_url_key = await ensure_public_url_record(
+                    user_id,
+                    torrent_id,
+                    str(item),
+                    active=False,
+                )
 
             files.append(
                 FileItem(
@@ -127,7 +139,8 @@ async def browse_directory(path: str, request: Request):
                     size=current_size,
                     total_size=total_size,
                     is_partial=use_allocated_size and current_size < total_size,
-                    is_transcoding=transcode_in_progress
+                    is_transcoding=transcode_in_progress,
+                    public_url_key=public_url_key,
                 )
             )
 

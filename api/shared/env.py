@@ -34,3 +34,9 @@ MEILI_SEARCH_MAX_TOTAL_HITS = int(os.environ.get("MEILI_SEARCH_MAX_TOTAL_HITS", 
 TMDB_API_KEY = os.environ.get("TMDB_API_KEY", None)
 TMDB_READ_ACCESS_TOKEN = os.environ.get("TMDB_READ_ACCESS_TOKEN", None)
 TMDB_LANGUAGE = os.environ.get("TMDB_LANGUAGE", "en-US")
+
+# FTP service configuration. FTP is served by SFTPGo; the API only manages
+# credentials/settings and handles SFTPGo's internal auth hook.
+FTP_PUBLIC_HOST = os.environ.get("FTP_PUBLIC_HOST", "")
+FTP_PUBLIC_PORT = os.environ.get("FTP_PUBLIC_PORT", os.environ.get("FTP_HOST_PORT", "2121"))
+FTP_HOOK_SECRET = os.environ.get("FTP_HOOK_SECRET", "")
