@@ -102,7 +102,7 @@ function PosterProgressRing({ progress, isPaused }) {
 
   return (
     <div
-      className="pointer-events-none absolute -inset-0.5 z-0 rounded-[7px]"
+      className="pointer-events-none absolute inset-0 z-0 rounded-[7px]"
       style={style}
     />
   );
@@ -282,13 +282,13 @@ const TorrentCard = ({ torrentData, compact = false }) => {
       <>
         <div className="group flex w-full min-w-0 flex-col text-neutral-950 dark:text-white">
           <div
-            className="group/poster relative w-full rounded-md transition-[box-shadow,filter] group-hover:shadow-lg group-hover:shadow-blue-500/20 group-hover:brightness-110 dark:group-hover:shadow-blue-950/40"
+            className="group/poster relative w-full overflow-hidden rounded-md bg-neutral-200 transition-[box-shadow,filter] group-hover:shadow-lg group-hover:shadow-blue-500/20 group-hover:brightness-110 dark:bg-neutral-900 dark:group-hover:shadow-blue-950/40"
             style={{ aspectRatio: "2 / 3" }}
           >
             {!is_finished ? (
               <PosterProgressRing progress={progress} isPaused={is_paused} />
             ) : null}
-            <div className="relative z-10 h-full w-full overflow-hidden rounded-[5px] bg-neutral-200 ring-1 ring-neutral-200 dark:bg-neutral-900 dark:ring-neutral-800">
+            <div className="absolute inset-0.5 z-10 overflow-hidden rounded-[5px] bg-neutral-200 ring-1 ring-neutral-200 dark:bg-neutral-900 dark:ring-neutral-800">
               {posterUrl ? (
                 <img
                   src={posterUrl}
@@ -429,12 +429,12 @@ const TorrentCard = ({ torrentData, compact = false }) => {
       >
         <div className="flex min-w-0 items-center gap-3">
           <div
-            className="group relative h-16 w-11 shrink-0 rounded-md"
+            className="group relative h-16 w-11 shrink-0 overflow-hidden rounded-md bg-neutral-200 dark:bg-neutral-900"
           >
             {!is_finished ? (
               <PosterProgressRing progress={progress} isPaused={is_paused} />
             ) : null}
-            <div className="relative z-10 h-full w-full overflow-hidden rounded-[5px] bg-neutral-200 ring-1 ring-neutral-200 dark:bg-neutral-900 dark:ring-neutral-800">
+            <div className="absolute inset-0.5 z-10 overflow-hidden rounded-[5px] bg-neutral-200 ring-1 ring-neutral-200 dark:bg-neutral-900 dark:ring-neutral-800">
               {posterUrl ? (
                 <img
                   src={posterUrl}
