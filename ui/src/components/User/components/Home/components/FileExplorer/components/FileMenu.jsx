@@ -17,10 +17,10 @@ export default function FileMenu({ item, onAction, actions }) {
     >
       <Menu.Target>
         <button
-          className="p-3 hover:bg-gray-100/50 dark:hover:bg-gray-700/30 rounded-full"
+          className="flex h-7 w-7 items-center justify-center rounded-full hover:bg-neutral-200/45 dark:hover:bg-neutral-800/45"
           onClick={(e) => e.stopPropagation()}
         >
-          <GoKebabHorizontal className="w-4 h-4 rotate-90 text-gray-600 dark:text-gray-100" />
+          <GoKebabHorizontal className="h-3.5 w-3.5 rotate-90 text-gray-600 dark:text-gray-100" />
         </button>
       </Menu.Target>
 

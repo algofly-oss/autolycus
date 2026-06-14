@@ -47,6 +47,7 @@ const FileItem = ({
   setDeleteDialog,
   setRenameDialog,
   setArchiving,
+  isSelected = false,
 }) => {
   const socket = useContext(SocketContext);
   const toast = useToast();
@@ -54,6 +55,10 @@ const FileItem = ({
     progress: 0,
     eta: 0,
   });
+  const sizeLabel =
+    item.is_partial && item.total_size
+      ? `${formatFileSize(item.size || 0)} / ${formatFileSize(item.total_size)}`
+      : formatFileSize(item.size || 0);
 
   const getActions = () => {
     // if item is being transcoded, only show stop button
@@ -278,7 +283,11 @@ const FileItem = ({
     <div
       key={item.name}
       onClick={() => handleItemClick(item)}
-      className="py-4 px-4 rounded-lg border dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800 cursor-pointer transition-colors"
+      className={`py-4 px-4 rounded-lg border cursor-pointer transition-colors ${
+        isSelected
+          ? "border-blue-500/50 bg-blue-500/10 dark:border-blue-400/40 dark:bg-blue-400/10"
+          : "dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800"
+      }`}
     >
       <div className="flex items-center gap-3">
         <FileIcon item={item} />
@@ -303,7 +312,12 @@ const FileItem = ({
               </div>
             ) : (
               <div className="text-sm text-gray-500">
-                {formatFileSize(item.size)}
+                {sizeLabel}
+                {item.is_partial ? (
+                  <span className="ml-2 text-[11px] font-medium text-yellow-600 dark:text-yellow-400">
+                    Downloading
+                  </span>
+                ) : null}
               </div>
             )}
           </div>

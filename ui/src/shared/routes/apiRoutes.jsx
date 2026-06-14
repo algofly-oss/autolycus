@@ -6,6 +6,11 @@ let apiRoutes = {
   signIn: "/auth/signin",
   signOut: "/auth/signout",
   accountInfo: "/auth/me",
+  updateAccount: "/auth/account",
+  updatePassword: "/auth/password",
+  listSessions: "/auth/sessions",
+  revokeSession: "/auth/sessions",
+  updateCurrentSessionIp: "/auth/sessions/current/ip",
 
   // torrents
   addMagnet: "/torrent/add",
@@ -27,6 +32,7 @@ let apiRoutes = {
   copyFile: "/files/copy",
   moveFile: "/files/move",
   renameFile: "/files/rename",
+  searchFiles: "/files/search",
   diskUsage: "/files/status",
   transcodeStart: "/files/transcode/start",
   transcodeStop: "/files/transcode/stop",

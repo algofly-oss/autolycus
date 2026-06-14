@@ -4,10 +4,17 @@ from shared.factory import db, redis
 from shared.sockets import emit
 from ..files.status import get_disk_usage
 from .download_status import get_download_status
+from shared.modules.file_search_index import (
+    index_torrent_files_sync,
+    index_torrent_root_sync,
+)
+from shared.modules.media_metadata import cache_torrent_media_metadata_sync
 import shutil
 import os
 import glob
 import asyncio
+import threading
+import traceback
 
 
 class MagnetDto(BaseModel):
@@ -67,6 +74,29 @@ def update_to_db(props, user_id):
     db.torrents.update_one(
         {"info_hash": props["info_hash"], "user_id": user_id}, {"$set": props}
     )
+
+    if props.get("ok") and not props.get("is_finished"):
+        index_key = f"{user_id}/{props['info_hash']}/search_root_indexed"
+        if redis.set(index_key, 1, ex=15, nx=True):
+            threading.Thread(
+                target=lambda: index_torrent_root_sync(str(user_id), props),
+                daemon=True,
+            ).start()
+
+    if props.get("is_finished"):
+        index_key = f"{user_id}/{props['info_hash']}/search_indexed"
+        if not redis.get(index_key):
+            redis.set(index_key, 1)
+            redis.expire(index_key, 60 * 60 * 24)
+
+            def _index_finished_torrent():
+                try:
+                    index_torrent_files_sync(str(user_id), props)
+                    cache_torrent_media_metadata_sync(db, str(user_id), props)
+                except Exception:
+                    traceback.print_exc()
+
+            threading.Thread(target=_index_finished_torrent, daemon=True).start()
 
 
 async def pause_unfinished_torrents():

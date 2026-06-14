@@ -6,6 +6,8 @@ import shutil
 from .status import get_disk_usage
 from shared.sockets import emit
 from shared.factory import db
+from shared.modules.file_search_index import delete_document_ids, document_ids_for_tree
+from shared.modules.media_metadata import delete_media_metadata_for_paths
 
 router = APIRouter()
 
@@ -48,10 +50,22 @@ async def delete_file(path: str, request: Request):
             raise HTTPException(status_code=403, detail="Access denied")
 
         # Delete the file or directory
+        document_ids = document_ids_for_tree(abs_path, user_id.decode())
+        relative_paths = []
+        if abs_path.is_file():
+            relative_paths = [abs_path.resolve().relative_to(base_path.resolve()).as_posix()]
+        elif abs_path.is_dir():
+            relative_paths = [
+                child.resolve().relative_to(base_path.resolve()).as_posix()
+                for child in abs_path.rglob("*")
+                if child.is_file()
+            ]
         if abs_path.is_file():
             abs_path.unlink()
         elif abs_path.is_dir():
             delete_dir(abs_path)
+        await delete_document_ids(document_ids)
+        await delete_media_metadata_for_paths(db, user_id.decode(), relative_paths)
 
         emit(f"/stc/disk-usage", get_disk_usage(user_id.decode()), user_id.decode())
         return {"status": "success", "message": "File deleted successfully"}

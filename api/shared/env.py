@@ -20,3 +20,17 @@ MONGO_DATABASE_URI = os.environ.get("MONGO_DATABASE_URI", None)
 MONGO_DATABASE_NAME = os.environ.get("MONGO_DATABASE_NAME", None)
 
 JACKETT_API_KEY = os.environ.get("JACKETT_API_KEY", None)
+
+# Load Meilisearch configuration
+MEILI_SEARCH_HOST = os.environ.get("MEILI_SEARCH_HOST", "http://meilisearch:7700")
+MEILI_SEARCH_API_KEY = os.environ.get("MEILI_SEARCH_API_KEY", None)
+MEILI_SEARCH_INDEX_NAME_PREFIX = os.environ.get(
+    "MEILI_SEARCH_INDEX_NAME_PREFIX", "autolycus"
+)
+MEILI_SEARCH_MAX_TOTAL_HITS = int(os.environ.get("MEILI_SEARCH_MAX_TOTAL_HITS", 20000))
+
+# Optional movie metadata provider. If unset, downloads keep working and the UI
+# falls back to parsed local metadata.
+TMDB_API_KEY = os.environ.get("TMDB_API_KEY", None)
+TMDB_READ_ACCESS_TOKEN = os.environ.get("TMDB_READ_ACCESS_TOKEN", None)
+TMDB_LANGUAGE = os.environ.get("TMDB_LANGUAGE", "en-US")

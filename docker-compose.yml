@@ -19,6 +19,7 @@ services:
     depends_on:
       - redis
       - mongodb
+      - meilisearch
     networks:
       - autolycus_network
 

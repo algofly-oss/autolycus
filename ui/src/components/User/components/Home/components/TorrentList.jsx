@@ -15,7 +15,7 @@ import Pagination from "./Pagination";
 const PAGE_SIZE_OPTIONS = [10, 20, 50, 100, 200];
 const getTorrentKey = (torrent) => torrent?.info_hash || torrent?.url_hash;
 
-export default function TorrentList({ state, onPathChange }) {
+export default function TorrentList({ state, onPathChange, viewMode = "list" }) {
   const socket = useContext(SocketContext);
   const [torrentList, setTorrentList] = useState(() => {
     const cachedList = state?.get("torrentListCache");
@@ -164,13 +164,11 @@ export default function TorrentList({ state, onPathChange }) {
   };
 
   const handleTorrentClick = (torrent) => {
-    if (torrent.is_finished) {
-      state.set({
-        hoveredTorrentInfoHash: getTorrentKey(torrent),
-        activeTorrent: torrent,
-      });
-      onPathChange(torrent.save_dir);
-    }
+    state.set({
+      hoveredTorrentInfoHash: getTorrentKey(torrent),
+      activeTorrent: torrent,
+    });
+    onPathChange(torrent.save_dir);
   };
 
   const handleTorrentMouseEnter = (torrent) => {
@@ -220,19 +218,27 @@ export default function TorrentList({ state, onPathChange }) {
   const shouldShowPagination = torrentList.length > 0;
 
   return (
-    <div className="flex flex-col gap-1.5 pb-[4rem] md:pb-4">
-      {torrentList.map((torrent) => (
-        <div
-          key={torrent.id}
-          onClick={() => handleTorrentClick(torrent)}
-          onMouseEnter={() => handleTorrentMouseEnter(torrent)}
-          className={`${
-            torrent.is_finished ? "cursor-pointer" : ""
-          } hover:bg-gray-50 dark:hover:bg-gray-900 rounded-xl transition-colors`}
-        >
-          <TorrentCard torrentData={torrent} />
-        </div>
-      ))}
+    <div className="flex flex-col gap-3 pb-[4rem] md:pb-4">
+      <div
+        className={
+          viewMode === "grid"
+            ? "grid grid-cols-3 items-start gap-x-2.5 gap-y-4 px-1 pt-1 sm:grid-cols-5 lg:grid-cols-6 2xl:grid-cols-8"
+            : "flex flex-col gap-1.5 pr-1.5"
+        }
+      >
+        {torrentList.map((torrent) => (
+          <div
+            key={torrent.id}
+            onClick={() => handleTorrentClick(torrent)}
+            onMouseEnter={() => handleTorrentMouseEnter(torrent)}
+            className={`cursor-pointer ${
+              viewMode === "grid" ? "w-full min-w-0" : "rounded-xl"
+            }`}
+          >
+            <TorrentCard torrentData={torrent} compact={viewMode === "grid"} />
+          </div>
+        ))}
+      </div>
       {shouldShowPagination && (
         <Pagination
           currentPage={currentPage}

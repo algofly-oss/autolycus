@@ -3,9 +3,9 @@ import { FiX } from "react-icons/fi";
 import { useState } from "react";
 import useAuth from "@/shared/hooks/useAuth";
 
-export default function Logout() {
+export default function Logout({ collapsed = false }) {
   const auth = useAuth();
-  const profilePictureShort = null;
+  const profilePictureShort = auth?.user?.profile_picture?.data_url || null;
   const [confirmOpen, setConfirmOpen] = useState(false);
 
   const handleLogout = () => {
@@ -15,16 +15,25 @@ export default function Logout() {
 
   return (
     <>
+      {collapsed ? (
+        <button
+          type="button"
+          className="flex h-10 w-10 items-center justify-center rounded-md text-neutral-700 transition-colors hover:bg-zinc-200 dark:text-neutral-300 dark:hover:bg-zinc-900"
+          onClick={() => setConfirmOpen(true)}
+          title="Log out"
+          aria-label="Log out"
+        >
+          <BiLogOut size={22} />
+        </button>
+      ) : (
       <div>
         <div
           className="flex items-center my-4 space-x-4 drop-shadow-md"
         >
           {profilePictureShort ? (
-            <Image
+            <img
               src={profilePictureShort}
               alt="profile"
-              width="50px"
-              height="50px"
               className="h-12 w-12 object-cover rounded-full"
             />
           ) : (
@@ -54,6 +63,7 @@ export default function Logout() {
           <p className="font-medium">Log out</p>
         </div>
       </div>
+      )}
 
       {confirmOpen && (
         <>

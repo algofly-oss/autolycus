@@ -1,7 +1,8 @@
 import "@/styles/globals.css";
 import Head from "next/head";
 import { AppProps } from "next/app";
-import { Provider } from "react-redux";
+import { useEffect, useRef } from "react";
+import { Provider, useSelector } from "react-redux";
 import {
   MantineProvider,
   ColorSchemeProvider,
@@ -9,8 +10,65 @@ import {
 } from "@mantine/core";
 import { useHotkeys, useLocalStorage } from "@mantine/hooks";
 import store from "../redux/store";
+import { authSelector } from "../redux/features/authSlice";
 import { socket, SocketContext } from "../shared/contexts/socket";
-import toast, { Toaster } from "react-hot-toast";
+import { Toaster } from "react-hot-toast";
+import {
+  PUBLIC_IP_REFRESH_INTERVAL_MS,
+  syncCurrentSessionPublicIp,
+} from "../shared/sessionPublicIp";
+
+function SessionPublicIpReporter() {
+  const user = useSelector(authSelector);
+  const isReportingRef = useRef(false);
+
+  useEffect(() => {
+    if (!user?.username || typeof window === "undefined") return;
+
+    const reportPublicIp = async ({ force = false } = {}) => {
+      if (isReportingRef.current) return;
+
+      isReportingRef.current = true;
+      try {
+        await syncCurrentSessionPublicIp({ username: user.username, force });
+      } catch (error) {
+      } finally {
+        isReportingRef.current = false;
+      }
+    };
+
+    reportPublicIp();
+    const intervalId = window.setInterval(
+      reportPublicIp,
+      PUBLIC_IP_REFRESH_INTERVAL_MS
+    );
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible") {
+        reportPublicIp();
+      }
+    };
+    const handleManualRefresh = () => {
+      reportPublicIp({ force: true });
+    };
+
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    window.addEventListener(
+      "autolycus:session-public-ip-refresh",
+      handleManualRefresh
+    );
+
+    return () => {
+      window.clearInterval(intervalId);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+      window.removeEventListener(
+        "autolycus:session-public-ip-refresh",
+        handleManualRefresh
+      );
+    };
+  }, [user?.username]);
+
+  return null;
+}
 
 export default function App({ Component, pageProps }: AppProps) {
   const [colorScheme, setColorScheme] = useLocalStorage<ColorScheme>({
@@ -47,6 +105,7 @@ export default function App({ Component, pageProps }: AppProps) {
             theme={{ colorScheme }}
           >
             <SocketContext.Provider value={socket}>
+              <SessionPublicIpReporter />
               <Component {...pageProps} />
             </SocketContext.Provider>
           </MantineProvider>

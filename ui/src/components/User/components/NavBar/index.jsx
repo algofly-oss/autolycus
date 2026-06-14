@@ -5,7 +5,26 @@ import DarkThemeToggle from "./components/DarkThemeToggle";
 import InfoCard from "./components/InfoCard";
 import Logout from "./components/Logout";
 
-const NavBarItem = ({ tab, setTab, Icon, IconFilled, text }) => {
+const NavBarItem = ({ tab, setTab, Icon, IconFilled, text, collapsed }) => {
+  if (collapsed) {
+    return (
+      <button
+        type="button"
+        className={
+          "flex h-10 w-10 cursor-pointer items-center justify-center rounded-md transition-colors " +
+          (tab === text
+            ? "md:bg-blue-600 md:text-white"
+            : "md:bg-transparent hover:md:bg-zinc-200 hover:md:dark:bg-zinc-900")
+        }
+        onClick={() => setTab(text)}
+        title={text}
+        aria-label={text}
+      >
+        {tab === text ? <IconFilled size={24} /> : <Icon size={24} />}
+      </button>
+    );
+  }
+
   return (
     <div
       className={
@@ -30,7 +49,48 @@ const NavBarItem = ({ tab, setTab, Icon, IconFilled, text }) => {
   );
 };
 
-export default function UserNavBar({ tab, setTab }) {
+export default function UserNavBar({ tab, setTab, collapsed = false }) {
+  if (collapsed) {
+    return (
+      <div className="flex h-full w-full md:flex-col md:justify-between">
+        <div className="flex w-full justify-around md:flex-col md:items-center md:justify-start md:space-y-4">
+          <NavBarItem
+            tab={tab}
+            setTab={setTab}
+            Icon={HiOutlineHome}
+            IconFilled={HiHome}
+            text="Home"
+            collapsed={collapsed}
+          />
+
+          <NavBarItem
+            tab={tab}
+            setTab={setTab}
+            Icon={RiSearchLine}
+            IconFilled={RiSearchEyeLine}
+            text="Search"
+            collapsed={collapsed}
+          />
+
+          <NavBarItem
+            tab={tab}
+            setTab={setTab}
+            Icon={RiSettings4Line}
+            IconFilled={RiSettings4Fill}
+            text="Settings"
+            collapsed={collapsed}
+          />
+        </div>
+
+        <div className="hidden flex-col items-center gap-2 md:flex">
+          <InfoCard collapsed={collapsed} />
+          <DarkThemeToggle collapsed={collapsed} />
+          <Logout collapsed={collapsed} />
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="w-full md:-mt-2">
       <div className="flex md:flex-col md:space-y-2 md:space-x-0 w-full justify-around">
@@ -40,6 +100,7 @@ export default function UserNavBar({ tab, setTab }) {
           Icon={HiOutlineHome}
           IconFilled={HiHome}
           text="Home"
+          collapsed={collapsed}
         />
 
         <NavBarItem
@@ -48,6 +109,7 @@ export default function UserNavBar({ tab, setTab }) {
           Icon={RiSearchLine}
           IconFilled={RiSearchEyeLine}
           text="Search"
+          collapsed={collapsed}
         />
 
         <NavBarItem
@@ -56,6 +118,7 @@ export default function UserNavBar({ tab, setTab }) {
           Icon={RiSettings4Line}
           IconFilled={RiSettings4Fill}
           text="Settings"
+          collapsed={collapsed}
         />
       </div>
 

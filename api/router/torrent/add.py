@@ -14,6 +14,7 @@ from .common import (
 )
 from .download_status import get_download_status
 from shared.modules.libtorrentx import LibTorrentSession
+from shared.modules.file_search_index import index_torrent_root_sync
 from bson import ObjectId
 import asyncio
 import datetime
@@ -22,6 +23,7 @@ import os
 import subprocess as sp
 import traceback
 import json
+import threading
 from tasks.download_from_url import download_from_url
 
 router = APIRouter()
@@ -211,6 +213,10 @@ async def direct_download(dto: UrlDto, request: Request):
             return {"message": "URL Exists"}
 
         await db.torrents.insert_one(obj)
+        threading.Thread(
+            target=lambda: index_torrent_root_sync(str(user_id), obj),
+            daemon=True,
+        ).start()
 
         result = download_from_url.delay(dto.url, url_hash, save_dir, str(user_id))
 

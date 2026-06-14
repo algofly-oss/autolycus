@@ -24,6 +24,19 @@ services:
     networks:
       - autolycus_network
 
+  meilisearch:
+    image: getmeili/meilisearch:v1.10.0
+    container_name: autolycus_meilisearch
+    environment:
+      MEILI_MASTER_KEY: ${MEILI_SEARCH_API_KEY}
+    ports:
+      - ${MEILI_SEARCH_HOST_PORT_MAP:-7700}:7700
+    volumes:
+      - ./volumes/meilisearch:/meili_data
+    restart: always
+    networks:
+      - autolycus_network
+
   tor:
     image: dockage/tor-privoxy:latest
     container_name: autolycus_tor

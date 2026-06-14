@@ -9,6 +9,8 @@ from .rename import router as rename_router
 from .status import router as disk_status_router
 from .transcode import router as transcode_router
 from .public_url import router as public_url_router
+from .search import router as search_router
+from .media_poster import router as media_poster_router
 
 router = APIRouter(prefix="/files", tags=["File Management"])
 router.include_router(browse_router)
@@ -21,3 +23,5 @@ router.include_router(rename_router)
 router.include_router(disk_status_router)
 router.include_router(transcode_router)
 router.include_router(public_url_router)
+router.include_router(search_router)
+router.include_router(media_poster_router)

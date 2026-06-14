@@ -7,7 +7,8 @@ from pathlib import Path
 from datetime import datetime
 from typing import List, Optional
 from pydantic import BaseModel
-from shared.factory import redis
+from bson import ObjectId
+from shared.factory import db, redis
 
 
 
@@ -19,6 +20,8 @@ class FileItem(BaseModel):
     last_modified: datetime
     is_directory: bool
     size: Optional[int]  # Size for files, None for directories
+    total_size: Optional[int] = None
+    is_partial: bool = False
     is_transcoding: bool = False
 
 def is_transcoded_file(filename):  
@@ -36,9 +39,55 @@ def is_transcoded_file(filename):
     return False  
 
 
+def allocated_size(path: Path):
+    try:
+        stat = path.stat()
+        return min(stat.st_blocks * 512, stat.st_size)
+    except AttributeError:
+        return path.stat().st_size
+
+
+def path_display_sizes(path: Path, use_allocated_size=False):
+    total_size = path.stat().st_size
+    current_size = allocated_size(path) if use_allocated_size else total_size
+    return current_size, total_size
+
+
+def tree_display_sizes(path: Path, use_allocated_size=False):
+    current_total = 0
+    total = 0
+    for item in path.glob("**/*"):
+        if item.is_file():
+            current_size, total_size = path_display_sizes(item, use_allocated_size)
+            current_total += current_size
+            total += total_size
+    return current_total, total
+
+
+async def is_unfinished_torrent_path(path: str, user_id: str):
+    relative_parts = Path(path).parts
+    if len(relative_parts) < 2 or relative_parts[0] != str(user_id):
+        return False
+
+    torrent_id = relative_parts[1]
+    try:
+        user_oid = ObjectId(str(user_id))
+    except Exception:
+        return False
+
+    torrent = await db.torrents.find_one(
+        {
+            "user_id": user_oid,
+            "$or": [{"info_hash": torrent_id}, {"url_hash": torrent_id}],
+        },
+        {"is_finished": True},
+    )
+    return bool(torrent and not torrent.get("is_finished"))
+
+
 @router.get("/browse", response_model=List[FileItem])
 async def browse_directory(path: str, request: Request):
-    user_id = authenticate_user(request)
+    user_id = authenticate_user(request).decode("utf-8")
     try:
         # Convert the relative path to absolute path
         base_path = Path(os.getenv("DOWNLOAD_PATH", "/downloads"))
@@ -56,15 +105,12 @@ async def browse_directory(path: str, request: Request):
 
         # List directory contents
         files = []
+        use_allocated_size = await is_unfinished_torrent_path(path, user_id)
         for item in abs_path.iterdir():
             if item.is_dir():
-                # Calculate the size of the directory
-                dir_size = sum(
-                    
-                    f.stat().st_size for f in item.glob("**/*") if f.is_file()
-                )
+                current_size, total_size = tree_display_sizes(item, use_allocated_size)
             else:
-                dir_size = None  # Size is only relevant for files
+                current_size, total_size = path_display_sizes(item, use_allocated_size)
 
             #TODO: Verify video file
             transcode_in_progress = False
@@ -78,7 +124,9 @@ async def browse_directory(path: str, request: Request):
                     name=item.name,
                     last_modified=datetime.fromtimestamp(item.stat().st_mtime),
                     is_directory=item.is_dir(),
-                    size=dir_size if item.is_dir() else item.stat().st_size,
+                    size=current_size,
+                    total_size=total_size,
+                    is_partial=use_allocated_size and current_size < total_size,
                     is_transcoding=transcode_in_progress
                 )
             )

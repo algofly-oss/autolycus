@@ -7,6 +7,10 @@ from ..auth.common import authenticate_user
 from ..files.status import get_disk_usage
 from .download_status import get_download_status
 from pathlib import Path
+from shared.modules.media_metadata import (
+    attach_media_metadata,
+    schedule_torrent_media_metadata_refresh,
+)
 
 router = APIRouter()
 
@@ -45,6 +49,9 @@ async def all_torrent(
             )
         except Exception as e:
             print(e)
+
+    torrents = await attach_media_metadata(db, user_id, torrents)
+    schedule_torrent_media_metadata_refresh(user_id, torrents)
 
     emit(f"/stc/disk-usage", get_disk_usage(user_id), user_id)
     emit(f"/stc/download_status", await get_download_status(user_id), user_id)

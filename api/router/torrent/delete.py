@@ -1,4 +1,5 @@
 import os
+from pathlib import Path
 from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel
 from shared.factory import db, redis
@@ -8,6 +9,12 @@ from ..files.delete import delete_dir
 import asyncio
 from shared.sockets import emit
 from .download_status import get_download_status
+from shared.modules.file_search_index import (
+    delete_document_ids,
+    document_ids_for_tree,
+    torrent_root_document_id,
+)
+from shared.modules.media_metadata import delete_media_metadata_for_torrent
 
 router = APIRouter()
 
@@ -58,10 +65,14 @@ async def delete_torrent(request: DeleteTorrentRequest, request_obj: Request):
 
         # Delete the folder stored at save_dir
         save_dir = torrent.get("save_dir")
+        document_ids = [torrent_root_document_id(user_id, url_hash)]
         if save_dir and os.path.exists(save_dir):
+            document_ids.extend(document_ids_for_tree(Path(save_dir), user_id))
             delete_dir(save_dir)
+        await delete_document_ids(document_ids)
 
         await db.torrents.delete_one({"_id": torrent["_id"]})
+        await delete_media_metadata_for_torrent(db, user_id, url_hash)
 
         emit(
             f"/stc/torrent-added-or-removed",
@@ -113,10 +124,14 @@ async def delete_torrent(request: DeleteTorrentRequest, request_obj: Request):
 
             # Delete the folder stored at save_dir
             save_dir = torrent.get("save_dir")
+            document_ids = [torrent_root_document_id(user_id, request.info_hash)]
             if save_dir and os.path.exists(save_dir):
+                document_ids.extend(document_ids_for_tree(Path(save_dir), user_id))
                 delete_dir(save_dir)
+            await delete_document_ids(document_ids)
 
             await db.torrents.delete_one({"_id": torrent["_id"]})
+            await delete_media_metadata_for_torrent(db, user_id, request.info_hash)
 
             emit(
                 f"/stc/torrent-added-or-removed",

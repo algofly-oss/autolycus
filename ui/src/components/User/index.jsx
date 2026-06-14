@@ -6,9 +6,14 @@ import TorrentDetails from "./components/Home/components/TorrentDetails";
 import reactState from "@/shared/hooks/reactState";
 import Search from "./components/Search";
 import SearchResultDetails from "./components/Search/components/SearchResultDetails";
+import Settings from "./components/Settings";
+
+const NAV_COLLAPSED_STORAGE_KEY = "autolycus:nav-collapsed";
 
 export default function UserHome() {
   const [tab, setTab] = useState("Home");
+  const [navReady, setNavReady] = useState(false);
+  const [navCollapsed, setNavCollapsed] = useState(true);
   const state = reactState({
     hoveredTorrent: null,
     activeTorrent: null,
@@ -23,6 +28,7 @@ export default function UserHome() {
   const torrentSearchState = reactState({});
   const isHomeTab = tab === "Home";
   const isSearchTab = tab === "Search";
+  const isSettingsTab = tab === "Settings";
   const isFileView = Boolean(state.get("isFileView"));
   const detailsTorrent = useMemo(
     () =>
@@ -56,25 +62,57 @@ export default function UserHome() {
     }
   }, [isSearchTab]);
 
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const storedValue = window.localStorage.getItem(NAV_COLLAPSED_STORAGE_KEY);
+    setNavCollapsed(storedValue === null ? true : storedValue === "true");
+    setNavReady(true);
+  }, []);
+
+  const toggleNavCollapsed = () => {
+    setNavCollapsed((currentValue) => {
+      const nextValue = !currentValue;
+      if (typeof window !== "undefined") {
+        window.localStorage.setItem(NAV_COLLAPSED_STORAGE_KEY, String(nextValue));
+      }
+      return nextValue;
+    });
+  };
+
   return (
     <div className="flex h-screen overflow-hidden">
       <div
-        className="bg-neutral-100 dark:bg-black flex items-center w-full md:px-4 fixed inset-x-0 bottom-0 z-10 h-16
-        md:relative md:block md:h-screen md:w-96 2xl:w-[25%]- 2xl:w-[30rem] md:p-4 md:overflow-y-auto md:light-scrollbar dark:md:dark-scrollbar"
+        className={`bg-neutral-100 dark:bg-black flex items-center w-full md:px-4 fixed inset-x-0 bottom-0 z-10 h-16
+        ${
+          navCollapsed
+            ? "md:relative md:flex md:h-screen md:w-16 md:shrink-0 md:flex-col md:overflow-hidden md:border-r md:border-neutral-200/70 md:px-2 md:py-4 dark:md:border-neutral-800/80"
+            : "md:relative md:block md:h-screen md:w-[17rem] md:shrink-0 md:border-r md:border-neutral-200/70 md:p-4 md:overflow-y-auto md:light-scrollbar dark:md:border-neutral-800/80 dark:md:dark-scrollbar"
+        }`}
       >
-        <div
-          className="hidden md:flex space-x-3 items-center mt-2 mb-6 dark:text-neutral-300 cursor-pointer"
-          onClick={() => {
-            setTab("Home");
-          }}
-        >
-          <BiMeteor size={40} />
-          <p className="font-bold md:text-lg">Autolycus</p>
-        </div>
-        <UserNavBar tab={tab} setTab={setTab} />
+        {navReady && (
+          <>
+            <div
+              className={`hidden md:flex items-center dark:text-neutral-300 cursor-pointer ${
+                navCollapsed
+                  ? "mb-4 h-10 w-10 justify-center self-center"
+                  : "space-x-3 mt-2 mb-6"
+              }`}
+              onClick={toggleNavCollapsed}
+              title={navCollapsed ? "Expand navigation" : "Collapse navigation"}
+            >
+              <BiMeteor size={navCollapsed ? 32 : 40} />
+              {!navCollapsed && <p className="font-bold md:text-lg">Autolycus</p>}
+            </div>
+            <UserNavBar
+              tab={tab}
+              setTab={setTab}
+              collapsed={navCollapsed}
+            />
+          </>
+        )}
       </div>
 
-      <div className="w-full h-screen overflow-hidden relative">
+      <div className="min-w-0 flex-1 h-screen overflow-hidden relative">
         <div
           className={`h-full ${isHomeTab ? "block" : "hidden"}`}
           aria-hidden={!isHomeTab}
@@ -87,17 +125,37 @@ export default function UserHome() {
         >
           <Search torrentSearchState={torrentSearchState} />
         </div>
+        <div
+          className={`h-full ${isSettingsTab ? "block" : "hidden"}`}
+          aria-hidden={!isSettingsTab}
+        >
+          <Settings />
+        </div>
       </div>
-      <div className="hidden lg:block w-[26rem] 2xl:w-[25%]- 2xl:w-[30rem] h-screen bg-neutral-100 dark:bg-black overflow-y-auto md:light-scrollbar dark:md:dark-scrollbar">
-        {isSearchTab ? (
-          <SearchResultDetails item={torrentSearchState.get("hoveredResult")} />
-        ) : (
-          <TorrentDetails
-            torrent={isHomeTab ? detailsTorrent : null}
-            isFileView={isFileView}
-          />
-        )}
-      </div>
+      {!navCollapsed && (
+        <div className="no-scrollbar hidden h-screen w-[17rem] shrink-0 overflow-y-auto bg-neutral-100 dark:bg-black lg:block">
+          {isSearchTab ? (
+            <SearchResultDetails item={torrentSearchState.get("hoveredResult")} />
+          ) : isSettingsTab ? (
+            <div className="p-4 text-neutral-700 dark:text-neutral-300">
+              <div className="rounded-lg border border-neutral-200 bg-white p-5 dark:border-[#33363b] dark:bg-[#202124]">
+                <h2 className="text-sm font-semibold text-neutral-900 dark:text-neutral-100">
+                  Account Settings
+                </h2>
+                <p className="mt-2 text-sm leading-6 text-neutral-500 dark:text-neutral-400">
+                  Manage your profile picture, name, email, and password from the
+                  settings page.
+                </p>
+              </div>
+            </div>
+          ) : (
+            <TorrentDetails
+              torrent={isHomeTab ? detailsTorrent : null}
+              isFileView={isFileView}
+            />
+          )}
+        </div>
+      )}
     </div>
   );
 }
