@@ -43,6 +43,7 @@ async def account_info(request: Request, response: Response):
         "created_at": user["created_at"],
         "profile_picture": user.get("profile_picture"),
         "has_password": bool(user.get("password")),
+        "preferences": user.get("preferences") or {},
     }
 
 

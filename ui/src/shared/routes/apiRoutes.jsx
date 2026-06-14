@@ -8,6 +8,7 @@ let apiRoutes = {
   accountInfo: "/auth/me",
   updateAccount: "/auth/account",
   updatePassword: "/auth/password",
+  updatePreferences: "/auth/preferences",
   listSessions: "/auth/sessions",
   revokeSession: "/auth/sessions",
   updateCurrentSessionIp: "/auth/sessions/current/ip",

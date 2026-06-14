@@ -43,6 +43,10 @@ class PasswordUpdate(BaseModel):
     new_password: str
 
 
+class PreferencesUpdate(BaseModel):
+    home_view_mode: Optional[str] = None
+
+
 def _user_object_id(request: Request):
     user_id = authenticate_user(request)
     if isinstance(user_id, bytes):
@@ -59,6 +63,7 @@ def _serialize_user(user):
         "created_at": user["created_at"],
         "profile_picture": user.get("profile_picture"),
         "has_password": bool(user.get("password")),
+        "preferences": user.get("preferences") or {},
     }
 
 
@@ -158,6 +163,35 @@ async def update_account(account: AccountUpdate, request: Request):
 
     updated_user = await db.users.find_one({"_id": user_object_id})
     return _serialize_user(updated_user)
+
+
+@router.patch("/preferences")
+async def update_preferences(preferences: PreferencesUpdate, request: Request):
+    user_object_id = _user_object_id(request)
+    user = await db.users.find_one({"_id": user_object_id}, {"_id": 1})
+
+    if not user:
+        raise HTTPException(status_code=400, detail="User not logged in")
+
+    updates = {}
+    if preferences.home_view_mode is not None:
+        if preferences.home_view_mode not in {"list", "grid"}:
+            raise HTTPException(status_code=400, detail="Invalid home view mode")
+        updates["preferences.home_view_mode"] = preferences.home_view_mode
+
+    if updates:
+        await db.users.update_one(
+            {"_id": user_object_id},
+            {
+                "$set": {
+                    **updates,
+                    "preferences.updated_at": datetime.datetime.utcnow(),
+                }
+            },
+        )
+
+    updated_user = await db.users.find_one({"_id": user_object_id})
+    return {"preferences": updated_user.get("preferences") or {}}
 
 
 @router.patch("/password")
