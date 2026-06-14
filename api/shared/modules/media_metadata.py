@@ -77,6 +77,16 @@ def parse_media_name(name):
     }
 
 
+def _first_int(value):
+    if isinstance(value, list):
+        value = value[0] if value else None
+    return int(value) if str(value or "").isdigit() else None
+
+
+def _parsed_media_type(parsed):
+    return "tv" if parsed.get("season") or parsed.get("episode") else "movie"
+
+
 def _tmdb_headers():
     headers = {"Accept": "application/json"}
     if TMDB_READ_ACCESS_TOKEN:
@@ -134,6 +144,35 @@ def _search_movie(title, year=None):
     return results[0] if results else None
 
 
+def _search_tv(title, year=None):
+    if not title:
+        return None
+
+    params = {
+        "query": title,
+        "include_adult": "false",
+        "language": TMDB_LANGUAGE,
+        "page": 1,
+    }
+    if year:
+        params["first_air_date_year"] = year
+
+    data = _request_tmdb("/search/tv", params)
+    results = (data or {}).get("results") or []
+    if not results and year:
+        params.pop("first_air_date_year", None)
+        data = _request_tmdb("/search/tv", params)
+        results = (data or {}).get("results") or []
+
+    exact = str(title).strip().lower()
+    for result in results:
+        names = [result.get("name"), result.get("original_name")]
+        if any(str(name or "").strip().lower() == exact for name in names):
+            return result
+
+    return results[0] if results else None
+
+
 def _movie_details(movie_id):
     if not movie_id:
         return None
@@ -141,6 +180,19 @@ def _movie_details(movie_id):
     try:
         return _request_tmdb(
             f"/movie/{movie_id}",
+            {"append_to_response": "external_ids", "language": TMDB_LANGUAGE},
+        )
+    except Exception:
+        return None
+
+
+def _tv_details(tv_id):
+    if not tv_id:
+        return None
+
+    try:
+        return _request_tmdb(
+            f"/tv/{tv_id}",
             {"append_to_response": "external_ids", "language": TMDB_LANGUAGE},
         )
     except Exception:
@@ -234,6 +286,166 @@ def _search_imdb_suggestion(title, year=None):
     return movie_results[0] if movie_results else None
 
 
+def _search_imdb_suggestion_tv(title, year=None):
+    if not title:
+        return None
+
+    response = requests.get(
+        f"{IMDB_SUGGEST_ROOT}/{quote(str(title).lower())}.json",
+        timeout=8,
+    )
+    response.raise_for_status()
+    results = response.json().get("d") or []
+    tv_results = [
+        result
+        for result in results
+        if result.get("qid") in {"tvSeries", "tvMiniSeries", "tvShort"}
+        or result.get("q") in {"TV series", "TV mini-series", "TV short"}
+    ]
+    if not tv_results:
+        tv_results = results
+
+    exact = str(title).strip().lower()
+    for result in tv_results:
+        if str(result.get("l") or "").strip().lower() == exact:
+            if not year or str(result.get("y") or "") == str(year):
+                return result
+
+    if year:
+        for result in tv_results:
+            if str(result.get("y") or "") == str(year):
+                return result
+
+    return tv_results[0] if tv_results else None
+
+
+def _tmdb_search_metadata(parsed):
+    title = parsed.get("title")
+    year = parsed.get("year")
+    media_type = _parsed_media_type(parsed)
+    result = _search_tv(title, year) if media_type == "tv" else _search_movie(title, year)
+    if not result and media_type == "tv":
+        result = _search_movie(title, year)
+        media_type = "movie" if result else "tv"
+    if not result:
+        return None
+
+    if media_type == "tv":
+        details = _tv_details(result.get("id")) or {}
+        imdb_id = (details.get("external_ids") or {}).get("imdb_id")
+        poster_url, poster_mime, poster_bytes = _download_poster(result.get("poster_path"))
+        first_air_date = result.get("first_air_date") or ""
+        return {
+            "lookup_status": "matched",
+            "media_type": "tv",
+            "tmdb_id": result.get("id"),
+            "imdb_id": imdb_id,
+            "imdb_url": _imdb_url(imdb_id),
+            "title": result.get("name") or parsed.get("title"),
+            "original_title": result.get("original_name"),
+            "year": int(first_air_date[:4]) if first_air_date[:4].isdigit() else parsed.get("year"),
+            "overview": result.get("overview"),
+            "vote_average": result.get("vote_average"),
+            "poster_path": result.get("poster_path"),
+            "poster_source_url": poster_url,
+            "poster_mime": poster_mime,
+            "poster_bytes": poster_bytes,
+            "season": _first_int(parsed.get("season")),
+            "episode": _first_int(parsed.get("episode")),
+        }
+
+    details = _movie_details(result.get("id")) or {}
+    imdb_id = (details.get("external_ids") or {}).get("imdb_id")
+    poster_url, poster_mime, poster_bytes = _download_poster(result.get("poster_path"))
+    release_date = result.get("release_date") or ""
+    return {
+        "lookup_status": "matched",
+        "media_type": "movie",
+        "tmdb_id": result.get("id"),
+        "imdb_id": imdb_id,
+        "imdb_url": _imdb_url(imdb_id),
+        "title": result.get("title") or parsed.get("title"),
+        "original_title": result.get("original_title"),
+        "year": int(release_date[:4]) if release_date[:4].isdigit() else parsed.get("year"),
+        "overview": result.get("overview"),
+        "vote_average": result.get("vote_average"),
+        "poster_path": result.get("poster_path"),
+        "poster_source_url": poster_url,
+        "poster_mime": poster_mime,
+        "poster_bytes": poster_bytes,
+    }
+
+
+def _imdb_search_metadata(parsed):
+    title = parsed.get("title")
+    year = parsed.get("year")
+    media_type = _parsed_media_type(parsed)
+    result = (
+        _search_imdb_suggestion_tv(title, year)
+        if media_type == "tv"
+        else _search_imdb_suggestion(title, year)
+    )
+    image_url = ((result or {}).get("i") or {}).get("imageUrl")
+    if not result or not image_url:
+        return None
+
+    poster_url, poster_mime, poster_bytes = _download_image_url(image_url)
+    update = {
+        "lookup_status": "matched",
+        "media_type": media_type,
+        "imdb_id": result.get("id"),
+        "imdb_url": _imdb_url(result.get("id")),
+        "title": result.get("l") or parsed.get("title"),
+        "year": result.get("y") or parsed.get("year"),
+        "poster_source_url": poster_url,
+        "poster_mime": poster_mime,
+        "poster_bytes": poster_bytes,
+    }
+    if media_type == "tv":
+        update["season"] = _first_int(parsed.get("season"))
+        update["episode"] = _first_int(parsed.get("episode"))
+    return update
+
+
+def _existing_metadata_still_valid(existing, parsed):
+    if not existing or existing.get("lookup_status") != "matched" or not existing.get("poster_bytes"):
+        return False
+
+    desired_media_type = _parsed_media_type(parsed)
+    if existing.get("media_type") != desired_media_type:
+        return False
+
+    if desired_media_type != "tv":
+        return True
+
+    parsed_title = str(parsed.get("title") or "").strip().lower()
+    existing_title = str(existing.get("title") or "").strip().lower()
+    return not parsed_title or existing_title == parsed_title
+
+
+def _public_metadata_still_valid(metadata, parsed):
+    if not metadata or not metadata.get("poster_url") or not metadata.get("imdb_url"):
+        return False
+
+    desired_media_type = _parsed_media_type(parsed)
+    if metadata.get("media_type") != desired_media_type:
+        return False
+
+    if desired_media_type != "tv":
+        return True
+
+    parsed_title = str(parsed.get("title") or "").strip().lower()
+    metadata_title = str(metadata.get("title") or "").strip().lower()
+    return not parsed_title or metadata_title == parsed_title
+
+
+def _poster_cache_version(doc):
+    updated_at = doc.get("updated_at")
+    if hasattr(updated_at, "timestamp"):
+        return str(int(updated_at.timestamp()))
+    return str(doc.get("_id") or "")
+
+
 def _public_metadata(doc):
     if not doc:
         return None
@@ -242,6 +454,10 @@ def _public_metadata(doc):
     has_poster = bool(
         doc.get("poster_bytes") or doc.get("poster_mime") or doc.get("poster_source_url")
     )
+    poster_url = None
+    if has_poster and metadata_id:
+        poster_url = f"/api/files/media-poster/{metadata_id}?v={_poster_cache_version(doc)}"
+
     return {
         "id": metadata_id,
         "media_type": doc.get("media_type"),
@@ -251,7 +467,7 @@ def _public_metadata(doc):
         "overview": doc.get("overview"),
         "vote_average": doc.get("vote_average"),
         "runtime": doc.get("runtime"),
-        "poster_url": f"/api/files/media-poster/{metadata_id}" if has_poster and metadata_id else None,
+        "poster_url": poster_url,
         "tmdb_id": doc.get("tmdb_id"),
         "imdb_id": doc.get("imdb_id"),
         "imdb_url": doc.get("imdb_url") or _imdb_url(doc.get("imdb_id")),
@@ -278,7 +494,7 @@ def cache_media_metadata_for_path_sync(db, user_id, path: Path, torrent=None):
     existing = db.movie_metadata.find_one(
         {"user_id": str(user_id), "relative_path": relative_path}
     )
-    if existing and existing.get("lookup_status") == "matched" and existing.get("poster_bytes"):
+    if _existing_metadata_still_valid(existing, parsed):
         return _ensure_imdb_url_cached(db, existing)
 
     doc = {
@@ -287,9 +503,11 @@ def cache_media_metadata_for_path_sync(db, user_id, path: Path, torrent=None):
         "relative_path": relative_path,
         "file_name": path.name,
         "file_size": path.stat().st_size if path.exists() else 0,
-        "media_type": "movie",
+        "media_type": _parsed_media_type(parsed),
         "title": parsed.get("title"),
         "year": parsed.get("year"),
+        "season": _first_int(parsed.get("season")),
+        "episode": _first_int(parsed.get("episode")),
         "quality": {
             "resolution": parsed.get("resolution"),
             "source": parsed.get("source"),
@@ -302,53 +520,18 @@ def cache_media_metadata_for_path_sync(db, user_id, path: Path, torrent=None):
 
     matched = False
     try:
-        result = _search_movie(parsed.get("title"), parsed.get("year"))
-        if result:
-            details = _movie_details(result.get("id")) or {}
-            imdb_id = (details.get("external_ids") or {}).get("imdb_id")
-            poster_url, poster_mime, poster_bytes = _download_poster(
-                result.get("poster_path")
-            )
-            release_date = result.get("release_date") or ""
-            doc.update(
-                {
-                    "lookup_status": "matched",
-                    "tmdb_id": result.get("id"),
-                    "imdb_id": imdb_id,
-                    "imdb_url": _imdb_url(imdb_id),
-                    "title": result.get("title") or parsed.get("title"),
-                    "original_title": result.get("original_title"),
-                    "year": int(release_date[:4]) if release_date[:4].isdigit() else parsed.get("year"),
-                    "overview": result.get("overview"),
-                    "vote_average": result.get("vote_average"),
-                    "poster_path": result.get("poster_path"),
-                    "poster_source_url": poster_url,
-                    "poster_mime": poster_mime,
-                    "poster_bytes": poster_bytes,
-                }
-            )
+        metadata = _tmdb_search_metadata(parsed)
+        if metadata:
+            doc.update(metadata)
             matched = True
     except Exception:
         doc["lookup_status"] = "failed" if _tmdb_enabled() else "local"
 
     if not matched:
         try:
-            result = _search_imdb_suggestion(parsed.get("title"), parsed.get("year"))
-            image_url = ((result or {}).get("i") or {}).get("imageUrl")
-            if result and image_url:
-                poster_url, poster_mime, poster_bytes = _download_image_url(image_url)
-                doc.update(
-                    {
-                        "lookup_status": "matched",
-                        "imdb_id": result.get("id"),
-                        "imdb_url": _imdb_url(result.get("id")),
-                        "title": result.get("l") or parsed.get("title"),
-                        "year": result.get("y") or parsed.get("year"),
-                        "poster_source_url": poster_url,
-                        "poster_mime": poster_mime,
-                        "poster_bytes": poster_bytes,
-                    }
-                )
+            metadata = _imdb_search_metadata(parsed)
+            if metadata:
+                doc.update(metadata)
                 matched = True
         except Exception:
             if doc.get("lookup_status") != "matched":
@@ -377,20 +560,22 @@ def cache_media_metadata_for_torrent_name_sync(db, user_id, torrent):
             "source": "torrent_name",
         }
     )
-    if existing and existing.get("lookup_status") == "matched" and existing.get("poster_bytes"):
+    parsed = parse_media_name(name)
+    if _existing_metadata_still_valid(existing, parsed):
         return _ensure_imdb_url_cached(db, existing)
 
-    parsed = parse_media_name(name)
     doc = {
         "user_id": str(user_id),
         "torrent_id": torrent_id,
         "relative_path": f"__torrent__/{torrent_id}",
         "file_name": name,
         "file_size": int(torrent.get("total_bytes") or 0),
-        "media_type": "movie",
+        "media_type": _parsed_media_type(parsed),
         "source": "torrent_name",
         "title": parsed.get("title"),
         "year": parsed.get("year"),
+        "season": _first_int(parsed.get("season")),
+        "episode": _first_int(parsed.get("episode")),
         "quality": {
             "resolution": parsed.get("resolution"),
             "source": parsed.get("source"),
@@ -403,53 +588,19 @@ def cache_media_metadata_for_torrent_name_sync(db, user_id, torrent):
 
     matched = False
     try:
-        result = _search_movie(parsed.get("title"), parsed.get("year"))
-        if result:
-            details = _movie_details(result.get("id")) or {}
-            imdb_id = (details.get("external_ids") or {}).get("imdb_id")
-            poster_url, poster_mime, poster_bytes = _download_poster(
-                result.get("poster_path")
-            )
-            release_date = result.get("release_date") or ""
-            doc.update(
-                {
-                    "lookup_status": "matched",
-                    "tmdb_id": result.get("id"),
-                    "imdb_id": imdb_id,
-                    "imdb_url": _imdb_url(imdb_id),
-                    "title": result.get("title") or parsed.get("title"),
-                    "original_title": result.get("original_title"),
-                    "year": int(release_date[:4]) if release_date[:4].isdigit() else parsed.get("year"),
-                    "overview": result.get("overview"),
-                    "vote_average": result.get("vote_average"),
-                    "poster_path": result.get("poster_path"),
-                    "poster_source_url": poster_url,
-                    "poster_mime": poster_mime,
-                    "poster_bytes": poster_bytes,
-                }
-            )
+        metadata = _tmdb_search_metadata(parsed)
+        if metadata:
+            doc.update(metadata)
             matched = True
     except Exception:
         doc["lookup_status"] = "failed" if _tmdb_enabled() else "local"
 
     if not matched:
         try:
-            result = _search_imdb_suggestion(parsed.get("title"), parsed.get("year"))
-            image_url = ((result or {}).get("i") or {}).get("imageUrl")
-            if result and image_url:
-                poster_url, poster_mime, poster_bytes = _download_image_url(image_url)
-                doc.update(
-                    {
-                        "lookup_status": "matched",
-                        "imdb_id": result.get("id"),
-                        "imdb_url": _imdb_url(result.get("id")),
-                        "title": result.get("l") or parsed.get("title"),
-                        "year": result.get("y") or parsed.get("year"),
-                        "poster_source_url": poster_url,
-                        "poster_mime": poster_mime,
-                        "poster_bytes": poster_bytes,
-                    }
-                )
+            metadata = _imdb_search_metadata(parsed)
+            if metadata:
+                doc.update(metadata)
+                matched = True
         except Exception:
             if doc.get("lookup_status") != "matched":
                 doc["lookup_status"] = "failed"
@@ -507,9 +658,9 @@ def schedule_torrent_media_metadata_refresh(user_id, torrents):
     candidates = [
         torrent
         for torrent in torrents
-        if (
-            not (torrent.get("media_metadata") or {}).get("poster_url")
-            or not (torrent.get("media_metadata") or {}).get("imdb_url")
+        if not _public_metadata_still_valid(
+            torrent.get("media_metadata") or {},
+            parse_media_name(torrent.get("name") or _torrent_identifier(torrent)),
         )
         and (torrent.get("save_dir") or torrent.get("name"))
     ]
