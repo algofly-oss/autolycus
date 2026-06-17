@@ -6,6 +6,13 @@ let apiRoutes = {
   signIn: "/auth/signin",
   signOut: "/auth/signout",
   accountInfo: "/auth/me",
+  updateAccount: "/auth/account",
+  updatePassword: "/auth/password",
+  updatePreferences: "/auth/preferences",
+  ftpSettings: "/auth/ftp",
+  listSessions: "/auth/sessions",
+  revokeSession: "/auth/sessions",
+  updateCurrentSessionIp: "/auth/sessions/current/ip",
 
   // torrents
   addMagnet: "/torrent/add",
@@ -17,8 +24,6 @@ let apiRoutes = {
   getTorrentInfo: "/torrent/get",
   deleteTorrent: "/torrent/delete",
   searchTorrent: "/torrent/search",
-  searchImdbRedirect: "/torrent/search/imdb-redirect",
-  getMagnet: "/torrent/search/get-magnet",
   downloadStatusTorrent: "/torrent/download-status",
 
   //files
@@ -29,11 +34,15 @@ let apiRoutes = {
   copyFile: "/files/copy",
   moveFile: "/files/move",
   renameFile: "/files/rename",
+  searchFiles: "/files/search",
   diskUsage: "/files/status",
   transcodeStart: "/files/transcode/start",
   transcodeStop: "/files/transcode/stop",
   transcodeProgress: "/files/transcode/progress",
   generatePublicUrl: "/files/generate-public-url",
+  listPublicUrls: "/files/public-urls",
+  deactivatePublicUrl: "/files/public-urls",
+  bulkDeactivatePublicUrls: "/files/public-urls/deactivate",
 };
 
 Object.entries(apiRoutes).forEach(([key, value]) => {

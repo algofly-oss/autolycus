@@ -8,6 +8,8 @@ from redis import Redis
 from bson import ObjectId
 from pymongo import MongoClient
 import signal
+from shared.modules.file_search_index import index_torrent_files_sync
+from shared.modules.media_metadata import cache_torrent_media_metadata_sync
 
 REDIS_HOST = os.environ.get("REDIS_HOST", None)
 REDIS_PORT = int(os.environ.get("REDIS_PORT", 6379))
@@ -149,6 +151,13 @@ def download_from_url(url, url_hash, save_dir, user_id):
                 }
             },
         )
+        torrent = db.torrents.find_one({"url_hash": url_hash, "user_id": ObjectId(user_id)})
+        if torrent:
+            try:
+                index_torrent_files_sync(user_id, torrent)
+                cache_torrent_media_metadata_sync(db, user_id, torrent)
+            except Exception:
+                pass
         payload = json.dumps(
             {
                 "action": "emit",

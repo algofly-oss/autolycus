@@ -8,6 +8,10 @@ import SearchBar from "./components/SearchBar";
 import SortFilters from "./components/SortFilters";
 import TorrentResults from "./components/TorrentResults";
 import {
+  CLIPBOARD_COPY_STATUS,
+  copyTextToClipboard,
+} from "@/shared/utils/clipboard";
+import {
   DEFAULT_SORT_DIR,
   INITIAL_SORT,
   MOBILE_BREAKPOINT,
@@ -74,6 +78,7 @@ const Search = ({ torrentSearchState }) => {
   const [reorderPulse, setReorderPulse] = useState(false);
   const [scrollOffset, setScrollOffset] = useState(0);
   const [scrollResetKey, setScrollResetKey] = useState(0);
+  const [browserProxyBaseUrl, setBrowserProxyBaseUrl] = useState("");
 
   const [sort, setSortState] = useState(INITIAL_SORT);
   const sortRef = useRef(INITIAL_SORT);
@@ -93,6 +98,11 @@ const Search = ({ torrentSearchState }) => {
   const skipFilterResetRef = useRef(true);
   const toast = useToast();
   const isMobile = useIsMobileWidth();
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    setBrowserProxyBaseUrl(window.location.origin);
+  }, []);
 
   useEffect(() => {
     let searchResults = torrentSearchState.get("results") || [];
@@ -177,51 +187,52 @@ const Search = ({ torrentSearchState }) => {
   }, [loading, results.length]);
 
   const extractMagnet = (item) => {
-    let toastPrefix = "Magnet";
     let magnet = item?.MagnetUri;
     if (!magnet && item?.InfoHash) {
       magnet = `magnet:?xt=urn:btih:${
         item?.InfoHash || ""
       }&tr=udp%3A%2F%2Ftracker.coppersurfer.tk%3A6969%2Fannounce&tr=udp%3A%2F%2Ftracker.openbittorrent.com%3A6969%2Fannounce&tr=udp%3A%2F%2F9.rarbg.to%3A2710%2Fannounce&tr=udp%3A%2F%2F9.rarbg.me%3A2780%2Fannounce&tr=udp%3A%2F%2F9.rarbg.to%3A2730%2Fannounce&tr=udp%3A%2F%2Ftracker.opentrackr.org%3A1337&tr=http%3A%2F%2Fp4p.arenabg.com%3A1337%2Fannounce&tr=udp%3A%2F%2Ftracker.torrent.eu.org%3A451%2Fannounce&tr=udp%3A%2F%2Ftracker.tiny-vps.com%3A6969%2Fannounce&tr=udp%3A%2F%2Fopen.stealth.si%3A80%2Fannounce`;
-      toastPrefix = "InfoHash";
-    }
-    if (!magnet && item?.Details) {
-      magnet = item?.Details;
-      toastPrefix = "URL";
     }
 
-    return { magnet, toastPrefix };
+    return magnet;
   };
 
-  const handleCopyMagnet = (item) => {
-    console.log(item);
-    let { magnet, toastPrefix } = extractMagnet(item);
+  const resolveMagnet = async (item) => {
+    return extractMagnet(item);
+  };
+
+  const handleCopyMagnet = async (item) => {
+    const magnet = await resolveMagnet(item);
 
     if (magnet) {
-      const el = document.createElement("textarea");
-      el.value = magnet;
-      document.body.appendChild(el);
-      el.select();
-      document.execCommand("copy");
-      document.body.removeChild(el);
-      toast.success(`${toastPrefix} copied to clipboard`);
+      const status = await copyTextToClipboard(magnet);
+
+      if (status === CLIPBOARD_COPY_STATUS.COPIED) {
+        toast.success(`Magnet copied to clipboard`);
+      } else if (status === CLIPBOARD_COPY_STATUS.MANUAL) {
+        toast.success(`Magnet opened for manual copy`);
+      } else {
+        toast.error(`Failed to copy magnet`);
+      }
     } else {
       toast.error(`Magnet not Found`);
     }
   };
 
   const handleDownload = async (item) => {
-    let { magnet, toastPrefix } = extractMagnet(item);
-    if (magnet && toastPrefix !== "URL") {
-      try {
-        await axios.post(apiRoutes.addMagnet, { magnet: magnet });
-        toast.success(`Added to Download Queue`);
-      } catch (err) {
-        console.error("Add magnet error:", err);
-        toast.error("Failed to add torrent");
-      }
-    } else {
+    const magnet = await resolveMagnet(item);
+
+    if (!magnet) {
       toast.error(`Magnet not Found`);
+      return;
+    }
+
+    try {
+      await axios.post(apiRoutes.addMagnet, { magnet: magnet });
+      toast.success(`Added to Download Queue`);
+    } catch (err) {
+      console.error("Add magnet error:", err);
+      toast.error("Failed to add torrent");
     }
   };
 
@@ -413,6 +424,10 @@ const Search = ({ torrentSearchState }) => {
               scrollOffset={scrollOffset}
               onScrollOffsetChange={setScrollOffset}
               scrollResetKey={scrollResetKey}
+              browserProxyBaseUrl={browserProxyBaseUrl}
+              onItemHover={(item) => {
+                torrentSearchState.set({ hoveredResult: item });
+              }}
             />
           </div>
         )}

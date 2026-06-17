@@ -15,6 +15,10 @@ import ProgressBar from "@/shared/components/ProgressBar/ProgressBar";
 import { formatTimeRemaining } from "@/shared/utils/timeUtils";
 import axios from "axios";
 import useToast from "@/shared/hooks/useToast";
+import {
+  CLIPBOARD_COPY_STATUS,
+  copyTextToClipboard,
+} from "@/shared/utils/clipboard";
 
 const TRANSCODE_RESOLUTIONS = [
   { name: "Low 144p", action: "transcode_144p" },
@@ -34,6 +38,16 @@ const DEFAULT_ACTIONS = [
   { name: "Rename", icon: MdDriveFileRenameOutline, action: "rename" },
 ];
 
+const generatePublicKey = () => {
+  if (typeof crypto !== "undefined" && crypto.randomUUID) {
+    return crypto.randomUUID();
+  }
+
+  return `${Date.now().toString(36)}-${Math.random()
+    .toString(36)
+    .slice(2, 14)}`;
+};
+
 const FileItem = ({
   item,
   initialPath,
@@ -43,6 +57,7 @@ const FileItem = ({
   setDeleteDialog,
   setRenameDialog,
   setArchiving,
+  isSelected = false,
 }) => {
   const socket = useContext(SocketContext);
   const toast = useToast();
@@ -50,6 +65,10 @@ const FileItem = ({
     progress: 0,
     eta: 0,
   });
+  const sizeLabel =
+    item.is_partial && item.total_size
+      ? `${formatFileSize(item.size || 0)} / ${formatFileSize(item.total_size)}`
+      : formatFileSize(item.size || 0);
 
   const getActions = () => {
     // if item is being transcoded, only show stop button
@@ -120,23 +139,29 @@ const FileItem = ({
   };
 
   const generatePublicUrl = (initialPath, item) => {
-    let filePath = `${initialPath}/${item?.name}`;
+    const filePath = `${initialPath}/${item?.name}`;
+    const publicKey = item?.public_url_key || generatePublicKey();
+    const url = `${window.location.origin}/api/files/public/${publicKey}`;
+
+    copyTextToClipboard(url).then((status) => {
+      if (status === CLIPBOARD_COPY_STATUS.COPIED) {
+        toast.success("Link copied to clipboard");
+      } else if (status === CLIPBOARD_COPY_STATUS.MANUAL) {
+        toast.success("Link opened for manual copy");
+      } else {
+        toast.error("Failed to copy link");
+      }
+    });
+
+    const payload = { path: filePath };
+    if (!item?.public_url_key) {
+      payload.key = publicKey;
+    }
+
     axios
-      .post(apiRoutes?.generatePublicUrl, { path: filePath })
-      .then((res) => {
-        if (res?.data?.key) {
-          let url = `${window.location.origin}/api/files/public/${res?.data?.key}`;
-          const el = document.createElement("textarea");
-          el.value = url;
-          document.body.appendChild(el);
-          el.select();
-          document.execCommand("copy");
-          document.body.removeChild(el);
-          toast.success("Link Copied to Clipboard");
-        }
-      })
+      .post(apiRoutes?.generatePublicUrl, payload)
       .catch((err) => {
-        //
+        toast.error("Copied link could not be activated");
       });
   };
 
@@ -272,12 +297,16 @@ const FileItem = ({
     <div
       key={item.name}
       onClick={() => handleItemClick(item)}
-      className="py-4 px-4 rounded-lg border dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800 cursor-pointer transition-colors"
+      className={`py-4 px-4 rounded-lg border cursor-pointer transition-colors ${
+        isSelected
+          ? "border-blue-500/50 bg-blue-500/10 dark:border-blue-400/40 dark:bg-blue-400/10"
+          : "dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800"
+      }`}
     >
-      <div className="flex items-center gap-3">
+      <div className="flex min-w-0 items-center gap-3">
         <FileIcon item={item} />
-        <div className="truncate flex w-full items-center justify-between">
-          <div className="flex flex-col w-[95%]">
+        <div className="flex min-w-0 flex-1 items-center gap-3">
+          <div className="flex min-w-0 flex-1 flex-col">
             <div className="font-medium truncate">{item.name}</div>
 
             {item.is_transcoding ? (
@@ -297,11 +326,19 @@ const FileItem = ({
               </div>
             ) : (
               <div className="text-sm text-gray-500">
-                {formatFileSize(item.size)}
+                {sizeLabel}
+                {item.is_partial ? (
+                  <span className="ml-2 text-[11px] font-medium text-yellow-600 dark:text-yellow-400">
+                    Downloading
+                  </span>
+                ) : null}
               </div>
             )}
           </div>
-          <div className="w-[5%]">
+          <div
+            className="flex h-8 w-8 shrink-0 items-center justify-center"
+            onClick={(event) => event.stopPropagation()}
+          >
             <FileMenu
               item={item}
               onAction={handleFileAction}

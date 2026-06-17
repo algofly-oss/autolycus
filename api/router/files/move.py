@@ -5,6 +5,12 @@ import shutil
 import os
 from .status import get_disk_usage
 from shared.sockets import emit
+from shared.factory import db
+from shared.modules.file_search_index import (
+    delete_document_ids,
+    document_ids_for_tree,
+    index_path_for_user,
+)
 
 router = APIRouter()
 
@@ -38,6 +44,7 @@ async def move_file(
             raise HTTPException(status_code=403, detail="Access denied")
 
         # Move the file or directory
+        document_ids = document_ids_for_tree(abs_source_path, user_id.decode())
         if is_directory:
             if not abs_source_path.is_dir():
                 raise HTTPException(status_code=400, detail="Source is not a directory")
@@ -46,6 +53,8 @@ async def move_file(
             if not abs_source_path.is_file():
                 raise HTTPException(status_code=400, detail="Source is not a file")
             shutil.move(str(abs_source_path), str(abs_destination_path))
+        await delete_document_ids(document_ids)
+        await index_path_for_user(db, user_id.decode(), abs_destination_path)
 
         emit(f"/stc/disk-usage", get_disk_usage(user_id.decode()), user_id.decode())
         return {"detail": "Item moved successfully"}

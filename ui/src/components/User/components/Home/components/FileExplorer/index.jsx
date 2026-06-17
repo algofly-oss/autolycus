@@ -10,8 +10,13 @@ import VideoPlayer from "./components/VideoPlayer";
 import { AnimatePresence } from "framer-motion";
 import RenameDialog from "./components/RenameDialog";
 import FileItem from "./components/FileItem";
+import FilePreview, { getPreviewType } from "./components/FilePreview";
 
-export default function FileExplorer({ initialPath, onPathChange }) {
+export default function FileExplorer({
+  initialPath,
+  onPathChange,
+  selectedFileName = null,
+}) {
   const [items, setItems] = useState([]);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -20,6 +25,12 @@ export default function FileExplorer({ initialPath, onPathChange }) {
     open: false,
     url: "",
     name: "",
+  });
+  const [filePreview, setFilePreview] = useState({
+    open: false,
+    url: "",
+    name: "",
+    type: "",
   });
   const [deleteDialog, setDeleteDialog] = useState({ open: false, item: null });
   const [renameDialog, setRenameDialog] = useState({ open: false, item: null });
@@ -63,7 +74,22 @@ export default function FileExplorer({ initialPath, onPathChange }) {
         const videoUrl = `${apiRoutes.streamFile}?path=${videoPath}`;
         setVideoPlayer({ open: true, url: videoUrl, name: item.name });
       } else {
-        toast.error("Can not read this file...");
+        const previewType = getPreviewType(item.name);
+        if (previewType) {
+          const filePath = encodeURIComponent(
+            `${initialPath}/${item.name}`.replace(/^\/downloads\/*/, "")
+          );
+          const fileUrl = `${apiRoutes.streamFile}?path=${filePath}`;
+          setFilePreview({
+            open: true,
+            url: fileUrl,
+            name: item.name,
+            type: previewType,
+          });
+          return;
+        }
+
+        toast.error("Can not preview this file.");
       }
     }
   };
@@ -207,6 +233,16 @@ export default function FileExplorer({ initialPath, onPathChange }) {
         onClose={() => setVideoPlayer({ open: false, url: "", name: "" })}
       />
 
+      <FilePreview
+        open={filePreview.open}
+        url={filePreview.url}
+        name={filePreview.name}
+        type={filePreview.type}
+        onClose={() =>
+          setFilePreview({ open: false, url: "", name: "", type: "" })
+        }
+      />
+
       <AnimatePresence>
         {renameDialog.open && (
           <RenameDialog
@@ -258,6 +294,7 @@ export default function FileExplorer({ initialPath, onPathChange }) {
             key={item.name}
             item={item}
             initialPath={initialPath}
+            isSelected={selectedFileName === item.name}
             handleItemClick={handleItemClick}
             fetchData={fetchData}
             setCopiedItem={setCopiedItem}

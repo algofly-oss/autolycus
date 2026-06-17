@@ -1,7 +1,8 @@
-from fastapi import APIRouter, Response, HTTPException
+from fastapi import APIRouter, Request, Response, HTTPException
 from shared.factory import db, redis
 from shared.env import SESSION_COOKIE_NAME
 from .common import UserSignupDto
+from .session_utils import create_session_record
 import datetime
 import bcrypt
 import uuid
@@ -11,7 +12,7 @@ router = APIRouter()
 
 
 @router.post("/signup")
-async def signup(user: UserSignupDto, response: Response):
+async def signup(user: UserSignupDto, request: Request, response: Response):
     """
     Create a new user.
 
@@ -49,6 +50,7 @@ async def signup(user: UserSignupDto, response: Response):
     # create a new session token
     session_token = str(uuid.uuid4())
     redis.set(session_token, user_id)
+    await create_session_record(db, user_id, session_token, request)
     response.set_cookie(key=SESSION_COOKIE_NAME, value=session_token, httponly=True)
 
     return {"msg": "success"}

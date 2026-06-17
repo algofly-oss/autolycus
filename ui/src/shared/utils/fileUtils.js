@@ -11,10 +11,24 @@ export const getFileType = (filename) => {
 
   const fileTypes = {
     video: ["mp4", "mkv", "avi", "mov", "wmv", "flv", "webm"],
-    audio: ["mp3", "wav", "ogg", "aac", "m4a"],
-    image: ["jpg", "jpeg", "png", "gif", "webp"],
-    document: ["pdf", "doc", "docx", "txt", "rtf"],
-    compressed: ["zip"]
+    audio: ["mp3", "wav", "ogg", "aac", "m4a", "flac"],
+    image: ["jpg", "jpeg", "png", "gif", "webp", "bmp", "avif"],
+    document: [
+      "pdf",
+      "txt",
+      "log",
+      "md",
+      "json",
+      "csv",
+      "xml",
+      "srt",
+      "vtt",
+      "nfo",
+      "rtf",
+      "doc",
+      "docx",
+    ],
+    compressed: ["zip", "rar", "7z", "tar", "gz"],
   };
 
   for (const [type, extensions] of Object.entries(fileTypes)) {

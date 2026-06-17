@@ -3,6 +3,12 @@ from ..auth.common import authenticate_user
 from pathlib import Path
 import os
 import logging
+from shared.factory import db
+from shared.modules.file_search_index import (
+    delete_document_ids,
+    document_ids_for_tree,
+    index_path_for_user,
+)
 
 router = APIRouter()
 
@@ -33,7 +39,10 @@ async def rename_item(source_path: str, new_name: str, request: Request):
             raise HTTPException(status_code=403, detail="Access denied")
 
         # Rename the file or directory
+        document_ids = document_ids_for_tree(abs_source_path, user_id.decode())
         abs_source_path.rename(abs_new_path)
+        await delete_document_ids(document_ids)
+        await index_path_for_user(db, user_id.decode(), abs_new_path)
 
         return {"detail": "Item renamed successfully"}
 

@@ -11,8 +11,10 @@ import { MdMovie, MdLaptop, MdHelp, MdOutlineAudioFile } from "react-icons/md";
 import { CgGames } from "react-icons/cg";
 import { TbRating18Plus } from "react-icons/tb";
 import useToast from "@/shared/hooks/useToast";
-import axios from "axios";
-import apiRoutes from "@/shared/routes/apiRoutes";
+import {
+  CLIPBOARD_COPY_STATUS,
+  copyTextToClipboard,
+} from "@/shared/utils/clipboard";
 
 const getIconForType = (type) => {
   if (!type)
@@ -46,24 +48,33 @@ const SearchResults = ({
   results,
   loading,
   error,
-  getMagnet,
   onTorrentClick,
 }) => {
   const toast = useToast();
 
+  const resolveMagnet = async (torrent) => {
+    const directMagnet =
+      torrent?.MagnetUri || torrent?.magnet || torrent?.magnetUri || null;
+    if (directMagnet) return directMagnet;
+    return null;
+  };
+
   const handleCopyToClipboard = async (data) => {
-    let magnet = await getMagnet(data);
+    const magnet = await resolveMagnet(data);
     if (!magnet) {
+      toast.error("Magnet not found");
       return;
     }
 
-    const el = document.createElement("textarea");
-    el.value = magnet;
-    document.body.appendChild(el);
-    el.select();
-    document.execCommand("copy");
-    document.body.removeChild(el);
-    toast.success("Magnet copied to clipboard");
+    const status = await copyTextToClipboard(magnet);
+
+    if (status === CLIPBOARD_COPY_STATUS.COPIED) {
+      toast.success("Magnet copied to clipboard");
+    } else if (status === CLIPBOARD_COPY_STATUS.MANUAL) {
+      toast.success("Magnet opened for manual copy");
+    } else {
+      toast.error("Failed to copy magnet");
+    }
   };
 
   if (loading) {

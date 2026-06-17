@@ -2,6 +2,7 @@ from fastapi import APIRouter, Request, Response, HTTPException
 from shared.factory import db, redis
 from shared.env import SESSION_COOKIE_NAME
 from .common import UserSigninDto, get_session_token
+from .session_utils import create_session_record, touch_session_record
 import bcrypt
 import uuid
 
@@ -23,7 +24,10 @@ async def signin(user: UserSigninDto, request: Request, response: Response):
     """
 
     # Check if user is already logged in
-    if redis.get(get_session_token(request, "")):
+    existing_session_token = get_session_token(request, "")
+    existing_user_id = redis.get(existing_session_token)
+    if existing_user_id:
+        await touch_session_record(db, existing_session_token, request)
         return {"msg": "success"}
 
     # Check if user exists
@@ -36,7 +40,9 @@ async def signin(user: UserSigninDto, request: Request, response: Response):
     if bcrypt.checkpw(user.password.encode("utf-8"), existing_user["password"]):
         # create a new session token
         session_token = str(uuid.uuid4())
-        redis.set(session_token, str(existing_user.get("_id")))
+        user_id = str(existing_user.get("_id"))
+        redis.set(session_token, user_id)
+        await create_session_record(db, user_id, session_token, request)
         response.set_cookie(
             key=SESSION_COOKIE_NAME, value=session_token, httponly=True
         )

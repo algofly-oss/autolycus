@@ -5,15 +5,20 @@ import { FiDownload } from "react-icons/fi";
 import useToast from "@/shared/hooks/useToast";
 import reactState from "@/shared/hooks/reactState";
 import { MdContentCopy } from "react-icons/md";
+import {
+  CLIPBOARD_COPY_STATUS,
+  copyTextToClipboard,
+} from "@/shared/utils/clipboard";
 
 export default function TorrentDetails({ torrent }) {
-  if (!torrent) {
-    return null;
-  }
-
   const torrentState = reactState({});
+  const toast = useToast();
 
   useEffect(() => {
+    if (!torrent) {
+      return;
+    }
+
     torrentState.set({
       remainingBytes: torrent.total_bytes - torrent.downloaded_bytes,
       timeLeftSeconds:
@@ -28,24 +33,74 @@ export default function TorrentDetails({ torrent }) {
     });
   }, [torrent]);
 
-  const toast = useToast();
+  if (!torrent) {
+    return (
+      <div className="p-6 text-gray-500 dark:text-gray-400">
+        <h2 className="text-lg font-semibold text-gray-700 dark:text-gray-200">
+          Torrent Details
+        </h2>
+        <p className="mt-3 text-sm leading-relaxed">
+          Hover a torrent to preview its quality, magnet, and transfer
+          information here.
+        </p>
+      </div>
+    );
+  }
+
   const { resolution, source } = getQuality(torrent.name);
+  const posterUrl = torrent?.media_metadata?.poster_url;
+  const imdbUrl = torrent?.media_metadata?.imdb_url;
 
   const copyMagnetToClipBoard = async () => {
-    if (torrent?.magnet) {
-      const el = document.createElement("textarea");
-      el.value = torrent?.magnet;
-      document.body.appendChild(el);
-      el.select();
-      document.execCommand("copy");
-      document.body.removeChild(el);
+    if (!torrent?.magnet) {
+      toast.error("Magnet not found");
+      return;
+    }
+
+    const status = await copyTextToClipboard(torrent.magnet);
+
+    if (status === CLIPBOARD_COPY_STATUS.COPIED) {
       toast.success("Magnet copied to clipboard");
+    } else if (status === CLIPBOARD_COPY_STATUS.MANUAL) {
+      toast.success("Magnet opened for manual copy");
+    } else {
+      toast.error("Failed to copy magnet");
+    }
+  };
+
+  const copyImdbToClipBoard = async () => {
+    if (!imdbUrl) {
+      toast.error("IMDb URL not found");
+      return;
+    }
+
+    const status = await copyTextToClipboard(imdbUrl);
+
+    if (status === CLIPBOARD_COPY_STATUS.COPIED) {
+      toast.success("IMDb URL copied to clipboard");
+    } else if (status === CLIPBOARD_COPY_STATUS.MANUAL) {
+      toast.success("IMDb URL opened for manual copy");
+    } else {
+      toast.error("Failed to copy IMDb URL");
     }
   };
 
   return (
     <div className="p-6 text-gray-800 dark:text-gray-200">
-      <h2 className="text-xl font-bold mb-6 break-words">{torrent.name}</h2>
+      {posterUrl ? (
+        <div className="mb-5 w-full overflow-hidden rounded-lg" style={{ aspectRatio: "2 / 3" }}>
+          <img
+            src={posterUrl}
+            alt=""
+            className="h-full w-full rounded-lg object-cover"
+            loading="lazy"
+          />
+        </div>
+      ) : null}
+
+      <h2 className="mb-6 break-words text-lg font-semibold leading-6 text-gray-900 dark:text-gray-100">
+        {torrent.name}
+      </h2>
 
       {/* Progress Bar for downloading torrents */}
       {/* {!torrent.is_finished && (
@@ -102,6 +157,29 @@ export default function TorrentDetails({ torrent }) {
           <MdContentCopy onClick={copyMagnetToClipBoard} className="cursor-pointer"/>
         </div>
       </div>
+
+      {imdbUrl ? (
+        <div className="mb-6">
+          <h3 className="text-sm font-semibold text-gray-500 dark:text-gray-400">
+            IMDb
+          </h3>
+          <div className="flex items-center space-x-2 mb-2">
+            <a
+              href={imdbUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex-1 truncate text-sm font-medium transition-colors hover:text-blue-600 dark:hover:text-blue-300"
+              title={imdbUrl}
+            >
+              {imdbUrl}
+            </a>
+            <MdContentCopy
+              onClick={copyImdbToClipBoard}
+              className="cursor-pointer"
+            />
+          </div>
+        </div>
+      ) : null}
 
       {/* Transfer Information */}
       <div className="mb-6">
