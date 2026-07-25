@@ -246,7 +246,9 @@ const FileItem = ({
       try {
         if (item.is_transcoding) {
           const response = await fetch(
-            `${apiRoutes.transcodeProgress}?path=${initialPath}/${item.name}&stream=true`,
+            `${apiRoutes.transcodeProgress}?path=${encodeURIComponent(
+              `${initialPath}/${item.name}`
+            )}&stream=true`,
             { method: "POST", signal }
           );
 
