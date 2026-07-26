@@ -1,5 +1,6 @@
 import React from "react";
-import { FiChevronLeft, FiChevronRight } from "react-icons/fi";
+import { Menu } from "@mantine/core";
+import { FiChevronDown, FiChevronLeft, FiChevronRight } from "react-icons/fi";
 
 export default function FloatingPagination({
   currentPage,
@@ -42,23 +43,33 @@ export default function FloatingPagination({
         {/* Page size */}
         <div className="flex items-center gap-1 text-xs font-medium text-neutral-700 dark:text-neutral-100">
           <span className="select-none">Page size</span>
-          <div className="relative">
-            <span className="inline-flex h-8 w-10 select-none items-center justify-center rounded-md border border-neutral-200 px-2 text-xs font-medium text-neutral-700 dark:border-neutral-800 dark:text-neutral-100">
-              {pageSize}
-            </span>
-            <select
-              value={pageSize}
-              onChange={(e) => onPageSizeChange(Number(e.target.value))}
-              className="absolute inset-0 h-8 w-10 cursor-pointer opacity-0 focus:outline-none focus:ring-0 focus:ring-offset-0"
-              aria-label="Page size"
-            >
+          <Menu shadow="md" width={90} position="top-start" withinPortal={false}>
+            <Menu.Target>
+              <button
+                type="button"
+                className="inline-flex h-8 min-w-11 items-center justify-center gap-1 rounded-md border border-neutral-200 px-2 text-xs font-medium text-neutral-700 transition-colors hover:bg-neutral-100 dark:border-neutral-800 dark:text-neutral-100 dark:hover:bg-neutral-800"
+                aria-label="Page size"
+              >
+                {pageSize}
+                <FiChevronDown size={12} />
+              </button>
+            </Menu.Target>
+            <Menu.Dropdown className="border-neutral-200 bg-white dark:border-neutral-800 dark:bg-neutral-900">
               {pageSizeOptions.map((size) => (
-                <option key={size} value={size}>
+                <Menu.Item
+                  key={size}
+                  onClick={() => onPageSizeChange(size)}
+                  className={
+                    size === pageSize
+                      ? "bg-blue-500/10 font-semibold text-blue-600 dark:bg-blue-500/20 dark:text-blue-300"
+                      : "text-neutral-700 dark:text-neutral-100"
+                  }
+                >
                   {size}
-                </option>
+                </Menu.Item>
               ))}
-            </select>
-          </div>
+            </Menu.Dropdown>
+          </Menu>
         </div>
 
         {/* Prev */}

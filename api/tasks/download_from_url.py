@@ -67,6 +67,7 @@ def download_from_url(url, url_hash, save_dir, user_id):
     )
 
     key = f"{user_id}/{url_hash}/stop"
+    last_downloaded_bytes = 0
     redis.delete(key)
 
     while True:
@@ -99,6 +100,7 @@ def download_from_url(url, url_hash, save_dir, user_id):
             info["eta"] = convert_to_seconds(info.get("eta", ""))
             info["speed"] = convert_to_bytes(info.get("speed", "0KiB"))
             info["downloaded"] = convert_to_bytes(info.get("downloaded", "0KiB"))
+            last_downloaded_bytes = info["downloaded"]
 
             # print(
             #     f"\nProgress: {info.get('progress')}% | ETA: {info.get('eta') / 60:.2f} min"
@@ -141,13 +143,26 @@ def download_from_url(url, url_hash, save_dir, user_id):
         cp.stdout.close()
         cp.wait()
 
+        # Some servers omit Content-Length. Use aria2's final transfer count,
+        # not the save directory size: it may later also contain extracted files.
+        completed_bytes = last_downloaded_bytes
+        if not completed_bytes:
+            torrent = db.torrents.find_one({"url_hash": url_hash, "user_id": ObjectId(user_id)})
+            filename = torrent.get("name") if torrent else None
+            archive_path = os.path.join(save_dir, filename) if filename else None
+            if archive_path and os.path.isfile(archive_path):
+                completed_bytes = os.path.getsize(archive_path)
+
         db.torrents.update_one(
             {"url_hash": url_hash, "user_id": ObjectId(user_id)},
             {
                 "$set": {
                     "is_paused": True,
-                    "is_finished": True,
-                    "download_speed": 0,
+                        "is_finished": True,
+                        "download_speed": 0,
+                        "downloaded_bytes": completed_bytes,
+                        "total_bytes": completed_bytes or None,
+                        "progress": 100,
                 }
             },
         )

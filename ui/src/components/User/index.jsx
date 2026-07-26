@@ -41,6 +41,12 @@ export default function UserHome() {
   const isSearchTab = tab === "Search";
   const isSettingsTab = tab === "Settings";
   const isFileView = Boolean(state.get("isFileView"));
+  const queryPath = Array.isArray(router.query.path)
+    ? router.query.path[0]
+    : router.query.path;
+  const filePath = queryPath
+    ? `/downloads/${String(queryPath).replace(/^\/downloads\/*/, "")}`
+    : null;
   const detailsTorrent = useMemo(
     () =>
       isFileView
@@ -91,17 +97,33 @@ export default function UserHome() {
     if (!router.isReady) return;
 
     const nextQuery = { ...router.query };
-    if (nextTab === "Home") {
-      delete nextQuery.tab;
-    } else {
-      nextQuery.tab = TAB_QUERY_VALUE[nextTab];
-    }
+    nextQuery.tab = TAB_QUERY_VALUE[nextTab];
 
     router.push(
       {
         pathname: router.pathname,
         query: nextQuery,
       },
+      undefined,
+      { shallow: true, scroll: false }
+    );
+  };
+
+  const handleFilePathChange = (nextPath) => {
+    const nextQuery = { ...router.query, tab: TAB_QUERY_VALUE.Home };
+    const relativePath = nextPath
+      ? String(nextPath).replace(/^\/downloads\/*/, "")
+      : "";
+
+    if (relativePath) {
+      nextQuery.path = relativePath;
+    } else {
+      delete nextQuery.path;
+    }
+
+    setTab("Home");
+    router.push(
+      { pathname: router.pathname, query: nextQuery },
       undefined,
       { shallow: true, scroll: false }
     );
@@ -162,7 +184,11 @@ export default function UserHome() {
           className={`h-full ${isHomeTab ? "block" : "hidden"}`}
           aria-hidden={!isHomeTab}
         >
-          <Home state={state} />
+          <Home
+            state={state}
+            initialPath={filePath}
+            onPathChange={handleFilePathChange}
+          />
         </div>
         <div
           className={`h-full ${tab === "Search" ? "block" : "hidden"}`}

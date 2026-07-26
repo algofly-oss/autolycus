@@ -11,12 +11,12 @@ import { authActions, authSelector } from "@/redux/features/authSlice";
 
 const VIEW_MODES = new Set(["list", "grid"]);
 
-export default function Home({ state }) {
+export default function Home({ state, initialPath = null, onPathChange }) {
   const dispatch = useDispatch();
   const user = useSelector(authSelector);
   const savedViewMode = user?.preferences?.home_view_mode;
   const appliedSavedViewModeRef = useRef(false);
-  const [currentPath, setCurrentPath] = useState(null);
+  const [currentPath, setCurrentPath] = useState(initialPath);
   const [selectedFileName, setSelectedFileName] = useState(null);
   const [viewMode, setViewMode] = useState(() => {
     const stateViewMode = state?.get("homeViewMode");
@@ -42,11 +42,13 @@ export default function Home({ state }) {
         hoveredTorrentInfoHash: null,
         isFileView: false,
       });
+      onPathChange?.(null);
       return;
     }
     setCurrentPath(newPath);
     setSelectedFileName(null);
     state.set({ isFileView: true });
+    onPathChange?.(newPath);
   };
 
   const handleSearchResultPathChange = (newPath, fileName = null) => {
@@ -58,7 +60,21 @@ export default function Home({ state }) {
     setCurrentPath(newPath);
     setSelectedFileName(fileName);
     state.set({ isFileView: true });
+    onPathChange?.(newPath);
   };
+
+  useEffect(() => {
+    if (initialPath === currentPath) return;
+
+    setCurrentPath(initialPath);
+    setSelectedFileName(null);
+    state.set({
+      activeTorrent: null,
+      hoveredTorrent: null,
+      hoveredTorrentInfoHash: null,
+      isFileView: Boolean(initialPath),
+    });
+  }, [initialPath]);
 
   useEffect(() => {
     state?.set("homeViewMode", viewMode);

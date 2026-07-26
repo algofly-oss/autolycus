@@ -31,6 +31,8 @@ let apiRoutes = {
   streamFile: "/files/stream",
   deleteFile: "/files/delete",
   archiveDir: "/files/archive",
+  extractArchive: "/files/extract",
+  archiveProgress: "/files/archive/progress",
   copyFile: "/files/copy",
   moveFile: "/files/move",
   renameFile: "/files/rename",

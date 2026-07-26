@@ -232,8 +232,8 @@ const TorrentCard = ({ torrentData, compact = false }) => {
   const sourceLabel = torrentData?.media_metadata?.quality?.source || source;
   const yearLabel = torrentData?.media_metadata?.year || extractYearInfo(name);
   const totalSizeLabel =
-    total_bytes || torrentData?.size
-      ? formatFileSize(total_bytes || torrentData.size)
+    total_bytes || torrentData?.size || (is_finished && downloaded_bytes)
+      ? formatFileSize(total_bytes || torrentData.size || downloaded_bytes)
       : null;
   const metadataItems = [
     resolutionLabel,

@@ -56,7 +56,6 @@ const FileItem = ({
   setCopiedItem,
   setDeleteDialog,
   setRenameDialog,
-  setArchiving,
   isSelected = false,
 }) => {
   const socket = useContext(SocketContext);
@@ -65,6 +64,17 @@ const FileItem = ({
     progress: 0,
     eta: 0,
   });
+  const [archiveOperation, setArchiveOperation] = useState(null);
+  const itemArchiveOperation =
+    item.archive_status === "queued" || item.archive_status === "running"
+      ? {
+          path: `${initialPath}/${item.name}`.replace(/^\/downloads\/*/, ""),
+          label: item.is_directory ? "Creating ZIP" : "Extracting",
+          progress: item.archive_progress || 0,
+          eta: item.archive_eta || 0,
+        }
+      : null;
+  const displayedArchiveOperation = archiveOperation || itemArchiveOperation;
   const sizeLabel =
     item.is_partial && item.total_size
       ? `${formatFileSize(item.size || 0)} / ${formatFileSize(item.total_size)}`
@@ -96,7 +106,12 @@ const FileItem = ({
         : []),
       ...(item.is_directory
         ? [{ name: "Archive", icon: FaRegFileArchive, action: "archive" }]
-        : [{ name: "Download", icon: FiDownload, action: "download" }]),
+        : [
+            ...(isArchiveFile(item.name)
+              ? [{ name: "Extract", icon: FaRegFileArchive, action: "extract" }]
+              : []),
+            { name: "Download", icon: FiDownload, action: "download" },
+          ]),
       ...(getFileType(item.name) === "video" && !item.is_transcoding
         ? [
             {
@@ -109,6 +124,11 @@ const FileItem = ({
         : []),
     ];
   };
+
+  const isArchiveFile = (name) =>
+    /\.(7z|zip|rar|tar|gz|tgz|bz2|tbz|tbz2|xz|txz|zst|iso|cab|arj|lzh|lha|wim|xar|jar|apk|deb|rpm|cpio|dmg|vhd|vmdk)$/i.test(
+      name
+    );
 
   const handleTranscode = async (resolution) => {
     try {
@@ -205,21 +225,32 @@ const FileItem = ({
         break;
       case "archive":
         try {
-          setArchiving(true);
           const path = `${initialPath}/${item.name}`.replace(
             /^\/downloads\/*/,
             ""
           );
-
-          await axios.post(
+          const response = await axios.post(
             `${apiRoutes.archiveDir}?path=${encodeURIComponent(path)}`
           );
-          toast.success("Directory archived successfully");
+          setArchiveOperation({ path, label: "Creating ZIP", progress: 0 });
+          toast.success(`ZIP creation started (${response.data.task_id})`);
         } catch (err) {
-          toast.error("Failed to archive directory");
-        } finally {
-          setArchiving(false);
-          fetchData();
+          toast.error(err.response?.data?.detail || "Failed to start ZIP creation");
+        }
+        break;
+      case "extract":
+        try {
+          const path = `${initialPath}/${item.name}`.replace(
+            /^\/downloads\/*/,
+            ""
+          );
+          const response = await axios.post(
+            `${apiRoutes.extractArchive}?path=${encodeURIComponent(path)}`
+          );
+          setArchiveOperation({ path, label: "Extracting", progress: 0 });
+          toast.success(`Extraction started (${response.data.task_id})`);
+        } catch (err) {
+          toast.error(err.response?.data?.detail || "Failed to start extraction");
         }
         break;
       case "rename":
@@ -295,6 +326,56 @@ const FileItem = ({
     }
   }, []);
 
+  useEffect(() => {
+    if (!archiveOperation && itemArchiveOperation) {
+      setArchiveOperation(itemArchiveOperation);
+    }
+  }, [item.archive_status, item.name, initialPath]);
+
+  useEffect(() => {
+    if (!archiveOperation) return undefined;
+
+    let active = true;
+    const checkProgress = async () => {
+      try {
+        const response = await axios.get(
+          `${apiRoutes.archiveProgress}?path=${encodeURIComponent(
+            archiveOperation.path
+          )}`
+        );
+        if (!active) return;
+        const progress = response.data;
+        setArchiveOperation((current) =>
+          current
+            ? {
+                ...current,
+                progress: progress.progress || 0,
+                eta: progress.eta || 0,
+              }
+            : current
+        );
+        if (progress.status === "complete") {
+          toast.success(`${archiveOperation.label} complete`);
+          setArchiveOperation(null);
+          fetchData();
+        } else if (progress.status === "failed") {
+          toast.error(progress.error || `${archiveOperation.label} failed`);
+          setArchiveOperation(null);
+          fetchData();
+        }
+      } catch {
+        // The next poll normally succeeds; avoid flashing an error for a transient request.
+      }
+    };
+
+    checkProgress();
+    const interval = setInterval(checkProgress, 1000);
+    return () => {
+      active = false;
+      clearInterval(interval);
+    };
+  }, [archiveOperation?.path]);
+
   return (
     <div
       key={item.name}
@@ -324,6 +405,25 @@ const FileItem = ({
                     : "0.00"}
                   % {"•"} ETA {formatTimeRemaining(transcodingProgress.eta)}{" "}
                   {"•"} {formatFileSize(transcodingProgress?.file_size)}
+                </div>
+              </div>
+            ) : displayedArchiveOperation ? (
+              <div className="mt-2">
+                <ProgressBar
+                  progress={Math.max(displayedArchiveOperation.progress || 0, 0.5)}
+                  showLabel={false}
+                  progress_height={"h-1.5"}
+                />
+                <div className="text-sm text-gray-500 mt-1">
+                  {displayedArchiveOperation.label}{" "}
+                  {displayedArchiveOperation.progress || 0}%
+                  {displayedArchiveOperation.progress > 0 ? (
+                    <>
+                      {" • "} ETA {formatTimeRemaining(displayedArchiveOperation.eta || 0)}
+                    </>
+                  ) : (
+                    " • Starting…"
+                  )}
                 </div>
               </div>
             ) : (
