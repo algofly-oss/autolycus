@@ -1,4 +1,5 @@
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useRouter } from "next/router";
 import Fuse from "fuse.js";
 import SearchBar from "./components/SearchBar";
 import SortFilters from "./components/SortFilters";
@@ -27,6 +28,7 @@ import {
 } from "./utils";
 
 const Search = ({ torrentSearchState }) => {
+  const router = useRouter();
   const [activeSource, setActiveSource] = useState(ALL_SOURCES);
   const [firstLoadFinished, setFirstLoadFinished] = useState(false);
   const [hasSearched, setHasSearched] = useState(false);
@@ -41,6 +43,10 @@ const Search = ({ torrentSearchState }) => {
 
   const filtersRef = useRef(null);
   const sortRef = useRef(INITIAL_SORT);
+  const openedUrlSearchRef = useRef(null);
+  const urlQuery = Array.isArray(router.query.q)
+    ? router.query.q[0]
+    : router.query.q;
 
   const browserProxyBaseUrl = useBrowserProxyBaseUrl();
   const isMobile = useIsMobileWidth();
@@ -63,6 +69,7 @@ const Search = ({ torrentSearchState }) => {
     setTitleFilter,
     torrentSearchState,
     updateSort,
+    urlQuery,
   });
 
   usePersistedSearchState({
@@ -117,6 +124,38 @@ const Search = ({ torrentSearchState }) => {
     updateSort,
   });
 
+  const handleSearchFromInput = useCallback(() => {
+    const trimmedQuery = query?.trim();
+    if (!trimmedQuery) return;
+
+    openedUrlSearchRef.current = trimmedQuery;
+    if (router.isReady && urlQuery !== trimmedQuery) {
+      router.push(
+        {
+          pathname: router.pathname,
+          query: { ...router.query, tab: "search", q: trimmedQuery },
+        },
+        undefined,
+        { shallow: true, scroll: false },
+      );
+    }
+
+    handleSearch();
+  }, [handleSearch, query, router, urlQuery]);
+
+  useEffect(() => {
+    if (!router.isReady || !firstLoadFinished || !urlQuery) return;
+    if (openedUrlSearchRef.current === urlQuery) return;
+
+    if (query !== urlQuery) {
+      setQuery(urlQuery);
+      return;
+    }
+
+    openedUrlSearchRef.current = urlQuery;
+    handleSearch();
+  }, [firstLoadFinished, handleSearch, query, router.isReady, urlQuery]);
+
   const handleSortChange = useCallback(
     (key) => {
       const nextSort = getNextSort(sort, key);
@@ -140,7 +179,7 @@ const Search = ({ torrentSearchState }) => {
           query={query}
           setQuery={setQuery}
           loading={loading}
-          onSearch={handleSearch}
+          onSearch={handleSearchFromInput}
           onCancel={handleCancel}
         />
 
@@ -168,7 +207,7 @@ const Search = ({ torrentSearchState }) => {
         )}
 
         {showResults && (
-          <div className="-mt-6 md:mt-0">
+          <div className="mt-0">
             <TorrentResults
               key={resultsKey}
               items={visibleResults}

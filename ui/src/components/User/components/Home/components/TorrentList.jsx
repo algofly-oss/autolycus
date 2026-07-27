@@ -222,7 +222,7 @@ export default function TorrentList({ state, onPathChange, viewMode = "list" }) 
       <div
         className={
           viewMode === "grid"
-            ? "grid grid-cols-3 items-start gap-x-2.5 gap-y-4 px-1 pt-1 sm:grid-cols-5 lg:grid-cols-6 2xl:grid-cols-8"
+            ? "grid grid-cols-2 items-start gap-x-2.5 gap-y-4 px-1 pt-1 sm:grid-cols-5 lg:grid-cols-6 2xl:grid-cols-8"
             : "flex flex-col gap-1.5 pr-1.5"
         }
       >

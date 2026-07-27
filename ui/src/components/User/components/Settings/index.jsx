@@ -664,7 +664,7 @@ export default function Settings() {
   const renderPublicUrlsSection = () => (
     <section className={settingsPanelClass}>
       <div
-        className={`flex flex-wrap items-center justify-between gap-3 border-b px-5 py-4 ${settingsDividerClass}`}
+        className={`flex flex-col items-stretch gap-3 border-b px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-5 ${settingsDividerClass}`}
       >
         <div>
           <p className="text-sm font-semibold text-neutral-900 dark:text-neutral-100">
@@ -674,7 +674,7 @@ export default function Settings() {
             Manage active public file links.
           </p>
         </div>
-        <div className="flex shrink-0 flex-wrap items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2 sm:shrink-0">
           {publicUrlsTotal > 0 ? (
             <button
               type="button"
@@ -721,7 +721,7 @@ export default function Settings() {
               return (
                 <div
                   key={item.path_hash}
-                  className="flex items-center justify-between gap-4 px-5 py-4"
+                  className="flex flex-col items-stretch gap-3 px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-5"
                 >
                   <div className="flex min-w-0 items-center gap-3">
                     <input
@@ -739,7 +739,7 @@ export default function Settings() {
                       </p>
                     </div>
                   </div>
-                  <div className="flex shrink-0 items-center gap-2">
+                  <div className="flex items-center gap-2 sm:shrink-0">
                     <button
                       type="button"
                       className="inline-flex items-center gap-2 rounded-md border border-neutral-300 px-3 py-2 text-sm font-medium text-neutral-700 transition hover:bg-neutral-100 dark:border-[#33363b] dark:text-neutral-200 dark:hover:bg-[#2a2b2f]"
@@ -852,7 +852,7 @@ export default function Settings() {
   };
 
   return (
-    <div className="min-h-full bg-neutral-50 px-3 py-4 dark:bg-[#18191b] md:px-6 md:py-6">
+    <div className="min-h-full bg-neutral-50 px-3 py-4 pb-24 dark:bg-[#18191b] md:px-6 md:py-6">
       <div className="mx-auto max-w-5xl space-y-4">
         <div>
           <h1 className="text-2xl font-semibold text-neutral-900 dark:text-neutral-100">
@@ -865,7 +865,7 @@ export default function Settings() {
 
         <section className={settingsPanelClass}>
           <div
-            className={`flex flex-wrap items-center justify-between gap-4 border-b px-5 py-4 ${settingsDividerClass}`}
+            className={`flex flex-col items-stretch gap-3 border-b px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-5 ${settingsDividerClass}`}
           >
             <div className="flex min-w-0 items-center gap-3">
               {profilePictureSource ? (
@@ -890,7 +890,7 @@ export default function Settings() {
             </div>
             <button
               type="button"
-              className="rounded-md border border-neutral-300 px-3 py-2 text-sm font-medium text-neutral-700 transition hover:bg-neutral-100 dark:border-[#33363b] dark:text-neutral-200 dark:hover:bg-[#2a2b2f]"
+              className="w-full rounded-md border border-neutral-300 px-3 py-2 text-sm font-medium text-neutral-700 transition hover:bg-neutral-100 sm:w-auto dark:border-[#33363b] dark:text-neutral-200 dark:hover:bg-[#2a2b2f]"
               onClick={handleToggleProfileEditing}
             >
               {profileEditing ? "Cancel" : "Edit"}
@@ -1060,7 +1060,7 @@ export default function Settings() {
 
         <section className={settingsPanelClass}>
           <div
-            className={`flex items-center justify-between gap-4 border-b px-5 py-4 ${settingsDividerClass}`}
+            className={`flex flex-col items-stretch gap-3 border-b px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-5 ${settingsDividerClass}`}
           >
             <div>
               <p className="text-sm font-semibold text-neutral-900 dark:text-neutral-100">
@@ -1072,7 +1072,7 @@ export default function Settings() {
             </div>
             <button
               type="button"
-              className="shrink-0 whitespace-nowrap rounded-md border border-neutral-300 px-3 py-2 text-sm font-medium text-neutral-700 transition hover:bg-neutral-100 dark:border-[#33363b] dark:text-neutral-200 dark:hover:bg-[#2a2b2f]"
+              className="w-full whitespace-nowrap rounded-md border border-neutral-300 px-3 py-2 text-sm font-medium text-neutral-700 transition hover:bg-neutral-100 sm:w-auto dark:border-[#33363b] dark:text-neutral-200 dark:hover:bg-[#2a2b2f]"
               onClick={() => setPasswordEditing((editing) => !editing)}
             >
               {passwordEditing ? "Cancel" : "Change password"}
@@ -1153,7 +1153,7 @@ export default function Settings() {
 
         <section className={settingsPanelClass}>
           <div
-            className={`flex items-center justify-between gap-4 border-b px-5 py-4 ${settingsDividerClass}`}
+            className={`flex flex-col items-stretch gap-3 border-b px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-5 ${settingsDividerClass}`}
           >
             <div className="min-w-0">
               <div className="flex flex-wrap items-center gap-2">
@@ -1176,10 +1176,10 @@ export default function Settings() {
                 Enable FTP access to your downloads.
               </p>
             </div>
-            <div className="flex shrink-0 items-center">
+            <div className="flex items-center sm:shrink-0">
               <button
                 type="button"
-                className="inline-flex min-w-[7.75rem] items-center justify-center gap-2 rounded-md border border-neutral-300 px-3 py-2 text-sm font-medium text-neutral-700 transition hover:bg-neutral-100 disabled:cursor-not-allowed disabled:opacity-60 dark:border-[#33363b] dark:text-neutral-200 dark:hover:bg-[#2a2b2f]"
+                className="inline-flex w-full min-w-[7.75rem] items-center justify-center gap-2 rounded-md border border-neutral-300 px-3 py-2 text-sm font-medium text-neutral-700 transition hover:bg-neutral-100 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto dark:border-[#33363b] dark:text-neutral-200 dark:hover:bg-[#2a2b2f]"
                 onClick={ftpEditing ? cancelFtpEditor : openFtpEditor}
                 disabled={isLoadingFtp || isSavingFtp}
               >
@@ -1344,7 +1344,7 @@ export default function Settings() {
 
         <section className={settingsPanelClass}>
           <div
-            className={`flex items-center justify-between gap-4 border-b px-5 py-4 ${settingsDividerClass}`}
+            className={`flex flex-col items-stretch gap-3 border-b px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-5 ${settingsDividerClass}`}
           >
             <div>
               <p className="text-sm font-semibold text-neutral-900 dark:text-neutral-100">
@@ -1378,7 +1378,7 @@ export default function Settings() {
               sessions.map((session) => (
                 <div
                   key={session.id}
-                  className="flex items-center justify-between gap-4 px-5 py-4"
+                  className="flex flex-col items-stretch gap-3 px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-5"
                 >
                   <div className="min-w-0">
                     <div className="flex items-center gap-2">
@@ -1401,7 +1401,7 @@ export default function Settings() {
                   </div>
                   <button
                     type="button"
-                    className="inline-flex shrink-0 items-center gap-2 rounded-md border border-neutral-300 px-3 py-2 text-sm font-medium text-neutral-700 transition hover:bg-neutral-100 disabled:cursor-not-allowed disabled:opacity-60 dark:border-[#33363b] dark:text-neutral-200 dark:hover:bg-[#2a2b2f]"
+                    className="inline-flex items-center justify-center gap-2 rounded-md border border-neutral-300 px-3 py-2 text-sm font-medium text-neutral-700 transition hover:bg-neutral-100 disabled:cursor-not-allowed disabled:opacity-60 sm:shrink-0 dark:border-[#33363b] dark:text-neutral-200 dark:hover:bg-[#2a2b2f]"
                     onClick={() => setSessionPendingSignOut(session)}
                     disabled={activeSessionId === session.id}
                   >

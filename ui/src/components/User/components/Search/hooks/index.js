@@ -155,6 +155,7 @@ export const useSearchStateHydration = ({
   setTitleFilter,
   torrentSearchState,
   updateSort,
+  urlQuery,
 }) => {
   const didHydrateRef = useRef(false);
 
@@ -167,7 +168,7 @@ export const useSearchStateHydration = ({
     if (!query && !resultsLength) {
       const savedScrollOffset = torrentSearchState.get("scrollOffset");
 
-      setQuery(torrentSearchState.get("query"));
+      setQuery(urlQuery || torrentSearchState.get("query"));
       setTitleFilter(torrentSearchState.get("titleFilter"));
       setActiveSource(torrentSearchState.get("activeSource") || ALL_SOURCES);
       setResults(savedResults);
@@ -191,6 +192,7 @@ export const useSearchStateHydration = ({
     setTitleFilter,
     torrentSearchState,
     updateSort,
+    urlQuery,
   ]);
 };
 
@@ -287,6 +289,38 @@ export const useTorrentSearchStream = ({
 }) => {
   const abortRef = useRef(null);
   const searchSessionRef = useRef(0);
+  const pendingResultsRef = useRef([]);
+  const flushTimerRef = useRef(null);
+
+  const flushPendingResults = useCallback(() => {
+    if (flushTimerRef.current) {
+      window.clearTimeout(flushTimerRef.current);
+      flushTimerRef.current = null;
+    }
+
+    const pendingResults = pendingResultsRef.current;
+    pendingResultsRef.current = [];
+    if (!pendingResults.length) return;
+
+    setResults((currentResults) =>
+      sortResults([...currentResults, ...pendingResults], sortRef.current ?? sort),
+    );
+  }, [setResults, sort, sortRef]);
+
+  const clearPendingResults = useCallback(() => {
+    pendingResultsRef.current = [];
+    if (flushTimerRef.current) {
+      window.clearTimeout(flushTimerRef.current);
+      flushTimerRef.current = null;
+    }
+  }, []);
+
+  useEffect(
+    () => () => {
+      clearPendingResults();
+    },
+    [clearPendingResults],
+  );
 
   const resetSearchState = useCallback(
     (initialTitleFilter) => {
@@ -312,6 +346,7 @@ export const useTorrentSearchStream = ({
     if (!trimmedQuery) return;
 
     setHasSearched(true);
+    clearPendingResults();
     resetSearchState(trimmedQuery);
 
     const searchId = (searchSessionRef.current += 1);
@@ -340,6 +375,7 @@ export const useTorrentSearchStream = ({
       while (true) {
         const { value, done } = await reader.read();
         if (done) break;
+        if (searchSessionRef.current !== searchId) break;
 
         buffer += decoder.decode(value, { stream: true });
         const lines = buffer.split("\n");
@@ -350,15 +386,17 @@ export const useTorrentSearchStream = ({
 
           const item = JSON.parse(line);
           setSourceOrder((prev) => appendUniqueSource(prev, item?.Tracker));
-          setResults((prev) =>
-            sortResults([...prev, item], sortRef.current ?? sort),
-          );
+          pendingResultsRef.current.push(item);
+          if (!flushTimerRef.current) {
+            flushTimerRef.current = window.setTimeout(flushPendingResults, 100);
+          }
         }
       }
     } catch (err) {
       if (err.name !== "AbortError") console.error(err);
     } finally {
       if (searchSessionRef.current === searchId) {
+        flushPendingResults();
         setLoading(false);
       }
     }
@@ -371,13 +409,16 @@ export const useTorrentSearchStream = ({
     setSourceOrder,
     sort,
     sortRef,
+    clearPendingResults,
+    flushPendingResults,
   ]);
 
   const handleCancel = useCallback(() => {
     abortRef.current?.abort();
     abortRef.current = null;
+    clearPendingResults();
     setLoading(false);
-  }, [setLoading]);
+  }, [clearPendingResults, setLoading]);
 
   return { handleCancel, handleSearch };
 };

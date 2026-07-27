@@ -39,10 +39,10 @@ export default function FloatingPagination({
 
   return (
     <div className="fixed bottom-[4.5rem] md:bottom-4 left-1/2 z-50 -translate-x-1/2">
-      <div className="flex items-center gap-2 rounded-md border border-neutral-200/70 bg-white/90 px-3 py-2 text-sm shadow-lg backdrop-blur dark:border-neutral-800 dark:bg-neutral-900/90">
+      <div className="flex items-center gap-1 rounded-md border border-neutral-200/70 bg-white/90 px-2 py-2 text-sm shadow-lg backdrop-blur sm:gap-2 sm:px-3 dark:border-neutral-800 dark:bg-neutral-900/90">
         {/* Page size */}
         <div className="flex items-center gap-1 text-xs font-medium text-neutral-700 dark:text-neutral-100">
-          <span className="select-none">Page size</span>
+          <span className="hidden select-none sm:inline">Page size</span>
           <Menu shadow="md" width={90} position="top-start" withinPortal={false}>
             <Menu.Target>
               <button
@@ -94,8 +94,11 @@ export default function FloatingPagination({
         </div>
 
         {/* Range */}
-        <span className="whitespace-nowrap text-xs font-medium text-neutral-700 dark:text-neutral-200">
+        <span className="hidden whitespace-nowrap text-xs font-medium text-neutral-700 sm:inline dark:text-neutral-200">
           {rangeStart}–{rangeEnd} of {totalItems}
+        </span>
+        <span className="whitespace-nowrap text-xs font-medium text-neutral-700 sm:hidden dark:text-neutral-200">
+          {rangeStart}–{rangeEnd}
         </span>
 
         {/* Next */}

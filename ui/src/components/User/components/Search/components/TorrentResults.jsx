@@ -1,5 +1,5 @@
 import { FiClipboard, FiDownload } from "react-icons/fi";
-import { useRef, useEffect } from "react";
+import { useRef, useEffect, useState, useCallback } from "react";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { formatBytes, formatDate, truncateText } from "../utils";
 
@@ -227,6 +227,8 @@ const PlainResults = ({
   onScrollOffsetChange,
   scrollResetKey,
   browserProxyBaseUrl,
+  onReachEnd,
+  onReachTop,
 }) => {
   const parentRef = useRef(null);
   const restoringRef = useRef(false);
@@ -264,7 +266,7 @@ const PlainResults = ({
   return (
     <div
       ref={parentRef}
-      onScroll={() => {
+      onScroll={(event) => {
         if (!parentRef.current || !onScrollOffsetChange) return;
         if (restoringRef.current) return;
         userScrollRef.current = true;
@@ -279,6 +281,14 @@ const PlainResults = ({
         scrollSaveTimeoutRef.current = setTimeout(() => {
           onScrollOffsetChange(lastScrollTopRef.current);
         }, 140);
+
+        const { scrollTop, clientHeight, scrollHeight } = event.currentTarget;
+        if (scrollTop <= 160) {
+          onReachTop?.();
+        }
+        if (scrollTop + clientHeight >= scrollHeight - 160) {
+          onReachEnd?.();
+        }
       }}
       className={`h-[calc(100vh-var(--results-offset))] overflow-auto scroll-auto touch-scroll light-scrolbar dark:dark-scrollbar pr-1 rounded-lg`}
     >
@@ -287,7 +297,7 @@ const PlainResults = ({
           <li
             key={getTorrentKey(item, index)}
             onMouseEnter={() => onItemHover?.(item)}
-            className="w-full p-4 rounded-md
+            className="w-full rounded-md p-3 sm:p-4
                      bg-neutral-50 dark:bg-black
                      hover:bg-zinc-100 dark:hover:bg-zinc-800 transition"
           >
@@ -301,6 +311,56 @@ const PlainResults = ({
         ))}
       </ul>
     </div>
+  );
+};
+
+const MOBILE_RESULTS_PAGE_SIZE = 50;
+
+const MobileResults = ({ items, ...props }) => {
+  const [visibleCount, setVisibleCount] = useState(MOBILE_RESULTS_PAGE_SIZE);
+  const loadingMoreRef = useRef(false);
+
+  useEffect(() => {
+    if (items.length === 0) {
+      setVisibleCount(MOBILE_RESULTS_PAGE_SIZE);
+    }
+  }, [items.length]);
+
+  useEffect(() => {
+    loadingMoreRef.current = false;
+  }, [visibleCount, items.length]);
+
+  const visibleItems = items.slice(0, visibleCount);
+  const hasMore = visibleItems.length < items.length;
+  const loadMore = useCallback(() => {
+    if (!hasMore || loadingMoreRef.current) return;
+    loadingMoreRef.current = true;
+    setVisibleCount((count) => count + MOBILE_RESULTS_PAGE_SIZE);
+  }, [hasMore]);
+  const releaseExtraResults = useCallback(() => {
+    if (visibleCount > MOBILE_RESULTS_PAGE_SIZE) {
+      setVisibleCount(MOBILE_RESULTS_PAGE_SIZE);
+    }
+  }, [visibleCount]);
+
+  return (
+    <>
+      <PlainResults
+        items={visibleItems}
+        onReachEnd={loadMore}
+        onReachTop={releaseExtraResults}
+        {...props}
+      />
+      {hasMore ? (
+        <button
+          type="button"
+          className="mt-3 w-full rounded-md border border-zinc-300 px-4 py-3 text-sm font-medium text-zinc-700 transition hover:bg-zinc-100 dark:border-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-800"
+          onClick={loadMore}
+        >
+          Load more results ({items.length - visibleItems.length} remaining)
+        </button>
+      ) : null}
+    </>
   );
 };
 
@@ -318,7 +378,7 @@ const TorrentResults = ({
   if (!items?.length) return null;
 
   return isMobile ? (
-    <PlainResults
+    <MobileResults
       items={items}
       onCopy={onCopy}
       onDownload={onDownload}
