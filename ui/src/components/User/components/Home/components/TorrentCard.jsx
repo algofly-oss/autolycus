@@ -10,6 +10,7 @@ import { FiTrash2 } from "react-icons/fi";
 import useToast from "@/shared/hooks/useToast";
 import { AnimatePresence } from "framer-motion";
 import TorrentDeleteDialog from "./TorrentDeleteDialog";
+import FileFallback from "./FileFallback";
 import { BiCopy } from "react-icons/bi";
 import {
   CLIPBOARD_COPY_STATUS,
@@ -87,12 +88,6 @@ function posterProgressStyle(progress = 0, paused = false) {
   return {
     background: `conic-gradient(from 0deg, ${color} 0deg ${value * 3.6}deg, ${muted} ${value * 3.6}deg 360deg)`,
   };
-}
-
-function PosterFallback() {
-  return (
-    <div className="absolute inset-0 bg-neutral-200 dark:bg-neutral-900" />
-  );
 }
 
 function PosterProgressRing({ progress, isPaused }) {
@@ -289,16 +284,18 @@ const TorrentCard = ({ torrentData, compact = false }) => {
               <PosterProgressRing progress={progress} isPaused={is_paused} />
             ) : null}
             <div className="absolute inset-0.5 z-10 overflow-hidden rounded-[5px] bg-neutral-200 ring-1 ring-neutral-200 dark:bg-neutral-900 dark:ring-neutral-800">
+              <FileFallback />
               {posterUrl ? (
                 <img
                   src={posterUrl}
                   alt=""
-                  className="h-full w-full object-cover"
+                  className="relative h-full w-full object-cover"
                   loading="lazy"
+                  onError={(event) => {
+                    event.currentTarget.style.display = "none";
+                  }}
                 />
-              ) : (
-                <PosterFallback />
-              )}
+              ) : null}
               <div
                 className={`absolute bottom-0 left-0 right-0 h-24 ${
                   posterUrl
@@ -318,7 +315,7 @@ const TorrentCard = ({ torrentData, compact = false }) => {
                 </p>
                 <div
                   className={`mt-0.5 flex min-h-4 min-w-0 flex-wrap items-center gap-x-1.5 gap-y-0 text-[11px] leading-4 ${
-                    posterUrl ? "text-neutral-300" : "text-neutral-500 dark:text-neutral-500"
+                  posterUrl ? "text-neutral-300" : "text-neutral-500 dark:text-neutral-500"
                   }`}
                 >
                   {compactMetadataItems.length ? (
@@ -435,16 +432,18 @@ const TorrentCard = ({ torrentData, compact = false }) => {
               <PosterProgressRing progress={progress} isPaused={is_paused} />
             ) : null}
             <div className="absolute inset-0.5 z-10 overflow-hidden rounded-[5px] bg-neutral-200 ring-1 ring-neutral-200 dark:bg-neutral-900 dark:ring-neutral-800">
+              <FileFallback />
               {posterUrl ? (
                 <img
                   src={posterUrl}
                   alt=""
-                  className="h-full w-full object-cover"
+                  className="relative h-full w-full object-cover"
                   loading="lazy"
+                  onError={(event) => {
+                    event.currentTarget.style.display = "none";
+                  }}
                 />
-              ) : (
-                <PosterFallback />
-              )}
+              ) : null}
               {!is_finished ? (
                 <div className="absolute inset-0 flex items-center justify-center group-hover:hidden">
                   <span className="text-[11px] font-semibold text-white [text-shadow:0_2px_8px_rgba(0,0,0,1),0_1px_2px_rgba(0,0,0,1)]">

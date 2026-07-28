@@ -8,6 +8,7 @@ import Pagination from "./Pagination";
 import TorrentCard from "./TorrentCard";
 import { SocketContext } from "@/shared/contexts/socket";
 import socketRoutes from "@/shared/routes/socketRoutes";
+import FileFallback from "./FileFallback";
 
 const PAGE_SIZE_OPTIONS = [10, 20, 50, 100];
 const getTorrentKey = (torrent) => torrent?.info_hash || torrent?.url_hash || torrent?.torrent_id;
@@ -17,12 +18,6 @@ function ResultIcon({ type }) {
     <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-neutral-200/70 text-neutral-600 dark:bg-neutral-900 dark:text-neutral-400">
       {type === "directory" ? <FiFolder size={19} /> : <FiFile size={19} />}
     </div>
-  );
-}
-
-function PosterFallback() {
-  return (
-    <div className="absolute inset-0 bg-neutral-200 dark:bg-neutral-900" />
   );
 }
 
@@ -69,16 +64,18 @@ function SearchGridCard({ result, onClick }) {
         className="relative w-full overflow-hidden rounded-md bg-neutral-200 ring-1 ring-neutral-200 transition-[box-shadow,filter] group-hover:shadow-lg group-hover:shadow-blue-500/20 group-hover:brightness-110 dark:bg-neutral-900 dark:ring-neutral-800 dark:group-hover:shadow-blue-950/40"
         style={{ aspectRatio: "2 / 3" }}
       >
+        <FileFallback />
         {posterUrl ? (
           <img
             src={posterUrl}
             alt=""
-            className="h-full w-full object-cover"
+            className="relative h-full w-full object-cover"
             loading="lazy"
+            onError={(event) => {
+              event.currentTarget.style.display = "none";
+            }}
           />
-        ) : (
-          <PosterFallback />
-        )}
+        ) : null}
         <div
           className={`absolute bottom-0 left-0 right-0 h-24 ${
             posterUrl

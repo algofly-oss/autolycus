@@ -88,9 +88,6 @@ export default function App({ Component, pageProps }: AppProps) {
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" />
         <link rel="manifest" href="/manifest.json" />
-        <link rel="icon" href="/favicon.ico" sizes="any" />
-        <link rel="icon" href="/icons/autolycus-icon.svg" type="image/svg+xml" />
-        <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" sizes="180x180" />
         <meta
           name="description"
           content="stream torrent files from hosted web servers remotely."
