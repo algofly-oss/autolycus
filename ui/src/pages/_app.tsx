@@ -87,6 +87,16 @@ export default function App({ Component, pageProps }: AppProps) {
         <title>Autolycus</title>
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" />
+        <link
+          rel="icon"
+          href="/icons/autolycus-icon.svg"
+          type="image/svg+xml"
+        />
+        <link
+          rel="apple-touch-icon"
+          href="/icons/apple-touch-icon.png"
+          sizes="180x180"
+        />
         <link rel="manifest" href="/manifest.json" />
         <meta
           name="description"
