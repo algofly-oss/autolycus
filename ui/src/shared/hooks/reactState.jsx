@@ -39,7 +39,7 @@ const writeObject = (obj, path, val) => {
   return nextRoot;
 };
 
-export default function reactState(defaultState) {
+export default function useReactState(defaultState) {
   const [value, setValue] = useReducer(
     (state, updates) =>
       updates.__reset__

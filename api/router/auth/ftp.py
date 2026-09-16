@@ -1,16 +1,21 @@
 import datetime
+import hashlib
 import os
 import re
+import base64
+import shutil
 from pathlib import Path
 from urllib.parse import quote
 
 import bcrypt
+from cryptography.fernet import Fernet, InvalidToken
 from bson import ObjectId
 from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel
 
-from shared.env import FTP_HOOK_SECRET, FTP_PUBLIC_HOST, FTP_PUBLIC_PORT
+from shared.env import API_SECRET_KEY, FTP_HOOK_SECRET, FTP_PUBLIC_HOST, FTP_PUBLIC_PORT
 from shared.factory import db
+from shared.modules.torrent_name_parser import parse_title, sanitize
 
 from .common import authenticate_user
 from .preferences_utils import serialize_preferences
@@ -20,10 +25,140 @@ router = APIRouter()
 FTP_USERNAME_RE = re.compile(r"^[a-zA-Z0-9][a-zA-Z0-9._-]{2,63}$")
 
 
+def _ftp_password_cipher():
+    key = base64.urlsafe_b64encode(
+        hashlib.sha256(str(API_SECRET_KEY).encode("utf-8")).digest()
+    )
+    return Fernet(key)
+
+
+def _encrypt_ftp_password(password):
+    return _ftp_password_cipher().encrypt(password.encode("utf-8")).decode("utf-8")
+
+
+def _decrypt_ftp_password(encrypted_password):
+    if not encrypted_password:
+        return ""
+    try:
+        return _ftp_password_cipher().decrypt(
+            encrypted_password.encode("utf-8")
+        ).decode("utf-8")
+    except (InvalidToken, ValueError, TypeError):
+        return ""
+
+
+def _ftp_folder_name(source_name, identifier, used_names):
+    parsed_name = parse_title(str(source_name or "")) if source_name else ""
+    clean_name = parsed_name or sanitize(str(source_name or "")) or "Download"
+    # Keep this identical to the homepage torrent label: the first five hash chars.
+    suffix = str(identifier or "")[:5]
+    base_name = f"{clean_name}-{suffix}" if suffix else clean_name
+    folder_name = base_name
+    counter = 2
+    while folder_name in used_names:
+        folder_name = f"{clean_name}-{counter}-{suffix}" if suffix else f"{clean_name}-{counter}"
+        counter += 1
+    used_names.add(folder_name)
+    return folder_name
+
+
+def _sync_ftp_directory(source_dir, mirror_dir):
+    mirror_dir.mkdir(parents=True, exist_ok=True)
+    source_entries = {item.name: item for item in source_dir.iterdir() if not item.is_symlink()}
+
+    for mirror_entry in mirror_dir.iterdir():
+        if mirror_entry.name not in source_entries:
+            if mirror_entry.is_dir() and not mirror_entry.is_symlink():
+                shutil.rmtree(mirror_entry)
+            else:
+                mirror_entry.unlink()
+
+    for name, source_entry in source_entries.items():
+        mirror_entry = mirror_dir / name
+        if source_entry.is_dir():
+            if mirror_entry.exists() and not mirror_entry.is_dir():
+                mirror_entry.unlink()
+            _sync_ftp_directory(source_entry, mirror_entry)
+        elif source_entry.is_file():
+            if mirror_entry.exists() and not mirror_entry.is_file():
+                if mirror_entry.is_dir():
+                    shutil.rmtree(mirror_entry)
+                else:
+                    mirror_entry.unlink()
+            if not mirror_entry.exists():
+                try:
+                    os.link(source_entry, mirror_entry)
+                except OSError:
+                    shutil.copy2(source_entry, mirror_entry)
+
+
+async def _prepare_ftp_friendly_root(user_object_id, user_id, home_dir):
+    root_path = Path(os.getenv("DOWNLOAD_PATH", "/downloads")) / str(user_id)
+    root_path.mkdir(parents=True, exist_ok=True)
+    home_dir.mkdir(parents=True, exist_ok=True)
+
+    torrents = {}
+    async for torrent in db.torrents.find(
+        {"user_id": {"$in": [user_object_id, str(user_object_id)]}},
+        {"info_hash": 1, "url_hash": 1, "name": 1},
+    ):
+        for identifier in (torrent.get("info_hash"), torrent.get("url_hash")):
+            if identifier:
+                torrents[str(identifier).lower()] = torrent.get("name") or ""
+
+    used_names = set()
+    expected_names = set()
+    for source_path in sorted(root_path.iterdir(), key=lambda item: item.name.lower()):
+        if not source_path.is_dir() or source_path.resolve() == home_dir.resolve():
+            continue
+
+        identifier = source_path.name
+        source_name = torrents.get(identifier.lower(), "")
+        child_directories = sorted(
+            (item for item in source_path.iterdir() if item.is_dir()),
+            key=lambda item: item.name.lower(),
+        )
+        child_files = sorted(
+            (item for item in source_path.iterdir() if item.is_file()),
+            key=lambda item: item.name.lower(),
+        )
+
+        targets = child_directories or [source_path]
+        for target in targets:
+            display_source = source_name or target.name
+            if target == source_path and child_files and not source_name:
+                display_source = child_files[0].stem
+            folder_name = _ftp_folder_name(display_source, identifier, used_names)
+            expected_names.add(folder_name)
+            _sync_ftp_directory(target, home_dir / folder_name)
+
+    for item in home_dir.iterdir():
+        if item.name not in expected_names:
+            if item.is_dir() and not item.is_symlink():
+                shutil.rmtree(item)
+            else:
+                item.unlink()
+
+
+async def refresh_ftp_friendly_roots():
+    async for user in db.users.find(
+        {
+            "preferences.ftp.enabled": True,
+            "preferences.ftp.friendly_names": True,
+            "preferences.ftp.username": {"$ne": ""},
+        },
+        {"_id": 1},
+    ):
+        user_id = str(user["_id"])
+        home_dir = Path(os.getenv("DOWNLOAD_PATH", "/downloads")) / user_id / ".ftp-root"
+        await _prepare_ftp_friendly_root(user["_id"], user_id, home_dir)
+
+
 class FtpSettingsUpdate(BaseModel):
     enabled: bool = False
     username: str = ""
     password: str = ""
+    friendly_names: bool = False
 
 
 class FtpHookPayload(BaseModel):
@@ -63,10 +198,13 @@ def _ftp_url(request: Request, username: str):
 
 
 def _serialize_ftp_settings(request: Request, preferences):
+    raw_ftp = dict((preferences or {}).get("ftp") or {})
     serialized = serialize_preferences(preferences)
     ftp = dict(serialized.get("ftp") or {})
     if ftp.get("username"):
         ftp["url"] = _ftp_url(request, ftp["username"])
+        ftp["password"] = _decrypt_ftp_password(raw_ftp.get("password_encrypted"))
+    ftp["friendly_names"] = bool(raw_ftp.get("friendly_names"))
     serialized["ftp"] = ftp
     return serialized
 
@@ -121,6 +259,7 @@ async def update_ftp_settings(settings: FtpSettingsUpdate, request: Request):
     updates = {
         "preferences.ftp.enabled": bool(settings.enabled),
         "preferences.ftp.username": username,
+        "preferences.ftp.friendly_names": bool(settings.friendly_names),
         "preferences.ftp.updated_at": datetime.datetime.utcnow(),
         "preferences.updated_at": datetime.datetime.utcnow(),
     }
@@ -130,6 +269,9 @@ async def update_ftp_settings(settings: FtpSettingsUpdate, request: Request):
         updates["preferences.ftp.password_hash"] = bcrypt.hashpw(
             password.encode("utf-8"),
             salt,
+        )
+        updates["preferences.ftp.password_encrypted"] = _encrypt_ftp_password(
+            password
         )
 
     await db.users.update_one({"_id": user_object_id}, {"$set": updates})
@@ -172,8 +314,17 @@ async def ftp_auth_hook(payload: FtpHookPayload, request: Request):
         raise HTTPException(status_code=403, detail="Invalid FTP credentials")
 
     user_id = str(user["_id"])
-    home_dir = Path(os.getenv("DOWNLOAD_PATH", "/downloads")) / user_id
-    home_dir.mkdir(parents=True, exist_ok=True)
+    ftp_preferences = dict((user.get("preferences") or {}).get("ftp") or {})
+    if ftp_preferences.get("friendly_names"):
+        home_dir = (
+            Path(os.getenv("DOWNLOAD_PATH", "/downloads")) / user_id / ".ftp-root"
+        )
+        await _prepare_ftp_friendly_root(ObjectId(user_id), user_id, home_dir)
+        permissions = {"/": ["list", "download"]}
+    else:
+        home_dir = Path(os.getenv("DOWNLOAD_PATH", "/downloads")) / user_id
+        home_dir.mkdir(parents=True, exist_ok=True)
+        permissions = {"/": ["*"]}
 
     return {
         "status": 1,
@@ -185,7 +336,8 @@ async def ftp_auth_hook(payload: FtpHookPayload, request: Request):
         "max_sessions": 0,
         "quota_size": 0,
         "quota_files": 0,
-        "permissions": {"/": ["*"]},
+        "permissions": permissions,
+        "virtual_folders": [],
         "upload_bandwidth": 0,
         "download_bandwidth": 0,
         "filters": {"allowed_ip": [], "denied_ip": []},

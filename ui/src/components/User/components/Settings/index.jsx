@@ -170,12 +170,15 @@ export default function Settings() {
     enabled: false,
     username: "",
     has_password: false,
+    password: "",
+    friendly_names: false,
     url: "",
   });
   const [ftpForm, setFtpForm] = useState({
     enabled: false,
     username: "",
     password: "",
+    friendly_names: false,
   });
   const [isLoadingFtp, setIsLoadingFtp] = useState(true);
   const [isSavingFtp, setIsSavingFtp] = useState(false);
@@ -244,7 +247,8 @@ export default function Settings() {
       setFtpForm({
         enabled: Boolean(nextSettings.enabled),
         username: nextSettings.username || "",
-        password: "",
+        password: nextSettings.password || "",
+        friendly_names: Boolean(nextSettings.friendly_names),
       });
       setFtpEditing(false);
     } catch (error) {
@@ -471,7 +475,8 @@ export default function Settings() {
     setFtpForm({
       enabled: Boolean(settings.enabled),
       username: settings.username || "",
-      password: "",
+      password: settings.password || "",
+      friendly_names: Boolean(settings.friendly_names),
     });
   };
 
@@ -480,7 +485,8 @@ export default function Settings() {
     setFtpForm({
       enabled: Boolean(ftpSettings.enabled),
       username: ftpSettings.username || "",
-      password: "",
+      password: ftpSettings.password || "",
+      friendly_names: Boolean(ftpSettings.friendly_names),
     });
   };
 
@@ -489,20 +495,27 @@ export default function Settings() {
     setFtpEditing(false);
   };
 
-  const persistFtpSettings = async ({ enabled, username, password }) => {
+  const persistFtpSettings = async ({
+    enabled,
+    username,
+    password,
+    friendly_names,
+  }) => {
     setIsSavingFtp(true);
     try {
       const response = await axios.patch(apiRoutes.ftpSettings, {
         enabled,
         username,
         password,
+        friendly_names,
       });
       const nextSettings = response?.data?.ftp || {};
       setFtpSettings(nextSettings);
       setFtpForm({
         enabled: Boolean(nextSettings.enabled),
         username: nextSettings.username || "",
-        password: "",
+        password: nextSettings.password || "",
+        friendly_names: Boolean(nextSettings.friendly_names),
       });
       setFtpEditing(false);
       if (response?.data?.preferences) {
@@ -545,6 +558,7 @@ export default function Settings() {
       enabled: ftpForm.enabled,
       username: nextUsername,
       password: nextPassword,
+      friendly_names: ftpForm.friendly_names,
     };
 
     persistFtpSettings(payload);
@@ -1274,6 +1288,53 @@ export default function Settings() {
                   </button>
                 </div>
 
+                <div className="flex flex-wrap items-center justify-between gap-3 rounded-md bg-neutral-50 p-3 dark:bg-[#18191b]">
+                  <div>
+                    <p className="text-sm font-medium text-neutral-900 dark:text-neutral-100">
+                      Use parsed folder names
+                    </p>
+                    <p className="mt-1 text-xs text-neutral-500 dark:text-neutral-400">
+                      Show movie titles with the last part of the hash instead of
+                      hash directories.
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    role="switch"
+                    aria-checked={ftpForm.friendly_names}
+                    className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full border p-0.5 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 disabled:cursor-not-allowed disabled:opacity-60 ${
+                      ftpForm.friendly_names
+                        ? "border-blue-500/40 bg-blue-600/75 dark:border-blue-400/30 dark:bg-blue-500/55"
+                        : "border-neutral-300 bg-neutral-200 dark:border-[#33363b] dark:bg-[#2a2b2f]"
+                    }`}
+                    onClick={() =>
+                      setFtpForm((currentForm) => ({
+                        ...currentForm,
+                        friendly_names: !currentForm.friendly_names,
+                      }))
+                    }
+                    disabled={isSavingFtp}
+                    title={
+                      ftpForm.friendly_names
+                        ? "Use parsed folder names"
+                        : "Use real hash directories"
+                    }
+                  >
+                    <span
+                      className={`inline-block h-5 w-5 rounded-full bg-white shadow-sm ring-1 ring-black/10 transition-transform dark:bg-neutral-100 ${
+                        ftpForm.friendly_names
+                          ? "translate-x-5"
+                          : "translate-x-0"
+                      }`}
+                    />
+                    <span className="sr-only">
+                      {ftpForm.friendly_names
+                        ? "Disable parsed folder names"
+                        : "Enable parsed folder names"}
+                    </span>
+                  </button>
+                </div>
+
                 <div className="grid gap-3 md:grid-cols-2">
                   <label className="block">
                     <span className="text-xs font-medium text-neutral-500 dark:text-neutral-400">
@@ -1293,7 +1354,7 @@ export default function Settings() {
                   </label>
                   <label className="block">
                     <span className="text-xs font-medium text-neutral-500 dark:text-neutral-400">
-                      {ftpSettings.has_password ? "New FTP password" : "FTP password"}
+                      FTP password
                     </span>
                     <div className="relative">
                       <input
@@ -1302,7 +1363,7 @@ export default function Settings() {
                         value={ftpForm.password}
                         placeholder={
                           ftpSettings.has_password
-                            ? "Leave blank to keep current"
+                            ? "Enter saved FTP password"
                             : "Set FTP password"
                         }
                         onChange={(event) =>
@@ -1314,6 +1375,12 @@ export default function Settings() {
                       />
                       {renderPasswordToggle("ftp", passwordVisibility.ftp)}
                     </div>
+                    {ftpSettings.has_password && !ftpSettings.password ? (
+                      <p className="mt-1 text-xs text-neutral-500 dark:text-neutral-400">
+                        Re-enter your current password once to make it available
+                        here for future edits.
+                      </p>
+                    ) : null}
                   </label>
                 </div>
 

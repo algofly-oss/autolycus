@@ -3,7 +3,7 @@ import { formatFileSize, getQuality } from "@/shared/utils/fileUtils";
 import { formatTimeRemaining } from "@/shared/utils/timeUtils";
 import { FiDownload } from "react-icons/fi";
 import useToast from "@/shared/hooks/useToast";
-import reactState from "@/shared/hooks/reactState";
+import useReactState from "@/shared/hooks/reactState";
 import { MdContentCopy } from "react-icons/md";
 import {
   CLIPBOARD_COPY_STATUS,
@@ -12,7 +12,7 @@ import {
 import FileFallback from "./FileFallback";
 
 export default function TorrentDetails({ torrent }) {
-  const torrentState = reactState({});
+  const torrentState = useReactState({});
   const toast = useToast();
 
   useEffect(() => {

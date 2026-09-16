@@ -4,7 +4,7 @@ import UserNavBar from "./components/NavBar";
 import { BiMeteor } from "react-icons/bi";
 import Home from "./components/Home";
 import TorrentDetails from "./components/Home/components/TorrentDetails";
-import reactState from "@/shared/hooks/reactState";
+import useReactState from "@/shared/hooks/reactState";
 import Search from "./components/Search";
 import SearchResultDetails from "./components/Search/components/SearchResultDetails";
 import Settings from "./components/Settings";
@@ -25,7 +25,7 @@ export default function UserHome() {
   const [tab, setTab] = useState("Home");
   const [navReady, setNavReady] = useState(false);
   const [navCollapsed, setNavCollapsed] = useState(true);
-  const state = reactState({
+  const state = useReactState({
     hoveredTorrent: null,
     activeTorrent: null,
     isFileView: false,
@@ -36,7 +36,7 @@ export default function UserHome() {
     torrentListTotal: 0,
   });
 
-  const torrentSearchState = reactState({});
+  const torrentSearchState = useReactState({});
   const isHomeTab = tab === "Home";
   const isSearchTab = tab === "Search";
   const isSettingsTab = tab === "Settings";

@@ -287,10 +287,13 @@ export const useTorrentSearchStream = ({
   sortRef,
   updateSort,
 }) => {
+  const toast = useToast();
   const abortRef = useRef(null);
   const searchSessionRef = useRef(0);
   const pendingResultsRef = useRef([]);
   const flushTimerRef = useRef(null);
+  const streamErrorsRef = useRef([]);
+  const streamResultsCountRef = useRef(0);
 
   const flushPendingResults = useCallback(() => {
     if (flushTimerRef.current) {
@@ -348,6 +351,8 @@ export const useTorrentSearchStream = ({
     setHasSearched(true);
     clearPendingResults();
     resetSearchState(trimmedQuery);
+    streamErrorsRef.current = [];
+    streamResultsCountRef.current = 0;
 
     const searchId = (searchSessionRef.current += 1);
     abortRef.current?.abort();
@@ -385,6 +390,12 @@ export const useTorrentSearchStream = ({
           if (!line.trim()) continue;
 
           const item = JSON.parse(line);
+          if (item?.__type === "indexer_error") {
+            streamErrorsRef.current.push(item);
+            continue;
+          }
+
+          streamResultsCountRef.current += 1;
           setSourceOrder((prev) => appendUniqueSource(prev, item?.Tracker));
           pendingResultsRef.current.push(item);
           if (!flushTimerRef.current) {
@@ -393,11 +404,23 @@ export const useTorrentSearchStream = ({
         }
       }
     } catch (err) {
-      if (err.name !== "AbortError") console.error(err);
+      if (err.name !== "AbortError") {
+        console.error(err);
+        toast.error("Torrent search failed. Please try again.");
+      }
     } finally {
       if (searchSessionRef.current === searchId) {
         flushPendingResults();
         setLoading(false);
+
+        const failedIndexers = streamErrorsRef.current.length;
+        if (streamResultsCountRef.current === 0 && failedIndexers > 0) {
+          const suffix =
+            failedIndexers === 1
+              ? "1 indexer failed"
+              : `${failedIndexers} indexers failed`;
+          toast.error(`No torrent results found. ${suffix}.`);
+        }
       }
     }
   }, [
@@ -411,6 +434,7 @@ export const useTorrentSearchStream = ({
     sortRef,
     clearPendingResults,
     flushPendingResults,
+    toast,
   ]);
 
   const handleCancel = useCallback(() => {

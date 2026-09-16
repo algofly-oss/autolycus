@@ -1,3 +1,5 @@
+import asyncio
+
 from fastapi import FastAPI
 from fastapi.responses import RedirectResponse
 from fastapi.middleware.cors import CORSMiddleware
@@ -5,6 +7,7 @@ from router import ping, torrent, auth, files
 from shared.factory import db
 from shared.modules.file_search_index import schedule_missing_search_index_backfill
 from shared.sockets import sio_app
+from router.auth.ftp import refresh_ftp_friendly_roots
 import celery_worker
 
 API_ROOT = "/api"
@@ -17,11 +20,33 @@ app = FastAPI(
 )
 
 app.mount(f"/socket.io", app=sio_app)
+ftp_sync_task = None
 
 
 @app.on_event("startup")
 async def startup_backfill_search_index():
     schedule_missing_search_index_backfill(db)
+
+
+async def _ftp_friendly_root_sync_loop():
+    while True:
+        try:
+            await refresh_ftp_friendly_roots()
+        except Exception as error:
+            print(f"FTP friendly-root sync failed: {error}")
+        await asyncio.sleep(10)
+
+
+@app.on_event("startup")
+async def startup_ftp_friendly_root_sync():
+    global ftp_sync_task
+    ftp_sync_task = asyncio.create_task(_ftp_friendly_root_sync_loop())
+
+
+@app.on_event("shutdown")
+async def shutdown_ftp_friendly_root_sync():
+    if ftp_sync_task:
+        ftp_sync_task.cancel()
 
 # Add CORS middleware
 app.add_middleware(
