@@ -7,6 +7,7 @@ import axios from "axios";
 import apiRoutes from "@/shared/routes/apiRoutes";
 import FileMenu from "./FileExplorer/components/FileMenu";
 import { FiTrash2 } from "react-icons/fi";
+import { FaRegFileArchive } from "react-icons/fa";
 import useToast from "@/shared/hooks/useToast";
 import { AnimatePresence } from "framer-motion";
 import TorrentDeleteDialog from "./TorrentDeleteDialog";
@@ -188,6 +189,25 @@ const TorrentCard = ({ torrentData, compact = false }) => {
     }
   };
 
+  const downloadTorrentAsZip = () => {
+    let hash = info_hash;
+    if (torrentData?.is_direct_download) {
+      hash = `url_hash_${torrentData?.url_hash}`;
+    }
+
+    const downloadUrl = `${apiRoutes.downloadTorrentZip}?info_hash=${encodeURIComponent(
+      hash
+    )}&filename=${encodeURIComponent(parsedDisplayTitle)}`;
+
+    const link = document.createElement("a");
+    link.href = downloadUrl;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+
+    toast.success("Download started");
+  };
+
   const actions = [
     {
       name: torrentData?.is_direct_download ? "Copy URL" : "Copy Magnet",
@@ -199,6 +219,11 @@ const TorrentCard = ({ torrentData, compact = false }) => {
         ? [{ name: "Resume", icon: RxResume, action: "resume" }]
         : [{ name: "Pause", icon: RxPause, action: "pause" }]
       : []),
+    {
+      name: "Download as Zip",
+      icon: FaRegFileArchive,
+      action: "download-zip",
+    },
     {
       name: "Delete Torrent",
       icon: FiTrash2,
@@ -220,6 +245,9 @@ const TorrentCard = ({ torrentData, compact = false }) => {
       case "resume":
         resumeTorrent();
         break;
+      case "download-zip":
+        downloadTorrentAsZip();
+        break;
     }
   };
 
@@ -235,12 +263,22 @@ const TorrentCard = ({ torrentData, compact = false }) => {
     is_finished ? totalSizeLabel : null,
     sourceLabel,
   ].filter(Boolean);
+  const speedLabel =
+    !is_finished && download_speed > 0
+      ? `${formatFileSize(download_speed)}/s`
+      : null;
+  const etaLabel =
+    !is_finished && !is_paused && timeLeftSeconds > 0
+      ? formatTimeRemaining(timeLeftSeconds)
+      : null;
   const compactMetadataItems = !is_finished
     ? [
         `${Math.round(progress || 0)}%`,
         resolutionLabel,
         totalSizeLabel,
         sourceLabel,
+        speedLabel,
+        etaLabel,
       ].filter(Boolean)
     : [resolutionLabel, totalSizeLabel, sourceLabel].filter(Boolean);
   const compactEndLabel = sourceLabel;
