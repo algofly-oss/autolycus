@@ -7,5 +7,10 @@ app = Celery(
     "tasks",
     broker=redis_url,
     backend=redis_url,
-    include=["tasks.transcode_video", "tasks.download_from_url"],
+    include=[
+        "tasks.transcode_video",
+        "tasks.download_from_url",
+        "tasks.archive",
+        "tasks.delete_path",
+    ],
 )

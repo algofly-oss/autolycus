@@ -19,6 +19,33 @@ export const INITIAL_SORT = {
   dir: "desc",
 };
 
+export const ALL_SOURCES = "All";
+export const REORDER_PULSE_MS = 220;
+export const RESULTS_OFFSET_PADDING_REM = 2.5;
+
+const FALLBACK_TRACKERS =
+  "&tr=udp%3A%2F%2Ftracker.coppersurfer.tk%3A6969%2Fannounce" +
+  "&tr=udp%3A%2F%2Ftracker.openbittorrent.com%3A6969%2Fannounce" +
+  "&tr=udp%3A%2F%2F9.rarbg.to%3A2710%2Fannounce" +
+  "&tr=udp%3A%2F%2F9.rarbg.me%3A2780%2Fannounce" +
+  "&tr=udp%3A%2F%2F9.rarbg.to%3A2730%2Fannounce" +
+  "&tr=udp%3A%2F%2Ftracker.opentrackr.org%3A1337" +
+  "&tr=http%3A%2F%2Fp4p.arenabg.com%3A1337%2Fannounce" +
+  "&tr=udp%3A%2F%2Ftracker.torrent.eu.org%3A451%2Fannounce" +
+  "&tr=udp%3A%2F%2Ftracker.tiny-vps.com%3A6969%2Fannounce" +
+  "&tr=udp%3A%2F%2Fopen.stealth.si%3A80%2Fannounce";
+
+export const FUSE_OPTIONS = {
+  keys: [
+    { name: "Title", weight: 1 },
+    { name: "Tracker", weight: 0.2 },
+  ],
+  threshold: 0.35,
+  ignoreLocation: true,
+  minMatchCharLength: 2,
+  useExtendedSearch: true,
+};
+
 export const formatBytes = (bytes) => {
   if (!bytes || isNaN(bytes)) return "—";
   const units = ["B", "KB", "MB", "GB", "TB", "PB"];
@@ -65,7 +92,7 @@ export const truncateText = (text, length = 100) => {
 
 export const sortResults = (
   data,
-  { key = SORT_KEYS.name, dir = "asc" } = {}
+  { key = SORT_KEYS.name, dir = "asc" } = {},
 ) => {
   const factor = dir === "asc" ? 1 : -1;
 
@@ -86,4 +113,68 @@ export const sortResults = (
         return 0;
     }
   });
+};
+
+export const getSavedSort = (torrentSearchState) => {
+  const savedSort = torrentSearchState.get("sort");
+  return savedSort?.key && savedSort?.dir ? savedSort : INITIAL_SORT;
+};
+
+export const getSourceCounts = (results) =>
+  results.reduce((counts, result) => {
+    if (!result.Tracker) return counts;
+    counts[result.Tracker] = (counts[result.Tracker] || 0) + 1;
+    return counts;
+  }, {});
+
+export const getOrderedSources = ({ loading, sourceCounts, sourceOrder }) => {
+  if (loading) return [ALL_SOURCES, ...sourceOrder];
+
+  const sortedSources = Object.entries(sourceCounts)
+    .sort(([trackA, countA], [trackB, countB]) => {
+      const countDiff = countB - countA;
+      if (countDiff !== 0) return countDiff;
+      return (trackA || "").localeCompare(trackB || "");
+    })
+    .map(([tracker]) => tracker);
+
+  return [ALL_SOURCES, ...sortedSources];
+};
+
+const filterBySource = (results, activeSource) => {
+  if (activeSource === ALL_SOURCES) return results;
+  return results.filter((result) => result.Tracker === activeSource);
+};
+
+export const filterByTitle = ({ activeSource, fuse, results, titleFilter }) => {
+  if (!titleFilter?.trim()) return filterBySource(results, activeSource);
+
+  return fuse
+    .search(titleFilter)
+    .map((result) => result.item)
+    .filter((result) =>
+      activeSource === ALL_SOURCES ? true : result.Tracker === activeSource,
+    );
+};
+
+export const getNextSort = (currentSort, key) => {
+  const dir =
+    currentSort.key === key
+      ? currentSort.dir === "asc"
+        ? "desc"
+        : "asc"
+      : (DEFAULT_SORT_DIR[key] ?? "asc");
+
+  return { key, dir };
+};
+
+export const extractMagnet = (item) => {
+  if (item?.MagnetUri) return item.MagnetUri;
+  if (!item?.InfoHash) return null;
+  return `magnet:?xt=urn:btih:${item.InfoHash}${FALLBACK_TRACKERS}`;
+};
+
+export const appendUniqueSource = (sources, tracker) => {
+  if (!tracker || sources.includes(tracker)) return sources;
+  return [...sources, tracker];
 };

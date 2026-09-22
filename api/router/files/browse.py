@@ -25,6 +25,9 @@ class FileItem(BaseModel):
     is_partial: bool = False
     is_transcoding: bool = False
     public_url_key: Optional[str] = None
+    archive_status: Optional[str] = None
+    archive_progress: Optional[float] = None
+    archive_eta: Optional[int] = None
 
 def is_transcoded_file(filename):  
     # Regular expression pattern to match resolution part (e.g., _360)  
@@ -123,6 +126,19 @@ async def browse_directory(path: str, request: Request):
                 transcode_in_progress = True
 
             public_url_key = None
+            archive_status = None
+            archive_progress = None
+            archive_eta = None
+            archive_data = redis.get(f"archive_progress/{item}")
+            if archive_data:
+                try:
+                    archive_data = json.loads(archive_data)
+                    if archive_data.get("status") in ("queued", "running"):
+                        archive_status = archive_data["status"]
+                        archive_progress = archive_data.get("progress", 0)
+                        archive_eta = archive_data.get("eta", 0)
+                except (TypeError, ValueError):
+                    pass
             if item.is_file() and torrent_id:
                 public_url_key = await ensure_public_url_record(
                     user_id,
@@ -141,6 +157,9 @@ async def browse_directory(path: str, request: Request):
                     is_partial=use_allocated_size and current_size < total_size,
                     is_transcoding=transcode_in_progress,
                     public_url_key=public_url_key,
+                    archive_status=archive_status,
+                    archive_progress=archive_progress,
+                    archive_eta=archive_eta,
                 )
             )
 

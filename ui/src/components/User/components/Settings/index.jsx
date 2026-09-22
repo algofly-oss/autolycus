@@ -170,12 +170,15 @@ export default function Settings() {
     enabled: false,
     username: "",
     has_password: false,
+    password: "",
+    friendly_names: false,
     url: "",
   });
   const [ftpForm, setFtpForm] = useState({
     enabled: false,
     username: "",
     password: "",
+    friendly_names: false,
   });
   const [isLoadingFtp, setIsLoadingFtp] = useState(true);
   const [isSavingFtp, setIsSavingFtp] = useState(false);
@@ -244,7 +247,8 @@ export default function Settings() {
       setFtpForm({
         enabled: Boolean(nextSettings.enabled),
         username: nextSettings.username || "",
-        password: "",
+        password: nextSettings.password || "",
+        friendly_names: Boolean(nextSettings.friendly_names),
       });
       setFtpEditing(false);
     } catch (error) {
@@ -471,7 +475,8 @@ export default function Settings() {
     setFtpForm({
       enabled: Boolean(settings.enabled),
       username: settings.username || "",
-      password: "",
+      password: settings.password || "",
+      friendly_names: Boolean(settings.friendly_names),
     });
   };
 
@@ -480,7 +485,8 @@ export default function Settings() {
     setFtpForm({
       enabled: Boolean(ftpSettings.enabled),
       username: ftpSettings.username || "",
-      password: "",
+      password: ftpSettings.password || "",
+      friendly_names: Boolean(ftpSettings.friendly_names),
     });
   };
 
@@ -489,20 +495,27 @@ export default function Settings() {
     setFtpEditing(false);
   };
 
-  const persistFtpSettings = async ({ enabled, username, password }) => {
+  const persistFtpSettings = async ({
+    enabled,
+    username,
+    password,
+    friendly_names,
+  }) => {
     setIsSavingFtp(true);
     try {
       const response = await axios.patch(apiRoutes.ftpSettings, {
         enabled,
         username,
         password,
+        friendly_names,
       });
       const nextSettings = response?.data?.ftp || {};
       setFtpSettings(nextSettings);
       setFtpForm({
         enabled: Boolean(nextSettings.enabled),
         username: nextSettings.username || "",
-        password: "",
+        password: nextSettings.password || "",
+        friendly_names: Boolean(nextSettings.friendly_names),
       });
       setFtpEditing(false);
       if (response?.data?.preferences) {
@@ -545,6 +558,7 @@ export default function Settings() {
       enabled: ftpForm.enabled,
       username: nextUsername,
       password: nextPassword,
+      friendly_names: ftpForm.friendly_names,
     };
 
     persistFtpSettings(payload);
@@ -664,7 +678,7 @@ export default function Settings() {
   const renderPublicUrlsSection = () => (
     <section className={settingsPanelClass}>
       <div
-        className={`flex flex-wrap items-center justify-between gap-3 border-b px-5 py-4 ${settingsDividerClass}`}
+        className={`flex flex-col items-stretch gap-3 border-b px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-5 ${settingsDividerClass}`}
       >
         <div>
           <p className="text-sm font-semibold text-neutral-900 dark:text-neutral-100">
@@ -674,7 +688,7 @@ export default function Settings() {
             Manage active public file links.
           </p>
         </div>
-        <div className="flex shrink-0 flex-wrap items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2 sm:shrink-0">
           {publicUrlsTotal > 0 ? (
             <button
               type="button"
@@ -721,7 +735,7 @@ export default function Settings() {
               return (
                 <div
                   key={item.path_hash}
-                  className="flex items-center justify-between gap-4 px-5 py-4"
+                  className="flex flex-col items-stretch gap-3 px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-5"
                 >
                   <div className="flex min-w-0 items-center gap-3">
                     <input
@@ -739,7 +753,7 @@ export default function Settings() {
                       </p>
                     </div>
                   </div>
-                  <div className="flex shrink-0 items-center gap-2">
+                  <div className="flex items-center gap-2 sm:shrink-0">
                     <button
                       type="button"
                       className="inline-flex items-center gap-2 rounded-md border border-neutral-300 px-3 py-2 text-sm font-medium text-neutral-700 transition hover:bg-neutral-100 dark:border-[#33363b] dark:text-neutral-200 dark:hover:bg-[#2a2b2f]"
@@ -852,7 +866,7 @@ export default function Settings() {
   };
 
   return (
-    <div className="min-h-full bg-neutral-50 px-3 py-4 dark:bg-[#18191b] md:px-6 md:py-6">
+    <div className="min-h-full bg-neutral-50 px-3 py-4 pb-24 dark:bg-[#18191b] md:px-6 md:py-6">
       <div className="mx-auto max-w-5xl space-y-4">
         <div>
           <h1 className="text-2xl font-semibold text-neutral-900 dark:text-neutral-100">
@@ -865,7 +879,7 @@ export default function Settings() {
 
         <section className={settingsPanelClass}>
           <div
-            className={`flex flex-wrap items-center justify-between gap-4 border-b px-5 py-4 ${settingsDividerClass}`}
+            className={`flex flex-col items-stretch gap-3 border-b px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-5 ${settingsDividerClass}`}
           >
             <div className="flex min-w-0 items-center gap-3">
               {profilePictureSource ? (
@@ -890,7 +904,7 @@ export default function Settings() {
             </div>
             <button
               type="button"
-              className="rounded-md border border-neutral-300 px-3 py-2 text-sm font-medium text-neutral-700 transition hover:bg-neutral-100 dark:border-[#33363b] dark:text-neutral-200 dark:hover:bg-[#2a2b2f]"
+              className="w-full rounded-md border border-neutral-300 px-3 py-2 text-sm font-medium text-neutral-700 transition hover:bg-neutral-100 sm:w-auto dark:border-[#33363b] dark:text-neutral-200 dark:hover:bg-[#2a2b2f]"
               onClick={handleToggleProfileEditing}
             >
               {profileEditing ? "Cancel" : "Edit"}
@@ -1060,7 +1074,7 @@ export default function Settings() {
 
         <section className={settingsPanelClass}>
           <div
-            className={`flex items-center justify-between gap-4 border-b px-5 py-4 ${settingsDividerClass}`}
+            className={`flex flex-col items-stretch gap-3 border-b px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-5 ${settingsDividerClass}`}
           >
             <div>
               <p className="text-sm font-semibold text-neutral-900 dark:text-neutral-100">
@@ -1072,7 +1086,7 @@ export default function Settings() {
             </div>
             <button
               type="button"
-              className="shrink-0 whitespace-nowrap rounded-md border border-neutral-300 px-3 py-2 text-sm font-medium text-neutral-700 transition hover:bg-neutral-100 dark:border-[#33363b] dark:text-neutral-200 dark:hover:bg-[#2a2b2f]"
+              className="w-full whitespace-nowrap rounded-md border border-neutral-300 px-3 py-2 text-sm font-medium text-neutral-700 transition hover:bg-neutral-100 sm:w-auto dark:border-[#33363b] dark:text-neutral-200 dark:hover:bg-[#2a2b2f]"
               onClick={() => setPasswordEditing((editing) => !editing)}
             >
               {passwordEditing ? "Cancel" : "Change password"}
@@ -1153,7 +1167,7 @@ export default function Settings() {
 
         <section className={settingsPanelClass}>
           <div
-            className={`flex items-center justify-between gap-4 border-b px-5 py-4 ${settingsDividerClass}`}
+            className={`flex flex-col items-stretch gap-3 border-b px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-5 ${settingsDividerClass}`}
           >
             <div className="min-w-0">
               <div className="flex flex-wrap items-center gap-2">
@@ -1176,10 +1190,10 @@ export default function Settings() {
                 Enable FTP access to your downloads.
               </p>
             </div>
-            <div className="flex shrink-0 items-center">
+            <div className="flex items-center sm:shrink-0">
               <button
                 type="button"
-                className="inline-flex min-w-[7.75rem] items-center justify-center gap-2 rounded-md border border-neutral-300 px-3 py-2 text-sm font-medium text-neutral-700 transition hover:bg-neutral-100 disabled:cursor-not-allowed disabled:opacity-60 dark:border-[#33363b] dark:text-neutral-200 dark:hover:bg-[#2a2b2f]"
+                className="inline-flex w-full min-w-[7.75rem] items-center justify-center gap-2 rounded-md border border-neutral-300 px-3 py-2 text-sm font-medium text-neutral-700 transition hover:bg-neutral-100 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto dark:border-[#33363b] dark:text-neutral-200 dark:hover:bg-[#2a2b2f]"
                 onClick={ftpEditing ? cancelFtpEditor : openFtpEditor}
                 disabled={isLoadingFtp || isSavingFtp}
               >
@@ -1274,6 +1288,53 @@ export default function Settings() {
                   </button>
                 </div>
 
+                <div className="flex flex-wrap items-center justify-between gap-3 rounded-md bg-neutral-50 p-3 dark:bg-[#18191b]">
+                  <div>
+                    <p className="text-sm font-medium text-neutral-900 dark:text-neutral-100">
+                      Use parsed folder names
+                    </p>
+                    <p className="mt-1 text-xs text-neutral-500 dark:text-neutral-400">
+                      Show movie titles with the last part of the hash instead of
+                      hash directories.
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    role="switch"
+                    aria-checked={ftpForm.friendly_names}
+                    className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full border p-0.5 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 disabled:cursor-not-allowed disabled:opacity-60 ${
+                      ftpForm.friendly_names
+                        ? "border-blue-500/40 bg-blue-600/75 dark:border-blue-400/30 dark:bg-blue-500/55"
+                        : "border-neutral-300 bg-neutral-200 dark:border-[#33363b] dark:bg-[#2a2b2f]"
+                    }`}
+                    onClick={() =>
+                      setFtpForm((currentForm) => ({
+                        ...currentForm,
+                        friendly_names: !currentForm.friendly_names,
+                      }))
+                    }
+                    disabled={isSavingFtp}
+                    title={
+                      ftpForm.friendly_names
+                        ? "Use parsed folder names"
+                        : "Use real hash directories"
+                    }
+                  >
+                    <span
+                      className={`inline-block h-5 w-5 rounded-full bg-white shadow-sm ring-1 ring-black/10 transition-transform dark:bg-neutral-100 ${
+                        ftpForm.friendly_names
+                          ? "translate-x-5"
+                          : "translate-x-0"
+                      }`}
+                    />
+                    <span className="sr-only">
+                      {ftpForm.friendly_names
+                        ? "Disable parsed folder names"
+                        : "Enable parsed folder names"}
+                    </span>
+                  </button>
+                </div>
+
                 <div className="grid gap-3 md:grid-cols-2">
                   <label className="block">
                     <span className="text-xs font-medium text-neutral-500 dark:text-neutral-400">
@@ -1293,7 +1354,7 @@ export default function Settings() {
                   </label>
                   <label className="block">
                     <span className="text-xs font-medium text-neutral-500 dark:text-neutral-400">
-                      {ftpSettings.has_password ? "New FTP password" : "FTP password"}
+                      FTP password
                     </span>
                     <div className="relative">
                       <input
@@ -1302,7 +1363,7 @@ export default function Settings() {
                         value={ftpForm.password}
                         placeholder={
                           ftpSettings.has_password
-                            ? "Leave blank to keep current"
+                            ? "Enter saved FTP password"
                             : "Set FTP password"
                         }
                         onChange={(event) =>
@@ -1314,6 +1375,12 @@ export default function Settings() {
                       />
                       {renderPasswordToggle("ftp", passwordVisibility.ftp)}
                     </div>
+                    {ftpSettings.has_password && !ftpSettings.password ? (
+                      <p className="mt-1 text-xs text-neutral-500 dark:text-neutral-400">
+                        Re-enter your current password once to make it available
+                        here for future edits.
+                      </p>
+                    ) : null}
                   </label>
                 </div>
 
@@ -1344,7 +1411,7 @@ export default function Settings() {
 
         <section className={settingsPanelClass}>
           <div
-            className={`flex items-center justify-between gap-4 border-b px-5 py-4 ${settingsDividerClass}`}
+            className={`flex flex-col items-stretch gap-3 border-b px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-5 ${settingsDividerClass}`}
           >
             <div>
               <p className="text-sm font-semibold text-neutral-900 dark:text-neutral-100">
@@ -1378,7 +1445,7 @@ export default function Settings() {
               sessions.map((session) => (
                 <div
                   key={session.id}
-                  className="flex items-center justify-between gap-4 px-5 py-4"
+                  className="flex flex-col items-stretch gap-3 px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-5"
                 >
                   <div className="min-w-0">
                     <div className="flex items-center gap-2">
@@ -1401,7 +1468,7 @@ export default function Settings() {
                   </div>
                   <button
                     type="button"
-                    className="inline-flex shrink-0 items-center gap-2 rounded-md border border-neutral-300 px-3 py-2 text-sm font-medium text-neutral-700 transition hover:bg-neutral-100 disabled:cursor-not-allowed disabled:opacity-60 dark:border-[#33363b] dark:text-neutral-200 dark:hover:bg-[#2a2b2f]"
+                    className="inline-flex items-center justify-center gap-2 rounded-md border border-neutral-300 px-3 py-2 text-sm font-medium text-neutral-700 transition hover:bg-neutral-100 disabled:cursor-not-allowed disabled:opacity-60 sm:shrink-0 dark:border-[#33363b] dark:text-neutral-200 dark:hover:bg-[#2a2b2f]"
                     onClick={() => setSessionPendingSignOut(session)}
                     disabled={activeSessionId === session.id}
                   >

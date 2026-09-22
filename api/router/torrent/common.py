@@ -8,7 +8,10 @@ from shared.modules.file_search_index import (
     index_torrent_files_sync,
     index_torrent_root_sync,
 )
-from shared.modules.media_metadata import cache_torrent_media_metadata_sync
+from shared.modules.media_metadata import (
+    cache_torrent_media_metadata_sync,
+    schedule_torrent_media_metadata_refresh,
+)
 import shutil
 import os
 import glob
@@ -74,6 +77,12 @@ def update_to_db(props, user_id):
     db.torrents.update_one(
         {"info_hash": props["info_hash"], "user_id": user_id}, {"$set": props}
     )
+
+    # Libtorrent provides the display name only after the magnet metadata is
+    # received. Start poster lookup here so manually pasted magnets do not
+    # depend on a later page refresh.
+    if props.get("ok") and props.get("name"):
+        schedule_torrent_media_metadata_refresh(str(user_id), [props])
 
     if props.get("ok") and not props.get("is_finished"):
         index_key = f"{user_id}/{props['info_hash']}/search_root_indexed"

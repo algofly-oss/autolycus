@@ -13,7 +13,7 @@ if [ ! -d "/app/jackett" ]; then
 fi
 
 # Start Celery Worker
-celery -A celery_worker worker -Q transcoding --concurrency=$CELERY_NUM_WORKERS --loglevel=info -E &
+celery -A celery_worker worker -Q transcoding,archive,file_operations --concurrency=$CELERY_NUM_WORKERS --loglevel=info -E &
 
 # Start API Server
 if [ "$API_DEBUG" = "True" ]; then

@@ -1,5 +1,6 @@
 motor==2.5.1
 bcrypt==3.2.0
+cryptography==41.0.7
 pymongo==3.12.3
 redis==4.1.4
 fastapi==0.79.0
@@ -15,3 +16,4 @@ lxml==4.6.3
 celery==5.4.0
 flower==2.0.1
 httpx==0.28.1
+zipstream-ng==1.9.3

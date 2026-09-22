@@ -69,8 +69,8 @@ export default function DownloadSearch({
   };
 
   return (
-    <div className="no-scrollbar mt-2 flex min-w-0 flex-nowrap items-center gap-2 overflow-x-auto">
-      <div className="relative min-w-[7.5rem] flex-1 basis-[10rem] sm:min-w-[10rem] sm:basis-[14rem]">
+    <div className="no-scrollbar mt-2 flex min-w-0 flex-wrap items-center gap-2 md:flex-nowrap md:overflow-x-auto">
+      <div className="relative w-full min-w-[7.5rem] basis-full md:flex-1 md:basis-[10rem] md:min-w-[10rem] lg:basis-[14rem]">
         <input
           type="text"
           value={query}
@@ -94,7 +94,7 @@ export default function DownloadSearch({
       </div>
 
       <select
-        className={`${controlClass} w-[8rem] shrink-0 sm:w-[9rem]`}
+        className={`${controlClass} min-w-0 flex-1 basis-[5.5rem] sm:w-[9rem] sm:flex-none`}
         value={type}
         onChange={(event) => setType(event.target.value)}
       >
@@ -106,7 +106,7 @@ export default function DownloadSearch({
       </select>
 
       <select
-        className={`${controlClass} w-[5.75rem] shrink-0 sm:w-[7rem]`}
+        className={`${controlClass} min-w-0 flex-1 basis-[4.75rem] sm:w-[7rem] sm:flex-none`}
         value={extension}
         onChange={(event) => setExtension(event.target.value)}
       >
@@ -118,7 +118,7 @@ export default function DownloadSearch({
       </select>
 
       <select
-        className={`${controlClass} w-[6.5rem] shrink-0 sm:w-[7.5rem]`}
+        className={`${controlClass} min-w-0 flex-1 basis-[5rem] sm:w-[7.5rem] sm:flex-none`}
         value={sort}
         onChange={(event) => setSort(event.target.value)}
       >
@@ -130,7 +130,7 @@ export default function DownloadSearch({
       </select>
 
       {showViewToggle ? (
-        <div className="ml-auto flex h-12 shrink-0 items-center gap-1 rounded-lg bg-zinc-100 p-1 dark:bg-black">
+        <div className="ml-0 flex h-12 shrink-0 items-center gap-1 rounded-lg bg-zinc-100 p-1 sm:ml-auto dark:bg-black">
           <button
             type="button"
             className={`flex h-10 w-10 items-center justify-center rounded-md transition ${

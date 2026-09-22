@@ -20,7 +20,6 @@ export default function FileExplorer({
   const [items, setItems] = useState([]);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
-  const [archiving, setArchiving] = useState(false);
   const [videoPlayer, setVideoPlayer] = useState({
     open: false,
     url: "",
@@ -158,11 +157,10 @@ export default function FileExplorer({
         `${apiRoutes.deleteFile}?path=${encodeURIComponent(path)}`
       );
 
-      // Remove the item from the list
+      // The worker deletes in the background, so hide the queued item immediately.
       setItems(items.filter((item) => item.name !== deleteDialog.item.name));
 
-      // Show success notification
-      toast.success(`${deleteDialog.item.name} has been deleted`);
+      toast.success(`${deleteDialog.item.name} deletion started`);
     } catch (err) {
       // Show error notification
       toast.error(err.message);
@@ -195,16 +193,6 @@ export default function FileExplorer({
 
   return (
     <div className="mt-5">
-      {archiving && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center">
-          <div className="absolute inset-0 bg-black opacity-80 z-40"></div>
-          <div className="relative z-50 flex gap-3 items-center bg-transparent p-4">
-            <p className="text-lg font-semibold">Archiving, Please wait...</p>
-            <FiLoader className="animate-spin w-8 h-8" />
-          </div>
-        </div>
-      )}
-
       {pasting && (
         <div className="fixed inset-0 z-50 flex items-center justify-center">
           <div className="absolute inset-0 bg-black opacity-80 z-40"></div>
@@ -300,7 +288,6 @@ export default function FileExplorer({
             setCopiedItem={setCopiedItem}
             setDeleteDialog={setDeleteDialog}
             setRenameDialog={setRenameDialog}
-            setArchiving={setArchiving}
           />
         ))}
       </div>

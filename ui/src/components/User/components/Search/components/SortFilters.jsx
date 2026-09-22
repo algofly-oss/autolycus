@@ -71,12 +71,12 @@ const SortFilters = ({
       <div className="hidden md:block border-l my-0.5 dark:border-neutral-800" />
 
       {/* On mobile: Title filter sits below sort row */}
-      <div className="relative flex w-full min-w-0 rounded-full overflow-hidden h-7 md:max-h-10 md:hidden">
+      <div className="relative flex h-11 w-full min-w-0 overflow-hidden rounded-lg md:hidden">
         <input
           value={titleFilter}
           onChange={(e) => setTitleFilter(e.target.value)}
           placeholder="Filter results by title"
-          className="w-full min-w-0 px-3 pr-7 text-[11px] bg-zinc-200 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 rounded-full outline-none"
+          className="w-full min-w-0 bg-zinc-200 px-3 pr-7 text-[11px] text-zinc-700 outline-none dark:bg-zinc-800 dark:text-zinc-300"
         />
         {titleFilter ? (
           <button

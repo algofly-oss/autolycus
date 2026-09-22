@@ -3,15 +3,16 @@ import { formatFileSize, getQuality } from "@/shared/utils/fileUtils";
 import { formatTimeRemaining } from "@/shared/utils/timeUtils";
 import { FiDownload } from "react-icons/fi";
 import useToast from "@/shared/hooks/useToast";
-import reactState from "@/shared/hooks/reactState";
+import useReactState from "@/shared/hooks/reactState";
 import { MdContentCopy } from "react-icons/md";
 import {
   CLIPBOARD_COPY_STATUS,
   copyTextToClipboard,
 } from "@/shared/utils/clipboard";
+import FileFallback from "./FileFallback";
 
 export default function TorrentDetails({ torrent }) {
-  const torrentState = reactState({});
+  const torrentState = useReactState({});
   const toast = useToast();
 
   useEffect(() => {
@@ -87,16 +88,20 @@ export default function TorrentDetails({ torrent }) {
 
   return (
     <div className="p-6 text-gray-800 dark:text-gray-200">
-      {posterUrl ? (
-        <div className="mb-5 w-full overflow-hidden rounded-lg" style={{ aspectRatio: "2 / 3" }}>
+      <div className="relative mb-5 w-full overflow-hidden rounded-lg" style={{ aspectRatio: "2 / 3" }}>
+        <FileFallback />
+        {posterUrl ? (
           <img
             src={posterUrl}
             alt=""
-            className="h-full w-full rounded-lg object-cover"
+            className="relative h-full w-full rounded-lg object-cover"
             loading="lazy"
+            onError={(event) => {
+              event.currentTarget.style.display = "none";
+            }}
           />
+        ) : null}
         </div>
-      ) : null}
 
       <h2 className="mb-6 break-words text-lg font-semibold leading-6 text-gray-900 dark:text-gray-100">
         {torrent.name}

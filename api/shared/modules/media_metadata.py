@@ -2,6 +2,7 @@ import os
 import re
 import threading
 import time
+import traceback
 from datetime import datetime
 from pathlib import Path
 from urllib.parse import quote
@@ -25,6 +26,8 @@ TMDB_API_ROOT = "https://api.themoviedb.org/3"
 TMDB_IMAGE_ROOT = "https://image.tmdb.org/t/p"
 IMDB_SUGGEST_ROOT = "https://v3.sg.media-imdb.com/suggestion/x"
 _REFRESH_IN_FLIGHT = {}
+_REFRESH_SUCCESS_COOLDOWN_SECONDS = 15 * 60
+_REFRESH_FAILURE_COOLDOWN_SECONDS = 60
 
 
 def _torrent_identifier(torrent):
@@ -678,7 +681,9 @@ def schedule_torrent_media_metadata_refresh(user_id, torrents):
         return
 
     for torrent in candidates:
-        _REFRESH_IN_FLIGHT[f"{user_id}:{_torrent_identifier(torrent)}"] = now + 900
+        _REFRESH_IN_FLIGHT[f"{user_id}:{_torrent_identifier(torrent)}"] = (
+            now + _REFRESH_SUCCESS_COOLDOWN_SECONDS
+        )
 
     def _refresh():
         db = _sync_db()
@@ -704,7 +709,12 @@ def schedule_torrent_media_metadata_refresh(user_id, torrents):
                     }
                     emit(f"/stc/torrent-props-update/{torrent_id}", payload, user_id)
             except Exception:
-                pass
+                torrent_id = _torrent_identifier(torrent)
+                _REFRESH_IN_FLIGHT[f"{user_id}:{torrent_id}"] = (
+                    time.time() + _REFRESH_FAILURE_COOLDOWN_SECONDS
+                )
+                print(f"Media metadata refresh failed for {torrent_id}")
+                traceback.print_exc()
 
     threading.Thread(target=_refresh, daemon=True).start()
 
