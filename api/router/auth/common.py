@@ -28,7 +28,10 @@ def authenticate_user(request: Request):
         raise login_error
 
     # Check if session token is valid
-    user_id = redis.get(session_token)
+    if hasattr(request.state, "session_user_id"):
+        user_id = request.state.session_user_id
+    else:
+        user_id = redis.get(session_token)
     if not user_id:
         raise login_error
 

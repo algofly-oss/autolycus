@@ -162,6 +162,7 @@ const VirtualizedResults = ({
   return (
     <div
       ref={parentRef}
+      data-search-list
       onScroll={() => {
         if (!parentRef.current || !onScrollOffsetChange) return;
         if (restoringRef.current) return;
@@ -178,7 +179,7 @@ const VirtualizedResults = ({
           onScrollOffsetChange(lastScrollTopRef.current);
         }, 140);
       }}
-      className={`h-[calc(100vh-var(--results-offset))] overflow-auto scroll-auto touch-scroll light-scrolbar dark:dark-scrollbar pr-1 rounded-lg`}
+      className={`h-[calc(100vh-var(--results-offset))] overflow-auto scroll-auto touch-scroll light-scrolbar dark:dark-scrollbar pb-16 pr-1 md:pb-0 rounded-lg`}
     >
       <ul
         className="relative w-full"
@@ -266,6 +267,7 @@ const PlainResults = ({
   return (
     <div
       ref={parentRef}
+      data-search-list
       onScroll={(event) => {
         if (!parentRef.current || !onScrollOffsetChange) return;
         if (restoringRef.current) return;
@@ -290,7 +292,7 @@ const PlainResults = ({
           onReachEnd?.();
         }
       }}
-      className={`h-[calc(100vh-var(--results-offset))] overflow-auto scroll-auto touch-scroll light-scrolbar dark:dark-scrollbar pr-1 rounded-lg`}
+      className={`h-[calc(100vh-var(--results-offset))] overflow-auto scroll-auto touch-scroll light-scrolbar dark:dark-scrollbar pb-16 pr-1 md:pb-0 rounded-lg`}
     >
       <ul className="flex flex-col gap-2">
         {items.map((item, index) => (

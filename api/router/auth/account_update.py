@@ -46,6 +46,7 @@ class PasswordUpdate(BaseModel):
 
 class PreferencesUpdate(BaseModel):
     home_view_mode: Optional[str] = None
+    search_view_mode: Optional[str] = None
 
 
 def _user_object_id(request: Request):
@@ -179,6 +180,11 @@ async def update_preferences(preferences: PreferencesUpdate, request: Request):
         if preferences.home_view_mode not in {"list", "grid"}:
             raise HTTPException(status_code=400, detail="Invalid home view mode")
         updates["preferences.home_view_mode"] = preferences.home_view_mode
+
+    if preferences.search_view_mode is not None:
+        if preferences.search_view_mode not in {"list", "grid"}:
+            raise HTTPException(status_code=400, detail="Invalid search view mode")
+        updates["preferences.search_view_mode"] = preferences.search_view_mode
 
     if updates:
         await db.users.update_one(

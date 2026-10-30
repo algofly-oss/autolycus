@@ -1,0 +1,136 @@
+{
+  "date": "2026-10-30",
+  "queries": 16,
+  "raw_results_sampled": 17886,
+  "method": "Live Jackett metadata searches; common keyword probes capped at 60 seconds, title/software probes at 40 seconds. Samples can omit slower sources. No torrent contents downloaded. Counts are automated matching outcomes, not human relevance labels. Warm Node filter medians from 15 iterations on this machine; not browser latency guarantees.",
+  "cases": [
+    {
+      "query": "1999",
+      "raw": 1688,
+      "previous_phrase_filter": 1582,
+      "tuned_filter": 1580,
+      "word_eligible": 1580,
+      "warm_median_ms": 6.89
+    },
+    {
+      "query": "2025",
+      "raw": 2879,
+      "previous_phrase_filter": 2782,
+      "tuned_filter": 2759,
+      "word_eligible": 2759,
+      "warm_median_ms": 13.98
+    },
+    {
+      "query": "Hindi",
+      "raw": 959,
+      "previous_phrase_filter": 922,
+      "tuned_filter": 819,
+      "word_eligible": 819,
+      "warm_median_ms": 4.65
+    },
+    {
+      "query": "comedy",
+      "raw": 1964,
+      "previous_phrase_filter": 1794,
+      "tuned_filter": 1769,
+      "word_eligible": 1769,
+      "warm_median_ms": 9.95
+    },
+    {
+      "query": "action",
+      "raw": 1710,
+      "previous_phrase_filter": 1580,
+      "tuned_filter": 1556,
+      "word_eligible": 1556,
+      "warm_median_ms": 8.08
+    },
+    {
+      "query": "thriller",
+      "raw": 1084,
+      "previous_phrase_filter": 949,
+      "tuned_filter": 949,
+      "word_eligible": 949,
+      "warm_median_ms": 4.97
+    },
+    {
+      "query": "The Matrix",
+      "raw": 1163,
+      "previous_phrase_filter": 1131,
+      "tuned_filter": 1109,
+      "word_eligible": 1109,
+      "warm_median_ms": 9.13
+    },
+    {
+      "query": "The Matrix 1999",
+      "raw": 892,
+      "previous_phrase_filter": 890,
+      "tuned_filter": 847,
+      "word_eligible": 847,
+      "warm_median_ms": 8.98
+    },
+    {
+      "query": "Breaking Bad",
+      "raw": 1134,
+      "previous_phrase_filter": 1134,
+      "tuned_filter": 1112,
+      "word_eligible": 1112,
+      "warm_median_ms": 8.78
+    },
+    {
+      "query": "Breaking Bad S01",
+      "raw": 800,
+      "previous_phrase_filter": 794,
+      "tuned_filter": 708,
+      "word_eligible": 708,
+      "warm_median_ms": 8.96
+    },
+    {
+      "query": "Dune 2021",
+      "raw": 882,
+      "previous_phrase_filter": 765,
+      "tuned_filter": 803,
+      "word_eligible": 803,
+      "warm_median_ms": 5.79
+    },
+    {
+      "query": "Dune 2024",
+      "raw": 814,
+      "previous_phrase_filter": 39,
+      "tuned_filter": 785,
+      "word_eligible": 785,
+      "warm_median_ms": 6.11
+    },
+    {
+      "query": "Adobe Photoshop 2024",
+      "raw": 605,
+      "previous_phrase_filter": 598,
+      "tuned_filter": 588,
+      "word_eligible": 588,
+      "warm_median_ms": 5.44
+    },
+    {
+      "query": "Ubuntu 24.04",
+      "raw": 277,
+      "previous_phrase_filter": 132,
+      "tuned_filter": 181,
+      "word_eligible": 181,
+      "warm_median_ms": 2.5
+    },
+    {
+      "query": "VLC",
+      "raw": 576,
+      "previous_phrase_filter": 576,
+      "tuned_filter": 565,
+      "word_eligible": 565,
+      "warm_median_ms": 1.48
+    },
+    {
+      "query": "Blender 4.0",
+      "raw": 459,
+      "previous_phrase_filter": 426,
+      "tuned_filter": 55,
+      "word_eligible": 55,
+      "warm_median_ms": 1.85
+    }
+  ]
+}

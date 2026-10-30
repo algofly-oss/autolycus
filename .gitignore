@@ -2,3 +2,8 @@ data/
 volumes/
 downloads/
 .env
+runtime/target/
+**/__pycache__/
+*.pyc
+dist/
+deploy/single/relocation-validation.json

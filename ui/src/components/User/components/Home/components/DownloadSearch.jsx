@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
-import { FiGrid, FiList, FiX } from "react-icons/fi";
+import { FiX } from "react-icons/fi";
+import ViewModeToggle from "@/shared/components/ViewModeToggle";
 
 const TYPE_OPTIONS = [
   { value: "torrent", label: "Torrents" },
@@ -130,34 +131,7 @@ export default function DownloadSearch({
       </select>
 
       {showViewToggle ? (
-        <div className="ml-0 flex h-12 shrink-0 items-center gap-1 rounded-lg bg-zinc-100 p-1 sm:ml-auto dark:bg-black">
-          <button
-            type="button"
-            className={`flex h-10 w-10 items-center justify-center rounded-md transition ${
-              viewMode === "list"
-                ? "bg-blue-600 text-white"
-                : "text-neutral-600 hover:bg-neutral-200 dark:text-neutral-300 dark:hover:bg-neutral-900"
-            }`}
-            onClick={() => setViewMode("list")}
-            title="List view"
-            aria-label="List view"
-          >
-            <FiList size={17} />
-          </button>
-          <button
-            type="button"
-            className={`flex h-10 w-10 items-center justify-center rounded-md transition ${
-              viewMode === "grid"
-                ? "bg-blue-600 text-white"
-                : "text-neutral-600 hover:bg-neutral-200 dark:text-neutral-300 dark:hover:bg-neutral-900"
-            }`}
-            onClick={() => setViewMode("grid")}
-            title="Thumbnail view"
-            aria-label="Thumbnail view"
-          >
-            <FiGrid size={17} />
-          </button>
-        </div>
+        <ViewModeToggle viewMode={viewMode} onChange={setViewMode} label="Home view" className="ml-0 sm:ml-auto" />
       ) : null}
     </div>
   );

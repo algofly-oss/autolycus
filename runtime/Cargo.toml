@@ -1,0 +1,22 @@
+[package]
+name = "autolycus-runtime"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[dependencies]
+anyhow = "1"
+arti-client = { version = "=0.47.0", default-features = false, features = ["tokio", "rustls", "compression", "static-sqlite"] }
+rustls = { version = "0.23", default-features = false, features = ["ring", "std", "tls12"] }
+rustix = { version = "1", features = ["process"] }
+serde = { version = "1", features = ["derive"] }
+tokio = { version = "1", features = ["full"] }
+tokio-util = { version = "0.7", features = ["compat"] }
+toml = "0.8"
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+
+[profile.release]
+lto = "thin"
+strip = true
+codegen-units = 1

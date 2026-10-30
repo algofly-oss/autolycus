@@ -1,6 +1,7 @@
 import datetime
 import ipaddress
 import re
+from shared.modules.auth_session import SESSION_SECONDS
 
 
 def is_public_ip(value):
@@ -104,6 +105,7 @@ async def create_session_record(db, user_id, session_token, request):
                 "token": session_token,
                 **build_session_metadata(request),
                 "last_accessed_at": now,
+                "expires_at": now + datetime.timedelta(seconds=SESSION_SECONDS),
                 "revoked_at": None,
             },
             "$setOnInsert": {
@@ -136,7 +138,7 @@ async def revoke_session_record(db, redis, session_token):
     if not session_token:
         return
 
-    redis.delete(session_token)
+    redis.delete(session_token, "auth_session_renew/" + session_token)
     await db.user_sessions.update_one(
         {"_id": session_token},
         {"$set": {"revoked_at": datetime.datetime.utcnow()}},

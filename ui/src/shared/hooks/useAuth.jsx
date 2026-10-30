@@ -15,7 +15,7 @@ export default function useAuth() {
 
   useEffect(() => {
     if (!user?.username) {
-      getAccountInfo();
+      getAccountInfo().catch(() => {});
     }
   }, []);
 
@@ -39,7 +39,15 @@ export default function useAuth() {
           return {};
         }
       })
-      .catch((err) => {});
+      .catch((err) => {
+        const status = err?.response?.status;
+        if (status === 401 || status === 403 ||
+            (status === 400 && err?.response?.data?.detail === "User not logged in")) {
+          dispatch(authActions.resetAccountInfo());
+          return {};
+        }
+        throw err;
+      });
   };
 
   const signUp = async (name, username, password) => {
@@ -104,7 +112,7 @@ export default function useAuth() {
           router.push(redirectUrl || uiRoutes.signIn);
           break;
       }
-    });
+    }).catch(() => {});
   };
 
   return {

@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import axios from "axios";
+import { useDispatch, useSelector } from "react-redux";
+import { authActions, authSelector } from "@/redux/features/authSlice";
 import apiRoutes from "@/shared/routes/apiRoutes";
 import useToast from "@/shared/hooks/useToast";
 import {
@@ -14,6 +16,8 @@ import {
   RESULTS_OFFSET_PADDING_REM,
   appendUniqueSource,
   extractMagnet,
+  mergeSearchResults,
+  normalizeSearchText,
   sortResults,
 } from "../utils";
 
@@ -115,6 +119,7 @@ export const usePersistedSearchState = ({
   scrollOffset,
   sort,
   titleFilter,
+  titleFilterEdited,
   torrentSearchState,
 }) => {
   useEffect(() => {
@@ -124,8 +129,8 @@ export const usePersistedSearchState = ({
 
   useEffect(() => {
     if (!firstLoadFinished) return;
-    torrentSearchState.set({ titleFilter });
-  }, [firstLoadFinished, titleFilter, torrentSearchState]);
+    torrentSearchState.set({ titleFilter, titleFilterEdited });
+  }, [firstLoadFinished, titleFilter, titleFilterEdited, torrentSearchState]);
 
   useEffect(() => {
     if (!firstLoadFinished) return;
@@ -153,6 +158,7 @@ export const useSearchStateHydration = ({
   setResults,
   setScrollOffset,
   setTitleFilter,
+  setTitleFilterEdited,
   torrentSearchState,
   updateSort,
   urlQuery,
@@ -170,6 +176,8 @@ export const useSearchStateHydration = ({
 
       setQuery(urlQuery || torrentSearchState.get("query"));
       setTitleFilter(torrentSearchState.get("titleFilter"));
+      setTitleFilterEdited(torrentSearchState.get("titleFilterEdited") ??
+        (normalizeSearchText(torrentSearchState.get("titleFilter")) !== normalizeSearchText(torrentSearchState.get("query"))));
       setActiveSource(torrentSearchState.get("activeSource") || ALL_SOURCES);
       setResults(savedResults);
       updateSort(getSavedSort(torrentSearchState));
@@ -190,6 +198,7 @@ export const useSearchStateHydration = ({
     setResults,
     setScrollOffset,
     setTitleFilter,
+    setTitleFilterEdited,
     torrentSearchState,
     updateSort,
     urlQuery,
@@ -227,7 +236,24 @@ export const useScrollResetOnFilterChange = ({
 export const useTorrentActions = () => {
   const toast = useToast();
 
-  const resolveMagnet = useCallback(async (item) => extractMagnet(item), []);
+  const resolutions = useRef(new Map());
+  const resolveMagnet = useCallback(async (item) => {
+    const direct = extractMagnet(item);
+    if (direct) return direct;
+    if (!item.ResolveToken) return null;
+    const token = item.ResolveToken;
+    if (!resolutions.current.has(token)) {
+      const pending = axios.post(apiRoutes.resolveMagnet, { token })
+        .then(({ data }) => data.magnet)
+        .catch((error) => {
+          resolutions.current.delete(token);
+          toast.error(error.response?.data?.detail || "Could not retrieve the magnet. Try again or open the source page.");
+          return null;
+        });
+      resolutions.current.set(token, pending);
+    }
+    return resolutions.current.get(token);
+  }, [toast]);
 
   const handleCopyMagnet = useCallback(
     async (item) => {
@@ -276,6 +302,7 @@ export const useTorrentActions = () => {
 
 export const useTorrentSearchStream = ({
   query,
+  setSearchStatus,
   setActiveSource,
   setHasSearched,
   setLoading,
@@ -283,6 +310,7 @@ export const useTorrentSearchStream = ({
   setScrollOffset,
   setSourceOrder,
   setTitleFilter,
+  setTitleFilterEdited,
   sort,
   sortRef,
   updateSort,
@@ -306,7 +334,7 @@ export const useTorrentSearchStream = ({
     if (!pendingResults.length) return;
 
     setResults((currentResults) =>
-      sortResults([...currentResults, ...pendingResults], sortRef.current ?? sort),
+      sortResults(mergeSearchResults(currentResults, pendingResults), sortRef.current ?? sort),
     );
   }, [setResults, sort, sortRef]);
 
@@ -320,6 +348,7 @@ export const useTorrentSearchStream = ({
 
   useEffect(
     () => () => {
+      abortRef.current?.abort();
       clearPendingResults();
     },
     [clearPendingResults],
@@ -328,6 +357,7 @@ export const useTorrentSearchStream = ({
   const resetSearchState = useCallback(
     (initialTitleFilter) => {
       setTitleFilter(initialTitleFilter);
+      setTitleFilterEdited(false);
       setResults([]);
       setSourceOrder([]);
       updateSort(INITIAL_SORT);
@@ -340,6 +370,7 @@ export const useTorrentSearchStream = ({
       setScrollOffset,
       setSourceOrder,
       setTitleFilter,
+      setTitleFilterEdited,
       updateSort,
     ],
   );
@@ -351,6 +382,7 @@ export const useTorrentSearchStream = ({
     setHasSearched(true);
     clearPendingResults();
     resetSearchState(trimmedQuery);
+    setSearchStatus("");
     streamErrorsRef.current = [];
     streamResultsCountRef.current = 0;
 
@@ -390,6 +422,17 @@ export const useTorrentSearchStream = ({
           if (!line.trim()) continue;
 
           const item = JSON.parse(line);
+          if (item?.__type === "heartbeat") continue;
+          if (item?.__type === "cache_status") continue;
+          if (item?.__type === "source_complete") {
+            flushPendingResults();
+            setResults((rows) => rows.filter((row) => row.SearchSource !== item.indexer || !row.SearchCached));
+            continue;
+          }
+          if (item?.__type === "search_status") {
+            setSearchStatus(item.message);
+            continue;
+          }
           if (item?.__type === "indexer_error") {
             streamErrorsRef.current.push(item);
             continue;
@@ -412,6 +455,7 @@ export const useTorrentSearchStream = ({
       if (searchSessionRef.current === searchId) {
         flushPendingResults();
         setLoading(false);
+        setSearchStatus("");
 
         const failedIndexers = streamErrorsRef.current.length;
         if (streamResultsCountRef.current === 0 && failedIndexers > 0) {
@@ -425,6 +469,7 @@ export const useTorrentSearchStream = ({
     }
   }, [
     query,
+    setSearchStatus,
     resetSearchState,
     setHasSearched,
     setLoading,
@@ -438,11 +483,40 @@ export const useTorrentSearchStream = ({
   ]);
 
   const handleCancel = useCallback(() => {
+    flushPendingResults();
+    searchSessionRef.current += 1;
     abortRef.current?.abort();
     abortRef.current = null;
     clearPendingResults();
+    setSearchStatus("");
     setLoading(false);
-  }, [clearPendingResults, setLoading]);
+  }, [clearPendingResults, flushPendingResults, setLoading, setSearchStatus]);
 
   return { handleCancel, handleSearch };
+};
+
+
+export const useSearchViewMode = () => {
+  const user = useSelector(authSelector);
+  const dispatch = useDispatch();
+  const toast = useToast();
+  const saved = user?.preferences?.search_view_mode;
+  const [viewMode, setViewMode] = useState(saved === "grid" ? "grid" : "list");
+  const [saving, setSaving] = useState(false);
+  useEffect(() => {
+    if (!saving) setViewMode(saved === "grid" ? "grid" : "list");
+  }, [saved, saving, user?.username]);
+  const changeView = async (mode) => {
+    if (saving || !["list", "grid"].includes(mode) || mode === viewMode) return;
+    const previous = viewMode;
+    setViewMode(mode); setSaving(true);
+    try {
+      const {data} = await axios.patch(apiRoutes.updatePreferences, {search_view_mode:mode});
+      dispatch(authActions.updateAccountInfo({preferences:data.preferences}));
+    } catch {
+      setViewMode(previous);
+      toast.error("Could not save view preference. Please try again.");
+    } finally { setSaving(false); }
+  };
+  return {viewMode, changeView, saving};
 };

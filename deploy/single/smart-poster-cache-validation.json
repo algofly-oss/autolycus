@@ -1,0 +1,49 @@
+{
+  "posters": [
+    {
+      "name": "RRR.A.K.A.Rise.Roar.Revolt.2022.Hindi.1080p",
+      "title": "RRR",
+      "poster_bytes": 44888,
+      "loaded": true
+    },
+    {
+      "name": "Bandar.2026.Hindi.1080p",
+      "title": "Bandar",
+      "poster_bytes": 30472,
+      "loaded": true
+    },
+    {
+      "name": "Satluj.2026.Hindi.1080p",
+      "title": "Satluj",
+      "poster_bytes": 32754,
+      "loaded": true
+    },
+    {
+      "name": "Ghamasaan.2026.Hindi.1080p",
+      "title": "Ghamasaan",
+      "poster_bytes": 42002,
+      "loaded": true
+    },
+    {
+      "name": "Ghamsaan.2026.Hindi.1080p",
+      "title": "Ghamasaan",
+      "poster_bytes": 42002,
+      "loaded": true
+    }
+  ],
+  "cache_image_bytes": 2618628,
+  "cache_entries": 85,
+  "max_cache_image_bytes": 67108864,
+  "budget_verified": true,
+  "date": "2026-10-31",
+  "cache_policy": {
+    "image_budget_bytes": 67108864,
+    "max_entries": 512,
+    "max_negative_entries": 128,
+    "eviction": "least recently accessed",
+    "positive_ttl_days": 7,
+    "negative_ttl_minutes": 5,
+    "access_touch_interval_minutes": 10,
+    "note": "Budget covers image payloads; MongoDB metadata and allocated storage have additional overhead. Freed pages are reused by MongoDB."
+  }
+}

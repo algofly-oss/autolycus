@@ -1,0 +1,23 @@
+{
+  "date": "2026-10-30",
+  "controlled_fixture": {
+    "controlled_first_result_ms": 405.2,
+    "prioritized_first_result_ms": 28.06,
+    "cached_first_result_ms": 0.37,
+    "all_sources_searched": true,
+    "redis_cache_bound_verified": true
+  },
+  "production_sample": {
+    "query": "Ubuntu",
+    "live_first_result_ms": 1663.84,
+    "sampled_rows": 308,
+    "repeat_cached_first_result_ms": 8.68,
+    "observed_sources": 17
+  },
+  "notes": [
+    "Controlled fixture uses one slot and two sources to isolate scheduling effects.",
+    "Production sample is one query with partial live collection; it does not measure total search completion or browser paint time.",
+    "UI batches streamed rows for up to 100 ms.",
+    "All sources remain queued, normal searches have no application read deadline, and Tor configuration is unchanged."
+  ]
+}

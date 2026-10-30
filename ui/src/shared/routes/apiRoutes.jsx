@@ -23,6 +23,8 @@ let apiRoutes = {
   listTorrents: "/torrent/all",
   getTorrentInfo: "/torrent/get",
   deleteTorrent: "/torrent/delete",
+  resolveMagnet: "/torrent/resolve-magnet",
+  searchPoster: "/torrent/search-poster",
   searchTorrent: "/torrent/search",
   downloadStatusTorrent: "/torrent/download-status",
   downloadTorrentZip: "/torrent/download-zip",

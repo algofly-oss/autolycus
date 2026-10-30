@@ -13,7 +13,7 @@ export default function App(props: any) {
       if (data?.role !== "admin" && data?.role !== "user") {
         router.push(uiRoutes.signIn);
       }
-    });
+    }).catch(() => {});
   }, []);
 
   return <UserHome />;

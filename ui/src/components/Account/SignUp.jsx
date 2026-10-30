@@ -65,7 +65,6 @@ export default function SignUp() {
       return;
     }
 
-    auth.signOut();
     error.set("username", "");
     error.set("password", "");
     setSignUpProgress(true);

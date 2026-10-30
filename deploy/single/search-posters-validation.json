@@ -1,0 +1,58 @@
+{
+  "date": "2026-10-31",
+  "production_poster": {
+    "title": "Dune: Part Two",
+    "year": 2024,
+    "poster_bytes": 37600,
+    "same_origin_poster": true,
+    "default_search_view": "list"
+  },
+  "phone_touch_emulation": [
+    {
+      "width": 320,
+      "height": 568
+    },
+    {
+      "width": 375,
+      "height": 667
+    },
+    {
+      "width": 390,
+      "height": 844
+    },
+    {
+      "width": 414,
+      "height": 896
+    },
+    {
+      "width": 768,
+      "height": 1024
+    }
+  ],
+  "checks": [
+    "default list layout",
+    "independent server-saved search preference",
+    "fresh-browser restoration and reload in both modes",
+    "failed-save rollback",
+    "authenticated same-origin poster images",
+    "per-film lookup deduplication across release qualities",
+    "no poster metadata requests in list view",
+    "mobile horizontal containment and 44px card actions",
+    "last-row action access above bottom navigation in both modes",
+    "silent background result refresh",
+    "existing filtering, prefix matching, magnet copying, integration checks before/after restart",
+    "37 Python unit tests and existing JavaScript matching checks"
+  ],
+  "notes": [
+    "Mobile checks use Chromium viewport/touch emulation, not physical iPhone/Safari tests.",
+    "A live Musafir (2004) poster also loaded as a 21,726-byte JPEG in the isolated stack."
+  ],
+  "visual_refinement": {
+    "style": "Shared Home view toggle, poster fallback and action menu; compact poster-only cards",
+    "switch_height_px": 48,
+    "phone_menu_target_px": 44,
+    "phone_action_items_min_height_px": 44,
+    "layout": "Home 2/5/6/8 columns; resolution/quality and seeders/size remain on separate lines",
+    "verified": "Isolated Chromium desktop and phone/touch viewports, account synchronization, menu copying/download access, alignment and no horizontal overflow"
+  }
+}

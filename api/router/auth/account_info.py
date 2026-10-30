@@ -5,6 +5,7 @@ from shared.factory import db, redis
 from shared.env import SESSION_COOKIE_NAME
 from bson import ObjectId
 from pydantic import BaseModel
+from shared.modules.auth_session import set_session_cookie
 from .common import authenticate_user, get_session_token
 from .session_utils import (
     create_session_record,
@@ -36,6 +37,9 @@ async def account_info(request: Request, response: Response):
     if not user:
         raise HTTPException(status_code=400, detail="User not logged in")
 
+    # Reopening the app also upgrades any legacy browser-session-only cookie,
+    # even if another concurrent request has already renewed the Redis TTL.
+    set_session_cookie(response, request, session_token)
     return {
         "name": user["name"],
         "username": user["username"],
@@ -62,6 +66,10 @@ async def list_sessions(request: Request):
             {
                 "user_id": user_id_string,
                 "revoked_at": None,
+                "$or": [
+                    {"expires_at": {"$exists": False}},
+                    {"expires_at": {"$gt": datetime.datetime.utcnow()}},
+                ],
             }
         )
         .sort("last_accessed_at", -1)

@@ -9,31 +9,13 @@ import threading
 import time
 import logging
 import json
-import shutil
-from pathlib import Path
+from shared.modules.storage_usage import get_disk_usage
+from shared.modules.auth_session import resolve_session
 
 sio = socketio.AsyncServer(
     async_mode="asgi", cors_allowed_origins=[]
 )  # [] works for all origins, [*] wasn't working
 sio_app = socketio.ASGIApp(socketio_server=sio, socketio_path="/socket.io")
-
-
-def get_disk_usage(user_id):
-    try:
-        total = shutil.disk_usage("/downloads").total
-        occupied_by_user = 0
-        if os.path.exists(f"/downloads/{user_id}"):
-            occupied_by_user = sum(
-                f.stat().st_blocks * 512
-                for f in Path(f"/downloads/{user_id}").rglob("*")
-                if f.is_file()
-            )
-        occupied_by_others = shutil.disk_usage("/downloads").used - occupied_by_user
-
-        return {"used": occupied_by_user, "total": total - occupied_by_others}
-    except Exception as e:
-        traceback.print_exc()
-        return {"used": 0, total: 0}
 
 
 def subscriber():
@@ -79,7 +61,7 @@ async def connect(sid, environ, auth):
     session_token = morsel.value if morsel else None
 
     if session_token:
-        user_id = redis.get(session_token)
+        user_id, _ = await resolve_session(session_token, renew=False)
         if user_id:
             user_id = user_id.decode()
             await sio.enter_room(sid, user_id)

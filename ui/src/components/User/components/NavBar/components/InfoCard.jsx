@@ -20,23 +20,30 @@ export default function InfoCard({ collapsed = false }) {
 
   // Disk Usage Status
   useEffect(() => {
-    axios
-      .get(apiRoutes.diskUsage)
-      .then((res) => {
-        setDiskStatus(res?.data);
-      })
-      .catch((err) => {});
+    const controller = new AbortController();
+    const refresh = () => {
+      axios
+        .get(apiRoutes.diskUsage, { signal: controller.signal })
+        .then((res) => setDiskStatus(res.data))
+        .catch(() => {});
+    };
+    refresh();
+    // Other users and applications share this drive too.
+    const timer = setInterval(refresh, 30000);
 
-    socket.on(socketRoutes.stcDiskUsage, (data) => {
+    const onDiskUsage = (data) => {
       if (data) {
         setDiskStatus(data);
       }
-    });
+    };
+    socket.on(socketRoutes.stcDiskUsage, onDiskUsage);
 
     return () => {
-      socket.off(socketRoutes.stcDiskUsage);
+      controller.abort();
+      clearInterval(timer);
+      socket.off(socketRoutes.stcDiskUsage, onDiskUsage);
     };
-  }, []);
+  }, [socket]);
 
   // Download Status
   useEffect(() => {
@@ -140,7 +147,21 @@ export default function InfoCard({ collapsed = false }) {
   if (collapsed) {
     return (
       <Tooltip
-        label={`Storage: ${usedLabel} / ${totalLabel}`}
+        label={
+          <div className="w-40 text-xs">
+            <div className="mb-2 text-[11px] font-medium opacity-60">Storage</div>
+            <div className="flex items-center justify-between gap-4">
+              <span className="opacity-70">Autolycus</span>
+              <span className="font-medium tabular-nums" style={{ color: isDarkTheme ? activeSegment?.color : undefined }}>
+                {usedLabel}
+              </span>
+            </div>
+            <div className="mt-1 flex items-center justify-between gap-4">
+              <span className="opacity-70">Capacity</span>
+              <span className="font-medium tabular-nums">{totalLabel}</span>
+            </div>
+          </div>
+        }
         position="right"
         openDelay={0}
         closeDelay={0}
@@ -153,6 +174,9 @@ export default function InfoCard({ collapsed = false }) {
             backgroundColor: isDarkTheme ? "#171717" : "#ffffff",
             border: `1px solid ${isDarkTheme ? "#33363b" : "#e5e5e5"}`,
             color: isDarkTheme ? "#ffffff" : "#171717",
+            padding: "9px 11px",
+            borderRadius: 8,
+            boxShadow: "0 4px 16px rgba(0, 0, 0, 0.14)",
           },
           arrow: {
             backgroundColor: isDarkTheme ? "#171717" : "#ffffff",
@@ -162,7 +186,7 @@ export default function InfoCard({ collapsed = false }) {
       >
         <div
           className="hidden h-10 w-10 items-center justify-center rounded-md text-neutral-700 transition-colors hover:bg-zinc-200 md:flex dark:text-neutral-300 dark:hover:bg-zinc-900"
-          aria-label={`Storage used ${usedLabel} of ${totalLabel}`}
+          aria-label={`Autolycus occupied ${usedLabel} of ${totalLabel} available capacity`}
         >
           <StorageGauge size={24} strokeWidth={2.5} radius={9} />
         </div>
@@ -182,7 +206,7 @@ export default function InfoCard({ collapsed = false }) {
         <p className="py-0.5">{downloadStatus.finished_downloads} Finished</p>
       </div>
 
-      <div className="flex items-center space-x-2">
+      <div className="flex items-center space-x-2" title={`Storage: ${usedLabel} / ${totalLabel}`}>
         <StorageGauge />
         <div className="py-0.5">
           <p

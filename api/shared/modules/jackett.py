@@ -1,9 +1,13 @@
 import os
 import asyncio
 import logging
+import time
 import httpx
 from typing import AsyncIterator, List, Optional, Tuple
 from .torrent_name_parser import parse
+from .search_acceleration import SearchAcceleration, result_key
+from .search_quality import query_variants, relevance
+from .search_magnets import attach_resolution
 
 
 logger = logging.getLogger(__name__)
@@ -13,14 +17,17 @@ class AsyncJackett:
     def __init__(
         self,
         apikey: str,
-        base_url: str = "http://jackett:9117",
+        base_url: Optional[str] = None,
         max_concurrency: int = 20,
-        timeout: float = 20.0,
+        timeout: Optional[float] = None,
+        store=None,
     ):
-        self.base_url = base_url.rstrip("/")
+        self.base_url = (base_url or os.environ.get("JACKETT_URL", "http://jackett:9117")).rstrip("/")
         self.apikey = apikey
+        self.acceleration = SearchAcceleration(store)
+        self._inventory = None
         self.semaphore = asyncio.Semaphore(max_concurrency)
-        self.timeout = httpx.Timeout(timeout)
+        self.timeout = httpx.Timeout(timeout, connect=5.0)
 
         self.headers = {
             "User-Agent": (
@@ -34,6 +41,8 @@ class AsyncJackett:
     # Index discovery
     # -------------------------------
     async def list_indexes(self) -> List[str]:
+        if self._inventory and time.monotonic() - self._inventory[0] < 30:
+            return list(self._inventory[1])
         async with httpx.AsyncClient(
             headers=self.headers,
             timeout=self.timeout,
@@ -65,6 +74,7 @@ class AsyncJackett:
             logger.info(
                 "Jackett discovered %d configured indexers", len(configured_indexes)
             )
+            self._inventory = (time.monotonic(), configured_indexes)
             return configured_indexes
 
     # -------------------------------
@@ -84,6 +94,7 @@ class AsyncJackett:
             if cancel_event.is_set():
                 return index, [], None
 
+            started, succeeded, cancelled = time.monotonic(), False, False
             try:
                 r = await client.get(
                     f"{self.base_url}/api/v2.0/indexers/{index}/results",
@@ -121,9 +132,11 @@ class AsyncJackett:
                     len(results),
                     query,
                 )
+                succeeded = True
                 return index, results, None
 
             except asyncio.CancelledError:
+                cancelled = True
                 raise
 
             except httpx.TimeoutException:
@@ -164,6 +177,9 @@ class AsyncJackett:
                     query,
                 )
                 return index, [], error
+            finally:
+                if not cancelled:
+                    await self.acceleration.observe(index, time.monotonic() - started, succeeded)
 
     # -------------------------------
     # Streaming async search
@@ -173,6 +189,8 @@ class AsyncJackett:
         query: str,
         indexes: Optional[List[str]] = None,
         cancel_event: Optional[asyncio.Event] = None,
+        user_id: Optional[str] = None,
+        deep: bool = False,
     ) -> AsyncIterator[dict]:
         cancel_event = cancel_event or asyncio.Event()
 
@@ -188,9 +206,63 @@ class AsyncJackett:
                 }
                 return
 
+        acceleration = self.acceleration
+        key = acceleration.cache_key(self.base_url, query, indexes, deep)
+        snapshot = await acceleration.read(key)
+        if snapshot:
+            yield {"__type": "cache_status", "cached": True}
+            for source, entry in snapshot.items():
+                for raw in entry['rows']:
+                    if cancel_event.is_set():
+                        return
+                    item = dict(raw, SearchCached=True)
+                    attach_resolution(item, self.base_url, user_id)
+                    yield item
+        await acceleration.load_metrics()
+        indexes = acceleration.order(indexes)
+        variants = query_variants(query) if deep else [query]
+        dirty, checkpoint = False, time.monotonic()
+        round_iterator = None
+        try:
+            for attempt, variant in enumerate(variants):
+                if cancel_event.is_set():
+                    return
+                if attempt:
+                    yield {"__type": "search_status", "message": "Trying broader keywords: " + variant}
+                found, fresh = 0, {}
+                round_iterator = self._search_round(variant, indexes, cancel_event, deep)
+                async for item in round_iterator:
+                    kind = item.get("__type")
+                    if kind == 'source_complete':
+                        source = item['indexer']
+                        snapshot[source] = {'time': time.time(), 'rows': fresh.pop(source, [])}
+                        dirty = True
+                        yield item
+                        if time.monotonic() - checkpoint >= 3:
+                            await acceleration.write(key, snapshot)
+                            dirty, checkpoint = False, time.monotonic()
+                        continue
+                    if not kind:
+                        found += 1
+                        item["SearchRelevance"] = relevance(query, item.get("Title"))
+                        if acceleration.enabled:
+                            fresh.setdefault(item['SearchSource'], []).append(dict(item))
+                        attach_resolution(item, self.base_url, user_id)
+                    yield item
+                if found:
+                    return
+        finally:
+            if round_iterator is not None:
+                await round_iterator.aclose()
+            if dirty:
+                await acceleration.write(key, snapshot)
+
+
+    async def _search_round(self, query, indexes, cancel_event, deep=False):
+        timeout = httpx.Timeout(65, connect=5) if deep else self.timeout
         async with httpx.AsyncClient(
             headers=self.headers,
-            timeout=self.timeout,
+            timeout=timeout,
             follow_redirects=True,
         ) as client:
 
@@ -219,7 +291,9 @@ class AsyncJackett:
                         if cancel_event.is_set():
                             return
 
-                        if item.get("Seeders", 0) > 0:
+                        if item.get("Title"):
+                            if self.acceleration.enabled:
+                                item = dict(item, SearchSource=index, SearchResultKey=result_key(item, index), SearchCached=False)
                             try:
                                 item["parsed"] = parse(item["Title"])
                             except Exception:
@@ -229,11 +303,13 @@ class AsyncJackett:
                                     item.get("Title"),
                                 )
                             yield item
+                    if self.acceleration.enabled:
+                        yield {"__type": "source_complete", "indexer": index}
 
             finally:
-                cancel_event.set()
                 for task in tasks:
                     task.cancel()
+                await asyncio.gather(*tasks, return_exceptions=True)
 
 
 async def main(query):

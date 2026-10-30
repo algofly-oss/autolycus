@@ -3,7 +3,7 @@ import { Menu } from "@mantine/core";
 import { GoKebabHorizontal } from "react-icons/go";
 import { MdOutlineKeyboardArrowRight } from "react-icons/md";
 
-export default function FileMenu({ item, onAction, actions }) {
+export default function FileMenu({ item, onAction, actions, ariaLabel = "Open file actions", targetClassName, iconClassName, itemClassName }) {
   const [opened, setOpened] = useState(false);
 
   return (
@@ -17,11 +17,12 @@ export default function FileMenu({ item, onAction, actions }) {
     >
       <Menu.Target>
         <button
-          className="flex h-7 w-7 items-center justify-center rounded-md transition-colors hover:bg-neutral-200/60 dark:hover:bg-neutral-800/60"
+          type="button"
+          className={targetClassName || "flex h-7 w-7 items-center justify-center rounded-md transition-colors hover:bg-neutral-200/60 dark:hover:bg-neutral-800/60"}
           onClick={(e) => e.stopPropagation()}
-          aria-label="Open file actions"
+          aria-label={ariaLabel}
         >
-          <GoKebabHorizontal className="h-3.5 w-3.5 rotate-90 text-gray-600 dark:text-gray-100" />
+          <GoKebabHorizontal className={iconClassName || "h-3.5 w-3.5 rotate-90 text-gray-600 dark:text-gray-100"} />
         </button>
       </Menu.Target>
 
@@ -29,6 +30,7 @@ export default function FileMenu({ item, onAction, actions }) {
         {actions.map((action) => (
           <Menu.Item
             key={action.name}
+            className={itemClassName}
             icon={
               <action.icon
                 size={14}

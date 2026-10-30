@@ -1,14 +1,14 @@
 import { FiSearch, FiX } from "react-icons/fi";
 
 const SearchBar = ({ query, setQuery, loading, onSearch, onCancel }) => (
-  <div className="flex w-full h-[3.2rem] rounded-lg overflow-hidden">
-    <div className="relative flex-1">
+  <div className="flex w-full h-12 rounded-lg overflow-hidden">
+    <div className="relative min-w-0 flex-1">
       <input
         value={query}
         onChange={(e) => setQuery(e.target.value)}
         onKeyDown={(e) => e.key === "Enter" && onSearch()}
         placeholder="Search torrent here"
-        className="w-full h-full px-4 pr-10 text-sm bg-zinc-100 dark:bg-black text-zinc-900 dark:text-zinc-100 outline-none"
+        className="w-full min-w-0 h-full px-4 pr-10 text-sm bg-zinc-100 dark:bg-black text-zinc-900 dark:text-zinc-100 outline-none"
       />
       {query && (
         <button

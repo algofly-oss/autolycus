@@ -8,6 +8,8 @@ from .delete import router as delete_router
 from .search import router as search_router
 from .download_status import router as download_status_router
 from .download_zip import router as download_zip_router
+from .resolve_magnet import router as resolve_magnet_router
+from .search_poster import router as search_poster_router
 
 
 router = APIRouter(
@@ -24,3 +26,6 @@ router.include_router(delete_router)
 router.include_router(search_router)
 router.include_router(download_status_router)
 router.include_router(download_zip_router)
+router.include_router(resolve_magnet_router)
+
+router.include_router(search_poster_router)

@@ -101,6 +101,17 @@ This project is focused to run on server environment hence docker containers are
 
 ### Installation
 
+For the optimized **single-container production image**, see
+[Single-container deployment](deploy/single/README.md). It bundles the Python
+API and jobs, a static Next.js UI, embedded Rust Tor, and all backing services:
+
+```sh
+docker compose -f compose.single.yml up -d --build
+```
+
+Use the migration instructions there for an existing installation. The original
+multi-container setup below remains available for development and rollback.
+
 2. Clone the repo
    ```sh
    git clone https://github.com/algofly-oss/autolycus.git

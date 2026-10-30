@@ -4,7 +4,6 @@ from redis import Redis
 from .env import *
 from .modules.jackett import AsyncJackett
 
-jackett = AsyncJackett(apikey=JACKETT_API_KEY)
 
 # Initialize Redis
 redis = Redis(
@@ -14,6 +13,8 @@ redis = Redis(
     db=0,
 )
 
+
+jackett = AsyncJackett(apikey=JACKETT_API_KEY, store=redis)
 
 def get_db():
     # Initialize MongoDB

@@ -1,0 +1,30 @@
+# Explicit -f keeps the existing multi-container deployment independent.
+name: autolycus-single
+services:
+  autolycus:
+    image: ${AUTOLYCUS_SINGLE_IMAGE:-autolycus:single}
+    build:
+      context: .
+      target: production
+    restart: unless-stopped
+    stop_grace_period: 90s
+    shm_size: 256mb
+    cap_add:
+      - NET_ADMIN # transparent Tor routing, scoped to the browser proxy UID
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      CELERY_NUM_WORKERS: ${CELERY_NUM_WORKERS:-2}
+      FTP_PASSIVE_PORT_START: ${FTP_PASSIVE_PORT_START:-50000}
+      FTP_PASSIVE_PORT_END: ${FTP_PASSIVE_PORT_END:-50100}
+    ports:
+      - "${APP_HTTP_PORT:-8089}:80"
+      - "${APP_HTTPS_PORT:-4439}:443"
+      - "${FTP_HOST_PORT:-2121}:2121"
+      - "127.0.0.1:${JACKETT_HOST_PORT_MAP:-9117}:9118"
+      - "${FTP_PASSIVE_PORT_START:-50000}-${FTP_PASSIVE_PORT_END:-50100}:${FTP_PASSIVE_PORT_START:-50000}-${FTP_PASSIVE_PORT_END:-50100}"
+    volumes:
+      - ${AUTOLYCUS_INSTALLATION_PATH:-.}:/installation:ro
+      - ${AUTOLYCUS_DATA_PATH:-./volumes/single}:/data
+      - ${DOWNLOADS_PATH:-./volumes/downloads}:/downloads

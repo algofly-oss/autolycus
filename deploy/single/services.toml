@@ -1,0 +1,64 @@
+[[process]]
+name = "mongodb"
+program = "python"
+args = ["/opt/autolycus/service.py", "mongodb"]
+
+[[process]]
+name = "redis"
+program = "python"
+args = ["/opt/autolycus/service.py", "redis"]
+
+[[process]]
+name = "meilisearch"
+program = "python"
+args = ["/opt/autolycus/service.py", "meilisearch"]
+
+[[process]]
+name = "api"
+program = "python"
+args = ["/opt/autolycus/service.py", "api"]
+
+[[process]]
+name = "worker"
+program = "python"
+args = ["/opt/autolycus/service.py", "worker"]
+
+[[process]]
+name = "tor"
+program = "python"
+args = ["/opt/autolycus/service.py", "tor"]
+
+[[process]]
+name = "jackett"
+program = "python"
+args = ["/opt/autolycus/service.py", "jackett"]
+
+[[process]]
+name = "flaresolverr"
+program = "python"
+args = ["/opt/autolycus/service.py", "flaresolverr"]
+
+[[process]]
+name = "ftp"
+program = "python"
+args = ["/opt/autolycus/service.py", "ftp"]
+
+[[process]]
+name = "redsocks"
+program = "python"
+args = ["/opt/autolycus/service.py", "redsocks"]
+
+[[process]]
+name = "privoxy"
+program = "python"
+args = ["/opt/autolycus/service.py", "privoxy"]
+
+[[process]]
+name = "womginx"
+program = "python"
+args = ["/opt/autolycus/service.py", "womginx"]
+
+[[process]]
+name = "proxy"
+program = "python"
+args = ["/opt/autolycus/service.py", "proxy"]

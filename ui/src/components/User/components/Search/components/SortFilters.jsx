@@ -1,4 +1,5 @@
 import { FiArrowUp, FiArrowDown, FiX } from "react-icons/fi";
+import SearchViewToggle from "./SearchViewToggle";
 import { formatCount, SORT_KEYS } from "../utils";
 
 const SortButton = ({ label, value, sort, onSortChange, className = "" }) => {
@@ -33,10 +34,13 @@ const SortFilters = ({
   sourceCounts,
   resultsCount,
   reorderPulse,
+  viewMode,
+  onViewModeChange,
+  savingView,
 }) => (
   <div>
     <div className="flex flex-col md:flex-row md:space-x-2 gap-2 md:gap-0">
-      <div className="flex w-full flex-nowrap gap-2 md:w-max md:flex-wrap">
+      {resultsCount > 0 && <div className="flex w-full flex-nowrap gap-2 md:w-max md:flex-wrap">
         <SortButton
           label="Name"
           value={SORT_KEYS.name}
@@ -65,53 +69,24 @@ const SortFilters = ({
           onSortChange={onSortChange}
           className="flex-1 min-w-0 justify-center md:flex-none"
         />
-      </div>
+      </div>}
 
-      {/* Separator only on desktop */}
-      <div className="hidden md:block border-l my-0.5 dark:border-neutral-800" />
+      {resultsCount > 0 && <div className="hidden md:block border-l my-0.5 dark:border-neutral-800" />}
 
-      {/* On mobile: Title filter sits below sort row */}
-      <div className="relative flex h-11 w-full min-w-0 overflow-hidden rounded-lg md:hidden">
-        <input
-          value={titleFilter}
-          onChange={(e) => setTitleFilter(e.target.value)}
-          placeholder="Filter results by title"
-          className="w-full min-w-0 bg-zinc-200 px-3 pr-7 text-[11px] text-zinc-700 outline-none dark:bg-zinc-800 dark:text-zinc-300"
-        />
-        {titleFilter ? (
-          <button
-            type="button"
-            onClick={() => setTitleFilter("")}
-            aria-label="Clear title filter"
-            className="absolute right-2 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-200"
-          >
-            <FiX size={12} />
-          </button>
-        ) : null}
-      </div>
-
-      {/* On desktop: Title filter in separate bubble after separator */}
-      <div className="hidden md:relative md:flex md:w-max md:rounded-full md:overflow-hidden md:h-7 md:max-h-10">
-        <input
-          value={titleFilter}
-          onChange={(e) => setTitleFilter(e.target.value)}
-          placeholder="Filter results by title"
-          className="w-full px-3 pr-7 text-[11px] bg-zinc-200 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 rounded-full outline-none"
-        />
-        {titleFilter ? (
-          <button
-            type="button"
-            onClick={() => setTitleFilter("")}
-            aria-label="Clear title filter"
-            className="absolute right-2 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-200"
-          >
-            <FiX size={12} />
-          </button>
-        ) : null}
+      <div className="flex min-w-0 items-center gap-2">
+        <div className="relative flex h-11 min-w-0 flex-1 overflow-hidden rounded-lg md:h-7 md:w-48 md:flex-none md:rounded-full">
+          <input value={titleFilter} onChange={(event) => setTitleFilter(event.target.value)}
+            placeholder="Filter results by title" aria-label="Filter results by title"
+            className="w-full min-w-0 bg-zinc-200 px-3 pr-7 text-[11px] text-zinc-700 outline-none dark:bg-zinc-800 dark:text-zinc-300" />
+          {titleFilter ? <button type="button" onClick={() => setTitleFilter("")} aria-label="Clear title filter"
+            className="absolute right-2 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-200"><FiX size={12} /></button> : null}
+        </div>
+        <span role="separator" aria-orientation="vertical" className="h-5 shrink-0 border-l dark:border-neutral-800" />
+        <SearchViewToggle viewMode={viewMode} onChange={onViewModeChange} saving={savingView} />
       </div>
     </div>
 
-    <div
+    {resultsCount > 0 && <div
       className={`mt-2 flex gap-2 overflow-x-auto no-scrollbar pb-1 md:flex-wrap md:overflow-visible ${
         reorderPulse ? "bubble-reorder" : ""
       }`}
@@ -136,7 +111,7 @@ const SortFilters = ({
           </button>
         );
       })}
-    </div>
+    </div>}
   </div>
 );
 

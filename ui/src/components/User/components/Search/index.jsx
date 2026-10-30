@@ -4,6 +4,7 @@ import Fuse from "fuse.js";
 import SearchBar from "./components/SearchBar";
 import SortFilters from "./components/SortFilters";
 import TorrentResults from "./components/TorrentResults";
+import PosterResults from "./components/PosterResults";
 import {
   useBrowserProxyBaseUrl,
   useIsMobileWidth,
@@ -14,10 +15,12 @@ import {
   useSearchStateHydration,
   useTorrentActions,
   useTorrentSearchStream,
+  useSearchViewMode,
 } from "./hooks";
 import {
   ALL_SOURCES,
   FUSE_OPTIONS,
+  normalizeSearchText,
   filterByTitle,
   getNextSort,
   getOrderedSources,
@@ -29,10 +32,12 @@ import {
 
 const Search = ({ torrentSearchState }) => {
   const router = useRouter();
+  const { viewMode, changeView, saving: savingView } = useSearchViewMode();
   const [activeSource, setActiveSource] = useState(ALL_SOURCES);
   const [firstLoadFinished, setFirstLoadFinished] = useState(false);
   const [hasSearched, setHasSearched] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [searchStatus, setSearchStatus] = useState("");
   const [query, setQuery] = useState("");
   const [results, setResults] = useState([]);
   const [scrollOffset, setScrollOffset] = useState(0);
@@ -40,6 +45,7 @@ const Search = ({ torrentSearchState }) => {
   const [sort, setSortState] = useState(INITIAL_SORT);
   const [sourceOrder, setSourceOrder] = useState([]);
   const [titleFilter, setTitleFilter] = useState("");
+  const [titleFilterEdited, setTitleFilterEdited] = useState(false);
 
   const filtersRef = useRef(null);
   const sortRef = useRef(INITIAL_SORT);
@@ -67,6 +73,7 @@ const Search = ({ torrentSearchState }) => {
     setResults,
     setScrollOffset,
     setTitleFilter,
+    setTitleFilterEdited,
     torrentSearchState,
     updateSort,
     urlQuery,
@@ -80,6 +87,7 @@ const Search = ({ torrentSearchState }) => {
     scrollOffset,
     sort,
     titleFilter,
+    titleFilterEdited,
     torrentSearchState,
   });
 
@@ -98,11 +106,11 @@ const Search = ({ torrentSearchState }) => {
     [loading, sourceCounts, sourceOrder],
   );
 
-  const fuse = useMemo(() => new Fuse(results, FUSE_OPTIONS), [results]);
+  const fuse = useMemo(() => new Fuse(results, { ...FUSE_OPTIONS, getFn: (item, path) => path.join(".") === "SearchTitle" ? normalizeSearchText(item.Title) : item.Title }), [results]);
 
   const visibleResults = useMemo(
-    () => filterByTitle({ activeSource, fuse, results, titleFilter }),
-    [activeSource, fuse, results, titleFilter],
+    () => filterByTitle({ activeSource, fuse, results, titleFilter, allowPrefix: titleFilterEdited }),
+    [activeSource, fuse, results, titleFilter, titleFilterEdited],
   );
 
   const resultsKey = `${activeSource}-${sort.key}-${sort.dir}-${titleFilter}`;
@@ -112,6 +120,7 @@ const Search = ({ torrentSearchState }) => {
   const { handleCopyMagnet, handleDownload } = useTorrentActions();
   const { handleCancel, handleSearch } = useTorrentSearchStream({
     query,
+    setSearchStatus,
     setActiveSource,
     setHasSearched,
     setLoading,
@@ -119,6 +128,7 @@ const Search = ({ torrentSearchState }) => {
     setScrollOffset,
     setSourceOrder,
     setTitleFilter,
+    setTitleFilterEdited,
     sort,
     sortRef,
     updateSort,
@@ -165,40 +175,48 @@ const Search = ({ torrentSearchState }) => {
     [sort, updateSort],
   );
 
-  const showFilters = results.length > 0;
+  const ResultsView = viewMode === "grid" ? PosterResults : TorrentResults;
+
   const showLoadingIndicator = loading && results.length === 0;
   const showResults = visibleResults.length > 0;
-  const showNoResults = hasSearched && !loading && results.length === 0;
+  const showNoResults = hasSearched && !loading && visibleResults.length === 0;
   const showEmptySearch =
     !hasSearched && !loading && firstLoadFinished && !results?.length;
 
   return (
     <div className="flex justify-center -mt-4">
       <div className="mt-4 pb-16 md:pb-6 relative overflow-y-auto overflow-x-hidden 2xl:w-[82rem] w-full p-2 md:p-4 space-y-2 md:space-y-4">
-        <SearchBar
-          query={query}
-          setQuery={setQuery}
-          loading={loading}
-          onSearch={handleSearchFromInput}
-          onCancel={handleCancel}
-        />
+        <div className="flex items-center gap-2">
+          <div className="min-w-0 flex-1">
+            <SearchBar
+              query={query}
+              setQuery={setQuery}
+              loading={loading}
+              onSearch={handleSearchFromInput}
+              onCancel={handleCancel}
+            />
+          </div>
+        </div>
 
-        {showFilters && (
-          <div ref={filtersRef}>
+        {searchStatus && <p role="status" className="text-xs text-zinc-500">{searchStatus}</p>}
+
+        <div ref={filtersRef}>
             <SortFilters
               sort={sort}
               onSortChange={handleSortChange}
               titleFilter={titleFilter}
-              setTitleFilter={setTitleFilter}
+              setTitleFilter={(value) => { setTitleFilter(value); setTitleFilterEdited(true); }}
               sources={sources}
               activeSource={activeSource}
               setActiveSource={setActiveSource}
               sourceCounts={sourceCounts}
               resultsCount={results.length}
               reorderPulse={reorderPulse}
+              viewMode={viewMode}
+              onViewModeChange={changeView}
+              savingView={savingView}
             />
-          </div>
-        )}
+        </div>
 
         {showLoadingIndicator && (
           <div className="py-10 flex justify-center">
@@ -208,8 +226,8 @@ const Search = ({ torrentSearchState }) => {
 
         {showResults && (
           <div className="mt-0">
-            <TorrentResults
-              key={resultsKey}
+            <ResultsView
+              key={`${viewMode}-${resultsKey}`}
               items={visibleResults}
               onCopy={handleCopyMagnet}
               onDownload={handleDownload}
@@ -227,7 +245,7 @@ const Search = ({ torrentSearchState }) => {
 
         {showNoResults && (
           <p className="py-10 text-center text-sm text-zinc-500">
-            No results found
+            {results.length ? "No titles match your filters. Adjust the title filter or source." : "No results found"}
           </p>
         )}
 

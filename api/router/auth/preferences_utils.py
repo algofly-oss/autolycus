@@ -5,6 +5,9 @@ def serialize_preferences(preferences):
     if preferences.get("home_view_mode"):
         serialized["home_view_mode"] = preferences.get("home_view_mode")
 
+    if preferences.get("search_view_mode") in {"list", "grid"}:
+        serialized["search_view_mode"] = preferences["search_view_mode"]
+
     ftp = dict(preferences.get("ftp") or {})
     if ftp:
         serialized["ftp"] = {
