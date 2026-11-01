@@ -1,0 +1,5 @@
+{
+  "repository": "https://github.com/algofly-oss/autolycus.git",
+  "commit": "a4ec61eb6bad0425eceb14ba3f388ea9917e6a42",
+  "note": "Source checkout had local modifications at integration time; this is its Git base commit."
+}

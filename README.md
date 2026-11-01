@@ -27,6 +27,13 @@
   </p>
 </p>
 
+## Native Android TV client
+
+The standalone native TV application is maintained in [`android-tv/`](android-tv/README.md)
+alongside this server and web app. It includes the cinema homepage and native
+original-quality player. Build instructions and source provenance are recorded
+in that directory. Ambient lighting/screen capture is a separate Quiet TV app.
+
 <details open="open">
   <summary>Table of Contents</summary>
   <ol>

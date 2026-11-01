@@ -1,4 +1,5 @@
 .git
+android-tv
 .env
 .env.*
 volumes
