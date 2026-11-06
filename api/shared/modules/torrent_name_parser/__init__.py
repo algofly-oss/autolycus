@@ -22,6 +22,10 @@ import unicodedata
 
 
 def parse(name, standardise=True, coherent_types=False):
+    # Release sites prepend their domain to both torrent and file names.
+    # Remove it before parsing so every metadata consumer gets the film title.
+    domain = r"(?:https?://)?(?:www\.)?(?:[a-z0-9-]+\.)+[a-z]{2,}(?:/)?"
+    name = re.sub(r"^\s*(?:" + domain + r"\s+-\s+|\[" + domain + r"\]\s*(?:-\s*)?)", "", name, flags=re.I)
     return PTN().parse(name, standardise, coherent_types)
 
 
