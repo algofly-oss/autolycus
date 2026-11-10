@@ -1,3 +1,4 @@
+import useSignupPolicy from "@/shared/useSignupPolicy";
 import Link from "next/link";
 import TextBox from "@/shared/components/TextBox";
 import useReactState from "@/shared/hooks/reactState";
@@ -11,6 +12,7 @@ import { FcGoogle } from "react-icons/fc";
 
 export default function SignIn() {
   const auth = useAuth();
+  const signupPolicy = useSignupPolicy();
 
   const router = useRouter();
   const data = useReactState();
@@ -89,7 +91,7 @@ export default function SignIn() {
   };
 
   return (
-    <div className="rounded-lg p-6 lg:p-16 w-full 2xl:w-[45rem]">
+    <div className="auth-form">
       <GoBack />
       <p className="text-3xl font-bold">Welcome back</p>
       <p className="mb-6">Please enter your details</p>
@@ -150,12 +152,12 @@ export default function SignIn() {
         <FcGoogle size={25} />
         <button>Sign in with Google</button>
       </div> */}
-      <div className="flex space-x-2 justify-center mt-4">
+      {signupPolicy.enabled && <div className="flex space-x-2 justify-center mt-4">
         <p>Don&apos;t have an account?</p>
         <Link href={uiRoutes.signUp} passHref>
           <p className="text-blue-500 font-medium cursor-pointer">Sign up</p>
         </Link>
-      </div>
+      </div>}
     </div>
   );
 }

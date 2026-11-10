@@ -1,0 +1,11 @@
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+const {matchingTorrentSources}=await import('data:text/javascript;base64,'+Buffer.from(fs.readFileSync('ui/src/components/User/components/Search/utils.js')).toString('base64'));
+const source={Title:'Movie.2019.1080p.Release',TrackerId:'broken',Size:3854733148};
+const alternate={...source,TrackerId:'working',Size:3853476727,InfoHash:'a'.repeat(40),Seeders:401};
+const suggestions=matchingTorrentSources(source,[source,alternate,{...alternate},{...alternate,TrackerId:'other-release',Title:'Movie.2019.720p.Release'},{...alternate,TrackerId:'no-link',InfoHash:null}]);
+assert.deepEqual(suggestions,[alternate]);
+assert.equal(suggestions[0].Size,3853476727);
+assert.deepEqual(matchingTorrentSources({Title:''},[alternate]),[]);
+assert.deepEqual(matchingTorrentSources(source,[{...alternate,TrackerId:'broken'}]),[]);
+console.log('PASS: matching releases offered across sources, sizes preserved, duplicates and unrelated/unresolvable results excluded');

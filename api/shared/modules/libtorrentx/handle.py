@@ -66,6 +66,8 @@ class TorrentHandleWrapper(TorrentCallBack, Utils):
         sequential,
         callback=None,
         callback_interval=1,
+        file_indices=None,
+        metadata=None,
     ):
         TorrentCallBack.__init__(self)
 
@@ -74,7 +76,9 @@ class TorrentHandleWrapper(TorrentCallBack, Utils):
         self.magnet = magnet
         self.save_dir = save_dir
         self.sequential = sequential
-        self.info_hash = str(self.handle.status().info_hash).lower()
+        self.file_indices = sorted(set(file_indices)) if file_indices is not None else None
+        self.metadata = metadata
+        self.info_hash = str(self.handle.info_hashes().v1).lower()
 
         self.callback = callback
         self.callback_interval = callback_interval
@@ -95,7 +99,7 @@ class TorrentHandleWrapper(TorrentCallBack, Utils):
         return TorrentProps(
             name=name,
             info_hash=self.info_hash,
-            download_speed=(0 if paused else (s.download_rate + 1)),
+            download_speed=(0 if paused else s.download_rate),
             downloaded_bytes=s.total_wanted_done,
             is_finished=self.handle.is_finished(),
             is_paused=(paused or s.paused),
@@ -103,12 +107,14 @@ class TorrentHandleWrapper(TorrentCallBack, Utils):
             num_peers=s.num_peers,
             num_seeds=s.num_seeds,
             num_trackers=len(self.handle.trackers()),
+            tracker_health=self.session.tracker_health(),
             progress=int(s.progress * 100),
             queue_position=s.queue_position,
             total_bytes=s.total_wanted,
             upload_speed=s.upload_rate,
             save_dir=s.save_path,
             ok=(name != "Unknown"),
+            **({"selected_files":self.file_indices} if self.file_indices is not None else {}),
         )
 
     def stop(self):
@@ -129,7 +135,7 @@ class TorrentHandleWrapper(TorrentCallBack, Utils):
             bool: True if started
         """
 
-        self.handle = self.session._restart(self.magnet, self.save_dir, self.sequential)
+        self.handle = self.session._restart(self.magnet, self.save_dir, self.sequential,file_indices=self.file_indices,metadata=self.metadata)
         # self.start_callback()
 
         if self.info_hash not in self.session.handles:

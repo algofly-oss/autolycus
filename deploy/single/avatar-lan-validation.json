@@ -1,0 +1,68 @@
+{
+  "date": "2026-11-01",
+  "file_bytes": 38579201629,
+  "mp4_boxes": [
+    {
+      "type": "ftyp",
+      "offset": 0,
+      "size": 32
+    },
+    {
+      "type": "mdat",
+      "offset": 32,
+      "size": 38563758549
+    },
+    {
+      "type": "moov",
+      "offset": 38563758581,
+      "size": 15443048
+    }
+  ],
+  "lan_byte_test": {
+    "connection_ms": 155,
+    "ftyp": "ftyp",
+    "metadata_bytes": 15443048,
+    "metadata_ms": 1459,
+    "metadata_sha256": "a0ccc6539063cef0b3b180963af115dc5049224991838101d5958c5c587d0c44",
+    "origin": "https://autolycus.algofly.ai",
+    "reads": 60,
+    "received": 16460306,
+    "remote": "192.168.0.3",
+    "remote_port": 10155,
+    "secure": true
+  },
+  "player_metadata_seconds": 1.26,
+  "audio_tracks": [
+    "English \u00b7 BTM DDP5.1 Atmos \u00b7 eac3",
+    "English \u00b7 BTM DDP5.1 \u00b7 eac3"
+  ],
+  "desktop_native_hevc_support": false,
+  "explicit_client_fallback": {
+    "audio": 15334,
+    "decoded_frames": 29,
+    "height": 2076,
+    "time": 1.133644,
+    "width": 3840
+  },
+  "client_fallback_first_frame_seconds": 4.05,
+  "test_context": {
+    "isolated_account": true,
+    "media_bind_read_only": true,
+    "https_origin": "https://autolycus.algofly.ai",
+    "dns": "Only the isolated browser maps this hostname to its test app; production DNS is unchanged",
+    "ice": "Raw byte test filters out the container candidate to require the advertised host-LAN candidate",
+    "full_player": "Unmodified candidate selection; the isolated browser can also reach the container candidate directly"
+  },
+  "server_processing": {
+    "encoder_processes_sampled": [],
+    "runtime_read_limit_bytes": 262144,
+    "startup_priority_contract": "passed for private/public/online/torrent info before any frame or lease renewal",
+    "mid_frame_preview_interruption": "passed; checked every 250 ms"
+  },
+  "limits": [
+    "A short real-file test, not a three-hour playback benchmark",
+    "No physical iPhone/native hardware HEVC test",
+    "Client software fallback can use CPU/battery and change HDR colors; it is explicitly selected",
+    "Timings are local warm-cache observations, not WAN guarantees"
+  ]
+}

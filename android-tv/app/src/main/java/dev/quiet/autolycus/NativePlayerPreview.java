@@ -29,7 +29,7 @@ final class NativePlayerPreview extends View {
     private String path;
     private Bitmap sprite;
     private JSONObject metadata;
-    private boolean attempted, closed, active;
+    private boolean attempted, closed, active, requesting, refreshDetail;
     private long attemptedAt;
     private long position;
     private int generation;
@@ -47,6 +47,8 @@ final class NativePlayerPreview extends View {
         sprite = null;
         metadata = null;
         attempted = false;
+        requesting = false;
+        refreshDetail = false;
         setVisibility(GONE);
     }
 
@@ -56,13 +58,15 @@ final class NativePlayerPreview extends View {
         if (sprite != null) {
             setVisibility(VISIBLE);
             invalidate();
-            return;
+            if (!refreshDetail || SystemClock.elapsedRealtime() - attemptedAt < 15000) return;
         }
-        if (attempted && SystemClock.elapsedRealtime() - attemptedAt < 5000
+        if (requesting
+                || attempted && SystemClock.elapsedRealtime() - attemptedAt < 5000
                 || path == null
                 || closed
                 || worker.isShutdown()) return;
         attempted = true;
+        requesting = true;
         attemptedAt = SystemClock.elapsedRealtime();
         int request = generation;
         String source = path;
@@ -72,9 +76,18 @@ final class NativePlayerPreview extends View {
                     try {
                         JSONObject info =
                                 api.get(
-                                        "/api/files/playback/preview?path="
+                                        "/api/files/playback/preview?detail=true&path="
                                                 + URLEncoder.encode(
                                                         source, StandardCharsets.UTF_8));
+                        if (BuildConfig.DEBUG)
+                            android.util.Log.d(
+                                    "AutolycusPreview",
+                                    "status="
+                                            + info.optString("status")
+                                            + " frames="
+                                            + info.optInt("count")
+                                            + " detail="
+                                            + info.optString("detail_status"));
                         if (!"ready".equals(info.optString("status"))) return;
                         String image = api.absolute(info.optString("image"));
                         stream = new NativePlayerDataSource(api);
@@ -101,12 +114,22 @@ final class NativePlayerPreview extends View {
                                     if (closed || request != generation || decoded == null) return;
                                     metadata = info;
                                     sprite = decoded;
+                                    refreshDetail =
+                                            "queued".equals(info.optString("detail_status"));
                                     if (active) setVisibility(VISIBLE);
                                     invalidate();
                                 });
                     } catch (Exception ignored) {
                         // A missing sprite never blocks seeking or playback.
+                        if (BuildConfig.DEBUG)
+                            android.util.Log.d(
+                                    "AutolycusPreview",
+                                    "load failed: " + ignored.getClass().getSimpleName());
                     } finally {
+                        post(
+                                () -> {
+                                    if (request == generation) requesting = false;
+                                });
                         if (stream != null)
                             try {
                                 stream.close();

@@ -15,6 +15,9 @@ tokio-util = { version = "0.7", features = ["compat"] }
 toml = "0.8"
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+str0m = { version = "0.24.1", default-features = false, features = ["rust-crypto"] }
+axum = "0.8"
+serde_json = "1"
 
 [profile.release]
 lto = "thin"

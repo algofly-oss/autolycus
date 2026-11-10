@@ -53,5 +53,4 @@ def get_disk_usage(user_id=None):
         occupied = json.loads(CACHE.read_text())['used']
     except (FileNotFoundError, ValueError, KeyError):
         occupied = refresh_storage_usage()
-    outside = max(0, drive.used - occupied)
-    return {'used': occupied, 'total': drive.total - outside, 'free': drive.free}
+    return {'used': drive.used, 'total': drive.total, 'free': drive.free, 'app_used': occupied, 'drive_used': drive.used, 'drive_total': drive.total}

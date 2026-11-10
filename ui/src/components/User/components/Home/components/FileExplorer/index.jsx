@@ -1,22 +1,31 @@
-import React, { useEffect, useState } from "react";
+import InfiniteMediaList from "@/shared/InfiniteMediaList";
+import {requestPlayerFullscreen} from "@/shared/usePlayerFullscreen";
+import React, { useCallback, useEffect, useState } from "react";
 import axios from "axios";
+import { useRouter } from "next/router";
+import useWatchProgress, { relativeMediaPath } from "@/shared/useWatchProgress";
 import { FiArrowLeft, FiLoader } from "react-icons/fi";
 import { getFileType } from "@/shared/utils/fileUtils";
 import apiRoutes from "@/shared/routes/apiRoutes";
 import useToast from "@/shared/hooks/useToast";
 import Breadcrumbs from "./components/Breadcrumbs";
 import DeleteDialog from "./components/DeleteDialog";
-import VideoPlayer from "./components/VideoPlayer";
+import dynamic from "next/dynamic";
 import { AnimatePresence } from "framer-motion";
 import RenameDialog from "./components/RenameDialog";
 import FileItem from "./components/FileItem";
 import FilePreview, { getPreviewType } from "./components/FilePreview";
+const VideoPlayer = dynamic(() => import("./components/VideoPlayer"), { ssr: false, loading: () => <div role="status" aria-label="Loading video" style={{ position: "fixed", inset: 0, zIndex: 2000, background: "#000", display: "grid", placeItems: "center", color: "#aaa" }}><FiLoader size={28} className="animate-spin" /></div> });
+
+const fileKey=item=>item.name;
 
 export default function FileExplorer({
+  scrollRef,
   initialPath,
   onPathChange,
   selectedFileName = null,
 }) {
+  const router = useRouter();
   const [items, setItems] = useState([]);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -36,6 +45,21 @@ export default function FileExplorer({
   const [copiedItem, setCopiedItem] = useState(null);
   const [pasting, setPasting] = useState(false);
   const toast = useToast();
+  const [visibleRange,setVisibleRange]=useState([0,20]);
+  const onRange=useCallback((start,end)=>setVisibleRange(old=>old[0]===start&&old[1]===end?old:[start,end]),[]);
+  const watched = useWatchProgress(items.slice(...visibleRange).map(item => ({path:relativeMediaPath(`${initialPath}/${item.name}`),directory:item.is_directory})));
+  useEffect(() => {
+    if(!router.isReady) return;
+    const video = typeof router.query.video === "string" ? router.query.video : "";
+    if(video) setVideoPlayer(current => current.open && new URL(current.url,location.href).searchParams.get("path")===video ? current : {open:true,url:`${apiRoutes.streamFile}?path=${encodeURIComponent(video)}`,name:video.split("/").pop(),queueRoot:initialPath});
+    else setVideoPlayer(current => current.open ? {open:false,url:"",name:""} : current);
+  },[router.isReady,router.query.video,initialPath]);
+  function selectEpisode(entry) {
+    setVideoPlayer(current=>({...current,url:`${apiRoutes.streamFile}?path=${encodeURIComponent(entry.path)}`,name:entry.name}));
+    const query={...router.query,video:entry.path};delete query.t;
+    router.replace({pathname:router.pathname,query},undefined,{shallow:true,scroll:false}).catch(()=>{});
+  }
+
 
   useEffect(() => {
     fetchData();
@@ -71,7 +95,10 @@ export default function FileExplorer({
           `${initialPath}/${item.name}`.replace(/^\/downloads\/*/, "")
         );
         const videoUrl = `${apiRoutes.streamFile}?path=${videoPath}`;
-        setVideoPlayer({ open: true, url: videoUrl, name: item.name });
+        requestPlayerFullscreen();
+        setVideoPlayer({ open: true, url: videoUrl, name: item.name, queueRoot: initialPath });
+        const query={...router.query,video:decodeURIComponent(videoPath)};delete query.t;
+        router.push({pathname:router.pathname,query},undefined,{shallow:true,scroll:false}).catch(()=>{});
       } else {
         const previewType = getPreviewType(item.name);
         if (previewType) {
@@ -192,7 +219,7 @@ export default function FileExplorer({
   };
 
   return (
-    <div className="mt-5">
+    <div className="mt-5 pb-24 md:pb-0">
       {pasting && (
         <div className="fixed inset-0 z-50 flex items-center justify-center">
           <div className="absolute inset-0 bg-black opacity-80 z-40"></div>
@@ -214,12 +241,18 @@ export default function FileExplorer({
         )}
       </AnimatePresence>
 
-      <VideoPlayer
+      {videoPlayer.open && <VideoPlayer
         open={videoPlayer.open}
         url={videoPlayer.url}
         name={videoPlayer.name}
-        onClose={() => setVideoPlayer({ open: false, url: "", name: "" })}
-      />
+        queueRoot={videoPlayer.queueRoot}
+        onEpisodeSelect={selectEpisode}
+        onClose={() => {
+          const query={...router.query};delete query.video;delete query.t;
+          router.replace({pathname:router.pathname,query},undefined,{shallow:true,scroll:false}).catch(()=>{});
+          setVideoPlayer({ open: false, url: "", name: "" });
+        }}
+      />}
 
       <FilePreview
         open={filePreview.open}
@@ -276,9 +309,8 @@ export default function FileExplorer({
         </div>
       )}
 
-      <div className="flex flex-col gap-2">
-        {items.map((item) => (
-          <FileItem
+      <InfiniteMediaList items={items} scrollRef={scrollRef} itemKey={fileKey} onRange={onRange} scrollToKey={selectedFileName} hasMore={false} renderItem={item=>(
+          <FileItem watchProgress={watched[relativeMediaPath(`${initialPath}/${item.name}`)]}
             key={item.name}
             item={item}
             initialPath={initialPath}
@@ -289,8 +321,7 @@ export default function FileExplorer({
             setDeleteDialog={setDeleteDialog}
             setRenameDialog={setRenameDialog}
           />
-        ))}
-      </div>
+        )}/>
 
       {!loading && !error && items.length === 0 && (
         <div className="text-center p-8 text-gray-500">

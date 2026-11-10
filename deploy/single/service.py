@@ -75,8 +75,8 @@ def launch(name):
         if name == "api":
             command = ["uvicorn", "main:app", "--host", "127.0.0.1", "--port", "8080"]
         else:
-            command = ["celery", "-A", "celery_worker", "worker", "-Q", "transcoding,archive,file_operations",
-                       "--concurrency=" + env.get("CELERY_NUM_WORKERS", "2"), "--loglevel=info", "-E"]
+            command = ["celery", "-A", "celery_worker", "worker", "-Q", "file_operations,archive,transcoding,previews",
+                       "--concurrency=" + env.get("CELERY_NUM_WORKERS", "3"), "--loglevel=info", "-E"]
             env["C_FORCE_ROOT"] = "true"
     elif name == "tor":
         command = ["autolycus-runtime", "tor"]

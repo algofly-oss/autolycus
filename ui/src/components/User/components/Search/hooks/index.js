@@ -240,29 +240,28 @@ export const useTorrentActions = () => {
   const resolveMagnet = useCallback(async (item) => {
     const direct = extractMagnet(item);
     if (direct) return direct;
-    if (!item.ResolveToken) return null;
+    if (!item.ResolveToken) throw new Error("This source did not provide a magnet or torrent download link. Try another source.");
     const token = item.ResolveToken;
     if (!resolutions.current.has(token)) {
       const pending = axios.post(apiRoutes.resolveMagnet, { token })
-        .then(({ data }) => data.magnet)
+        .then(({ data }) => {
+          if (!data.magnet) throw new Error("The source returned no usable magnet. Try another source.");
+          return data.magnet;
+        })
         .catch((error) => {
           resolutions.current.delete(token);
-          toast.error(error.response?.data?.detail || "Could not retrieve the magnet. Try again or open the source page.");
-          return null;
+          throw new Error(error.response?.data?.detail || error.message || "Could not retrieve the magnet. Try again or open the source page.");
         });
       resolutions.current.set(token, pending);
     }
     return resolutions.current.get(token);
-  }, [toast]);
+  }, []);
 
   const handleCopyMagnet = useCallback(
     async (item) => {
-      const magnet = await resolveMagnet(item);
-
-      if (!magnet) {
-        toast.error("Magnet not Found");
-        return;
-      }
+      let magnet;
+      try { magnet = await resolveMagnet(item); }
+      catch (error) { toast.error(error.message); return; }
 
       const status = await copyTextToClipboard(magnet);
 
@@ -279,16 +278,14 @@ export const useTorrentActions = () => {
 
   const handleDownload = useCallback(
     async (item) => {
-      const magnet = await resolveMagnet(item);
-
-      if (!magnet) {
-        toast.error("Magnet not Found");
-        return;
-      }
+      let magnet;
+      try { magnet = await resolveMagnet(item); }
+      catch (error) { toast.error(error.message); return; }
 
       try {
         await axios.post(apiRoutes.addMagnet, { magnet });
         toast.success("Added to Download Queue");
+        return true;
       } catch (err) {
         console.error("Add magnet error:", err);
         toast.error("Failed to add torrent");
@@ -297,7 +294,7 @@ export const useTorrentActions = () => {
     [resolveMagnet, toast],
   );
 
-  return { handleCopyMagnet, handleDownload };
+  return { handleCopyMagnet, handleDownload, resolveMagnet };
 };
 
 export const useTorrentSearchStream = ({

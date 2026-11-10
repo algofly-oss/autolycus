@@ -1,4 +1,4 @@
-"""Regression: shared app usage, outside-space subtraction and hard-link deduplication."""
+"""Regression: real shared drive capacity, separate app usage and hard-link deduplication."""
 import json
 import os
 import sys
@@ -14,13 +14,13 @@ from shared.modules.storage_usage import allocated_bytes, get_disk_usage, refres
 
 
 class DriveUsageTests(unittest.TestCase):
-    def test_users_share_app_usage_and_capacity_excludes_other_directories(self):
+    def test_all_users_see_real_drive_usage_with_separate_app_usage(self):
         drive = namedtuple('usage', 'total used free')(8000, 1500, 6400)
         with tempfile.TemporaryDirectory() as directory:
             cache = Path(directory) / 'usage.json'
             cache.write_text(json.dumps({'used': 300}))
             with patch('shared.modules.storage_usage.CACHE', cache), patch('shared.modules.storage_usage.shutil.disk_usage', return_value=drive):
-                expected = {'used': 300, 'total': 6800, 'free': 6400}
+                expected = {'used':1500,'total':8000,'free':6400,'app_used':300,'drive_used':1500,'drive_total':8000}
                 self.assertEqual(get_disk_usage('new-user'), expected)
                 self.assertEqual(get_disk_usage('existing-user'), expected)
 

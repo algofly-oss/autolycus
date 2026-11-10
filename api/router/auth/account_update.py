@@ -6,7 +6,7 @@ from typing import Optional
 import bcrypt
 from bson import ObjectId
 from fastapi import APIRouter, HTTPException, Request
-from pydantic import BaseModel
+from pydantic import BaseModel, constr
 from pymongo.errors import DuplicateKeyError
 
 from shared.factory import db
@@ -44,9 +44,18 @@ class PasswordUpdate(BaseModel):
     new_password: str
 
 
+class SubtitlePreferences(BaseModel):
+    enabled: bool = False
+    language: constr(regex=r"^[a-z]{2,3}$") = "en"
+    auto_match: bool = True
+
+
 class PreferencesUpdate(BaseModel):
     home_view_mode: Optional[str] = None
     search_view_mode: Optional[str] = None
+    video_quality: Optional[str] = None
+    video_subtitles: Optional[SubtitlePreferences] = None
+    video_audio_language: Optional[str] = None
 
 
 def _user_object_id(request: Request):
@@ -186,19 +195,29 @@ async def update_preferences(preferences: PreferencesUpdate, request: Request):
             raise HTTPException(status_code=400, detail="Invalid search view mode")
         updates["preferences.search_view_mode"] = preferences.search_view_mode
 
+    if preferences.video_quality is not None:
+        if preferences.video_quality not in {"auto", "original", "144p", "240p", "360p", "480p", "720p", "1080p", "1440p", "2160p"}:
+            raise HTTPException(status_code=400, detail="Invalid video quality")
+        updates["preferences.video_quality"] = preferences.video_quality
+
+    if preferences.video_subtitles is not None:
+        updates["preferences.video_subtitles"] = preferences.video_subtitles.dict()
+    if preferences.video_audio_language is not None:
+        if not __import__("re").fullmatch(r"[a-z]{2,3}",preferences.video_audio_language):
+            raise HTTPException(400,"Invalid audio language")
+        updates["preferences.video_audio_language"] = preferences.video_audio_language
+
+    from shared.modules.media_profiles import profile_id
+    selected=await profile_id(request,str(user_object_id))
     if updates:
-        await db.users.update_one(
-            {"_id": user_object_id},
-            {
-                "$set": {
-                    **updates,
-                    "preferences.updated_at": datetime.datetime.utcnow(),
-                }
-            },
-        )
+        if selected == "default":
+            await db.users.update_one({"_id":user_object_id},{"$set":{**updates,"preferences.updated_at":datetime.datetime.utcnow()}})
+        await db.media_profiles.update_one({"_id":f"{user_object_id}:{selected}"},{"$set":updates})
 
     updated_user = await db.users.find_one({"_id": user_object_id})
-    return {"preferences": serialize_preferences(updated_user.get("preferences"))}
+    profile=await db.media_profiles.find_one({"_id":f"{user_object_id}:{selected}"})
+    merged={**(updated_user.get("preferences") or {}),**((profile or {}).get("preferences") or {})}
+    return {"preferences": serialize_preferences(merged)}
 
 
 @router.patch("/password")

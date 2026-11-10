@@ -1,6 +1,8 @@
 import datetime
+import re
+from typing import Optional
 
-from fastapi import APIRouter, Request, Response, HTTPException
+from fastapi import APIRouter, Request, Response, HTTPException, Query
 from shared.factory import db, redis
 from shared.env import SESSION_COOKIE_NAME
 from bson import ObjectId
@@ -53,7 +55,7 @@ async def account_info(request: Request, response: Response):
 
 
 @router.get("/sessions")
-async def list_sessions(request: Request):
+async def list_sessions(request: Request, page: Optional[int] = Query(None, ge=1), page_size: int = Query(10, ge=5, le=50), query: str = Query("", max_length=120), device_filter: str = Query("all", regex="^(all|current|other)$")):
     user_id = authenticate_user(request)
     user_id_string = user_id.decode("utf-8") if isinstance(user_id, bytes) else str(user_id)
     session_token = get_session_token(request, "")
@@ -61,27 +63,28 @@ async def list_sessions(request: Request):
     if await touch_session_record(db, session_token, request) == 0:
         await create_session_record(db, user_id_string, session_token, request)
 
-    sessions = (
-        await db.user_sessions.find(
-            {
-                "user_id": user_id_string,
-                "revoked_at": None,
-                "$or": [
-                    {"expires_at": {"$exists": False}},
-                    {"expires_at": {"$gt": datetime.datetime.utcnow()}},
-                ],
-            }
-        )
-        .sort("last_accessed_at", -1)
-        .to_list(length=100)
-    )
-
-    return {
-        "data": [
-            serialize_session(session, current_session_token=session_token)
-            for session in sessions
-        ]
-    }
+    base = {"user_id": user_id_string, "revoked_at": None,
+            "$or": [{"expires_at": {"$exists": False}}, {"expires_at": {"$gt": datetime.datetime.utcnow()}}]}
+    match = dict(base)
+    if query.strip():
+        term = {"$regex": re.escape(query.strip()), "$options": "i"}
+        match["$and"] = [{"$or": [{field: term} for field in ("device_name", "browser", "os", "ip")]}]
+    if device_filter == "current":
+        match["_id"] = session_token
+    elif device_filter == "other":
+        match["_id"] = {"$ne": session_token}
+    if page is None:
+        sessions = await db.user_sessions.find(match).sort("last_accessed_at", -1).to_list(length=100)
+        return {"data": [serialize_session(session, current_session_token=session_token) for session in sessions]}
+    total = await db.user_sessions.count_documents(match)
+    all_total = await db.user_sessions.count_documents(base)
+    sessions = await db.user_sessions.aggregate([
+        {"$match": match}, {"$addFields": {"_is_current": {"$eq": ["$_id", session_token]}}},
+        {"$sort": {"_is_current": -1, "last_accessed_at": -1, "_id": 1}},
+        {"$skip": (page-1)*page_size}, {"$limit": page_size}
+    ]).to_list(length=page_size)
+    return {"data": [serialize_session(session, current_session_token=session_token) for session in sessions],
+            "meta": {"total": total, "all_total": all_total, "page": page, "page_size": page_size}}
 
 
 @router.patch("/sessions/current/ip")

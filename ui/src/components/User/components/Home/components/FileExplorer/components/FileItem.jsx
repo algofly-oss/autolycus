@@ -57,6 +57,7 @@ const FileItem = ({
   setDeleteDialog,
   setRenameDialog,
   isSelected = false,
+  watchProgress,
 }) => {
   const socket = useContext(SocketContext);
   const toast = useToast();
@@ -75,6 +76,7 @@ const FileItem = ({
         }
       : null;
   const displayedArchiveOperation = archiveOperation || itemArchiveOperation;
+  const watchedPercent= watchProgress?.duration>0 && watchProgress.position>0 ? (watchProgress.completed?100:Math.min(100,watchProgress.position/watchProgress.duration*100)) : null;
   const sizeLabel =
     item.is_partial && item.total_size
       ? `${formatFileSize(item.size || 0)} / ${formatFileSize(item.total_size)}`
@@ -161,7 +163,7 @@ const FileItem = ({
   const generatePublicUrl = (initialPath, item) => {
     const filePath = `${initialPath}/${item?.name}`;
     const publicKey = item?.public_url_key || generatePublicKey();
-    const url = `${window.location.origin}/api/files/public/${publicKey}`;
+    const url = `${window.location.origin}/watch?key=${encodeURIComponent(publicKey)}`;
 
     copyTextToClipboard(url).then((status) => {
       if (status === CLIPBOARD_COPY_STATUS.COPIED) {
@@ -380,7 +382,7 @@ const FileItem = ({
     <div
       key={item.name}
       onClick={() => handleItemClick(item)}
-      className={`py-4 px-4 rounded-lg border cursor-pointer transition-colors ${
+      className={`relative overflow-hidden py-4 px-4 rounded-lg border cursor-pointer transition-colors ${
         isSelected
           ? "border-blue-500/50 bg-blue-500/10 dark:border-blue-400/40 dark:bg-blue-400/10"
           : "dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800"
@@ -425,6 +427,11 @@ const FileItem = ({
                     " • Starting…"
                   )}
                 </div>
+              </div>
+            ) : watchedPercent!==null ? (
+              <div className="mt-2" data-file-watch-progress role="progressbar" aria-label="Watched" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(watchedPercent)}>
+                <ProgressBar progress={watchedPercent} showLabel={false} progress_height="h-1.5"/>
+                <div className="mt-1 flex items-center gap-2 text-sm text-gray-500"><span>{sizeLabel}</span><span aria-hidden="true">·</span><span>{watchProgress.completed?"Watched":`${Math.round(watchedPercent)}% watched`}</span></div>
               </div>
             ) : (
               <div className="text-sm text-gray-500">

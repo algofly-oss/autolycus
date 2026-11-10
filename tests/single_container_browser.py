@@ -19,11 +19,11 @@ with webdriver.Chrome(options=options) as browser:
     wait.until(EC.visibility_of_element_located((By.CSS_SELECTOR, 'input[placeholder="Enter your email"]'))).send_keys("single-container-smoke@example.test")
     browser.find_element(By.CSS_SELECTOR, 'input[placeholder="Enter your password"]').send_keys("Smoke-Test-Password-123!")
     browser.find_element(By.XPATH, "//button[.//p[text()='Sign in']]").click()
-    wait.until(EC.url_contains("/home"))
+    wait.until(lambda driver: driver.execute_script("return location.pathname==='/' || location.pathname==='/home'"))
     wait.until(lambda driver: driver.execute_script("return document.body.innerText.length") > 100)
     # A hard refresh verifies exported routes and authenticated hydration.
     browser.refresh()
-    wait.until(lambda driver: "/home" in driver.current_url and len(driver.find_elements(By.TAG_NAME, "button")) > 0)
+    wait.until(lambda driver: driver.execute_script("return location.pathname==='/' || location.pathname==='/home'") and len(driver.find_elements(By.TAG_NAME, "button")) > 0)
     errors = [entry for entry in browser.get_log("browser") if entry["level"] == "SEVERE" and
               ("Uncaught" in entry["message"] or "Hydration failed" in entry["message"])]
     assert not errors, errors
@@ -111,7 +111,7 @@ with webdriver.Chrome(options=options) as browser:
 with webdriver.Chrome(options=options) as browser:
     wait = WebDriverWait(browser, 30, ignored_exceptions=(StaleElementReferenceException,))
     browser.get("http://127.0.0.1/")
-    wait.until(EC.url_contains("/home"))
+    wait.until(lambda driver: driver.execute_script("return location.pathname==='/' || location.pathname==='/home'"))
     assert any(cookie.get("httpOnly") and cookie.get("expiry") for cookie in browser.get_cookies())
     browser.execute_cdp_cmd("Network.enable", {})
     browser.execute_cdp_cmd("Network.setBlockedURLs", {"urls": ["*://*/api/auth/me"]})
@@ -120,5 +120,5 @@ with webdriver.Chrome(options=options) as browser:
     assert "/home" in browser.current_url, "Temporary network loss must not navigate to login"
     browser.execute_cdp_cmd("Network.setBlockedURLs", {"urls": []})
     browser.refresh()
-    wait.until(EC.url_contains("/home"))
+    wait.until(lambda driver: driver.execute_script("return location.pathname==='/' || location.pathname==='/home'"))
     print("PASS: browser close/reopen restores session; temporary auth network failure does not log out")

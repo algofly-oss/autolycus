@@ -8,11 +8,12 @@ const SortButton = ({ label, value, sort, onSortChange, className = "" }) => {
 
   return (
     <button
+      aria-pressed={active}
       onClick={() => onSortChange(value)}
       className={`flex items-center gap-1 px-3 h-7 rounded-full text-[11px] font-medium whitespace-nowrap transition ${className}
         ${
           active
-            ? "bg-zinc-900 text-white dark:bg-zinc-100 dark:text-black"
+            ? "bg-blue-600 text-white"
             : "bg-zinc-200 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300"
         }
       `}

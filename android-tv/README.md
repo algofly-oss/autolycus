@@ -18,6 +18,9 @@ watching, library and discovery shelves, search and profiles. Artwork loads thro
 a bounded cache and workers. D-pad navigation follows movie rows; headings and
 secondary per-poster icons do not interrupt movement. Focus uses subtle scale and
 backplates. Details include a scrollable synopsis and episode selection.
+Holding Up through shelves stops at the hero action row; release and press Up
+again to enter the top navigation. Repeated Up arriving from lower shelves selects
+the primary Continue watching / Play action.
 
 The slim header uses a translucent gradient and subtle edge highlight, darkening
 when the page scrolls to keep navigation readable. It uses no backdrop snapshots
@@ -25,6 +28,14 @@ or blur, so there is no delayed background effect. Search shows a native loading
 indicator over the current page; Back cancels pending search presentation.
 Local library content renders before optional external discovery is fetched;
 discovery updates preserve the focused title and shelf.
+
+Category pages are reused in a bounded in-memory cache (four pages, at most
+1,000 inactive poster cards). Selecting the current category does no rebuild;
+catalogue refreshes invalidate cached pages. Hidden artwork references are
+released, and duplicate image requests share bounded background workers.
+On the tested TCL TV, cached Movies / For you switches reached pre-draw in
+119–134 ms; first uncached construction still took 0.85–1.83 seconds. These are
+click-to-pre-draw timings, not measured display presentation latency.
 
 Search and login use the system TV keyboard in native input surfaces. Back closes
 dialogs before leaving the current screen. The Menu key on a movie opens details;
@@ -58,6 +69,29 @@ Up from a playback control enters the timeline; Down returns to that same contro
 Holding Left/Right increases seek steps from 10 to 30 seconds after 1.5 seconds,
 then to 60 seconds after 3 seconds. Back from a player submenu returns to its
 parent menu. Player and player-menu close buttons are omitted in favor of Back.
+Seek thumbnails follow the actual timeline thumb and clamp inside the display.
+Only the rounded thumbnail is shown; playback time remains below the seekbar.
+Repeated seek presses reset one hide deadline, keeping the preview visible
+through a continuous scrub rather than letting older timers hide it mid-seek.
+The outer seek focus halo is kept smaller than the preview gap. The subtitle
+control uses a filled icon while a text track is active and an outline when off.
+
+TV preview requests opt into the server's dense profile: accurate samples about
+every five seconds, capped at 1,000 frames for long titles. Bounded JPEG sheets
+keep each dimension below 4,096 pixels and decoded area below 16 million pixels.
+The original coarse preview stays visible while a dense sheet is queued; the
+client checks for its replacement only during user seeking, at most every 15
+seconds. Generation yields to foreground playback/transcoding. Existing web
+preview requests retain their original profile, and older servers still work.
+Real-TV screenshots verified preview alignment at different seek positions,
+rounded image-only rendering, the smaller focus halo, and filled/outlined subtitle
+states. A continuous scrub kept the preview visible. Build/lint/local checks and
+14 dense-preview/foreground-yield tests pass. The first dense sheet for an existing
+title can remain queued while playback is active; the coarse cache is used until
+background generation completes.
+On the tested TV, a 4,677-second title generated 936 dense previews (about five
+seconds apart, 1.61 MB JPEG). The client reported `detail=ready` and rendered the
+dense thumbnail above the seek head after background generation completed.
 Mute applies only to this app and is retained when opening an alternate soundtrack.
 On the tested Bluetooth route, mute/unmute changed the track gain in approximately
 0.1 seconds. The TV reported roughly 0.5 seconds of audio-path latency; this is

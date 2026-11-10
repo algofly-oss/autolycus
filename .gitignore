@@ -7,3 +7,5 @@ runtime/target/
 *.pyc
 dist/
 deploy/single/relocation-validation.json
+ui/public/worker-*.js
+ui/public/media-codecs/

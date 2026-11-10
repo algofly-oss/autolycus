@@ -1,18 +1,19 @@
 import { memo, useEffect, useRef, useState } from "react";
 import { useVirtualizer } from "@tanstack/react-virtual";
-import { FiClipboard, FiDownload, FiExternalLink, FiGlobe, FiArrowUpCircle } from "react-icons/fi";
+import { FiClipboard, FiDownload, FiExternalLink, FiGlobe, FiArrowUpCircle, FiPackage, FiFolder } from "react-icons/fi";
 import { formatBytes, formatCount } from "../utils";
 import FileFallback from "../../Home/components/FileFallback";
 import FileMenu from "../../Home/components/FileExplorer/components/FileMenu";
 import { posterDescriptor, subscribePoster } from "../posterLookup";
+import useBrowserLayoutEffect from "@/shared/hooks/useBrowserLayoutEffect";
 
-const PosterCard = memo(function PosterCard({ item, rootRef, onCopy, onDownload, onItemHover, browserProxyBaseUrl }) {
+const PosterCard = memo(function PosterCard({ item, rootRef, onCopy, onDownload, onBrowse, onItemHover, browserProxyBaseUrl }) {
   const elementRef = useRef(null);
   const [visible, setVisible] = useState(false);
   const [metadata, setMetadata] = useState(null);
   const [imageFailed, setImageFailed] = useState(false);
   const descriptor = posterDescriptor(item);
-  const {key, name, kind, enabled} = descriptor;
+  const {key, name, kind, enabled, software, platform} = descriptor;
   useEffect(() => {
     const element = elementRef.current;
     if (!element) return;
@@ -28,21 +29,23 @@ const PosterCard = memo(function PosterCard({ item, rootRef, onCopy, onDownload,
     if (!visible || !enabled) return;
     return subscribePoster({key, name, kind}, setMetadata);
   }, [visible, enabled, key, name, kind]);
-  const title = metadata?.title || item.parsed?.title || item.Title || "Untitled";
-  const year = item.parsed?.year || metadata?.year;
+  const title = software ? item.Title || "Software" : metadata?.title || item.parsed?.title || item.Title || "Untitled";
+  const year = !software && (item.parsed?.year || metadata?.year);
   const quality = [item.parsed?.season ? `S${String(item.parsed.season).padStart(2, "0")}` : null, item.parsed?.episode ? `E${String(item.parsed.episode).padStart(2, "0")}` : null, item.parsed?.quality || item.parsed?.source, item.parsed?.codec].filter(Boolean).join(" · ");
   const source = item.Details || item.Link || item.Url || item.URL;
   const imdb = metadata?.imdb_url || `https://www.imdb.com/find/?q=${encodeURIComponent(`${title} ${year || ""}`.trim())}&s=tt`;
   const hasPoster = metadata?.poster_url && !imageFailed;
   const displayTitle = `${title}${year ? ` (${Array.isArray(year) ? year.join(" / ") : year})` : ""}`;
   const actions = [
+    {name:"Browse files",action:"browse",icon:FiFolder},
     {name:"Copy magnet", action:"copy", icon:FiClipboard},
     {name:"Download", action:"download", icon:FiDownload},
     ...(source ? [{name:"Open source", action:"source", icon:FiExternalLink}] : []),
     ...(source && browserProxyBaseUrl ? [{name:"Open source via Tor", action:"tor", icon:FiGlobe}] : []),
-    {name:"IMDb", action:"imdb", icon:FiExternalLink},
+    ...(enabled ? [{name:"IMDb", action:"imdb", icon:FiExternalLink}] : []),
   ];
   const handleAction = (action) => {
+    if (action === "browse") return onBrowse(item);
     if (action === "copy") return onCopy(item);
     if (action === "download") return onDownload(item);
     const url = action === "source" ? source : action === "tor" ? `${browserProxyBaseUrl}/tor/${source}` : imdb;
@@ -52,14 +55,14 @@ const PosterCard = memo(function PosterCard({ item, rootRef, onCopy, onDownload,
     } catch { /* A malformed source link must not break the action menu. */ }
   };
   return (
-    <article ref={elementRef} data-search-poster-card className="group flex w-full min-w-0 flex-col text-neutral-950 dark:text-white"
+    <article ref={elementRef} data-search-poster-card className="group flex w-full min-w-0 flex-col text-neutral-900 dark:text-white"
       onMouseEnter={() => onItemHover?.(item)} onFocus={() => onItemHover?.(item)}>
       <div className="group/poster relative w-full overflow-hidden rounded-md bg-neutral-200 transition-[box-shadow,filter] group-hover:shadow-lg group-hover:shadow-blue-500/20 group-hover:brightness-110 dark:bg-neutral-900 dark:group-hover:shadow-blue-950/40" style={{aspectRatio:"2 / 3"}}>
         <div className="absolute inset-0.5 overflow-hidden rounded-[5px] bg-neutral-200 ring-1 ring-neutral-200 dark:bg-neutral-900 dark:ring-neutral-800">
-          <FileFallback />
+          {software ? <div data-software-placeholder className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-neutral-100 pb-12 text-neutral-500 dark:bg-neutral-900 dark:text-neutral-400"><div className="grid h-16 w-16 place-items-center rounded-xl border border-neutral-300/70 bg-neutral-200/50 dark:border-neutral-700 dark:bg-neutral-800/50"><FiPackage size={30} strokeWidth={1.3}/></div><div className="text-center"><p className="text-xs font-medium tracking-wide">Software</p><p className="mt-1 text-[10px] text-neutral-400">{platform}</p></div></div> : <FileFallback />}
           {hasPoster ? <img src={metadata.poster_url} alt={`${title} poster`} loading="lazy" decoding="async" className="relative h-full w-full object-cover" onError={() => setImageFailed(true)} /> : null}
           <div className={`absolute inset-x-0 bottom-0 h-24 ${hasPoster ? "bg-gradient-to-t from-black/95 via-black/55 to-transparent" : "bg-gradient-to-t from-black/35 via-black/10 to-transparent dark:from-black/85 dark:via-black/35"}`} />
-          <div className={`absolute inset-x-0 bottom-0 flex h-24 flex-col justify-end p-2 ${hasPoster ? "text-white [text-shadow:0_2px_14px_rgba(0,0,0,1),0_1px_3px_rgba(0,0,0,1)]" : "text-neutral-950 dark:text-white dark:[text-shadow:0_2px_12px_rgba(0,0,0,0.85)]"}`}>
+          <div className={`absolute inset-x-0 bottom-0 flex h-24 flex-col justify-end p-2 ${hasPoster ? "text-white [text-shadow:0_2px_14px_rgba(0,0,0,1),0_1px_3px_rgba(0,0,0,1)]" : "text-neutral-900 dark:text-white dark:[text-shadow:0_2px_12px_rgba(0,0,0,0.85)]"}`}>
             <h3 className="line-clamp-2 max-h-8 break-words text-xs font-semibold leading-4" title={item.Title}>{displayTitle}</h3>
             <div className={`mt-0.5 flex min-h-4 min-w-0 items-center gap-1.5 text-[11px] leading-4 ${hasPoster ? "text-neutral-300" : "text-neutral-500 dark:text-neutral-500"}`}>
               {item.parsed?.resolution ? <><span className="shrink-0">{item.parsed.resolution}</span><span aria-hidden="true">·</span></> : null}
@@ -71,6 +74,7 @@ const PosterCard = memo(function PosterCard({ item, rootRef, onCopy, onDownload,
               <span className="hidden min-w-0 truncate xl:inline" title={item.Tracker}>{item.Tracker ? `· ${item.Tracker}` : ""}</span>
             </div>
           </div>
+          <button type="button" aria-label={`Browse files in ${item.Title || title}`} onClick={()=>onBrowse(item)} className="absolute inset-0 z-20 cursor-pointer rounded-[5px] focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-neutral-400" />
           <div className="absolute right-1 top-1 z-30">
             <FileMenu item={item} actions={actions} onAction={handleAction} ariaLabel="Search result actions"
               targetClassName="flex h-11 w-11 items-center justify-center rounded-md text-white transition-colors hover:bg-black/25 focus-visible:outline focus-visible:outline-2 focus-visible:outline-blue-500 md:h-7 md:w-7"
@@ -83,11 +87,11 @@ const PosterCard = memo(function PosterCard({ item, rootRef, onCopy, onDownload,
   );
 });
 
-export default function PosterResults({ items, onCopy, onDownload, onItemHover, scrollOffset, onScrollOffsetChange, scrollResetKey, browserProxyBaseUrl }) {
+export default function PosterResults({ items, onCopy, onDownload, onBrowse, onItemHover, scrollOffset, onScrollOffsetChange, scrollResetKey, browserProxyBaseUrl }) {
   const rootRef = useRef(null);
   const [columns, setColumns] = useState(2);
   const scrollTimer = useRef(null);
-  useEffect(() => {
+  useBrowserLayoutEffect(() => {
     const root = rootRef.current;
     if (!root) return;
     const resize = () => setColumns(window.innerWidth >= 1536 ? 8 : window.innerWidth >= 1024 ? 6 : window.innerWidth >= 640 ? 5 : 2);
@@ -101,7 +105,7 @@ export default function PosterResults({ items, onCopy, onDownload, onItemHover, 
     return () => { observer.disconnect(); window.clearTimeout(scrollTimer.current); };
   }, []);
   const virtualizer = useVirtualizer({count:Math.ceil(items.length / columns), getScrollElement:() => rootRef.current, estimateSize:() => 300, overscan:1});
-  useEffect(() => {
+  useBrowserLayoutEffect(() => {
     if (rootRef.current) rootRef.current.scrollTop = Number.isFinite(scrollOffset) ? scrollOffset : 0;
     // Restore only on entry/reset; scrolling updates the shared offset independently.
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -112,7 +116,7 @@ export default function PosterResults({ items, onCopy, onDownload, onItemHover, 
       <div className="relative w-full" style={{height:virtualizer.getTotalSize()}}>
         {virtualizer.getVirtualItems().map((row) => (
           <div key={row.key} data-index={row.index} ref={virtualizer.measureElement} className="absolute left-0 top-0 grid w-full gap-x-2.5 px-1 pb-4 pt-1" style={{gridTemplateColumns:`repeat(${columns}, minmax(0, 1fr))`, transform:`translateY(${row.start}px)`}}>
-            {items.slice(row.index * columns, (row.index + 1) * columns).map((item, index) => <PosterCard key={item.SearchResultKey || `${item.InfoHash || item.Details || item.Title}-${index}`} item={item} rootRef={rootRef} onCopy={onCopy} onDownload={onDownload} onItemHover={onItemHover} browserProxyBaseUrl={browserProxyBaseUrl} />)}
+            {items.slice(row.index * columns, (row.index + 1) * columns).map((item, index) => <PosterCard key={item.SearchResultKey || `${item.InfoHash || item.Details || item.Title}-${index}`} item={item} rootRef={rootRef} onCopy={onCopy} onDownload={onDownload} onBrowse={onBrowse} onItemHover={onItemHover} browserProxyBaseUrl={browserProxyBaseUrl} />)}
           </div>
         ))}
       </div>

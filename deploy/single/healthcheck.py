@@ -9,10 +9,13 @@ from pathlib import Path
 
 
 def check():
-    for name in ("mongodb", "redis", "meilisearch", "api", "worker", "tor", "jackett",
+    for name in ("mongodb", "redis", "meilisearch", "api", "worker", "tor", "media", "jackett",
                  "flaresolverr", "ftp", "redsocks", "privoxy", "womginx", "proxy"):
         pid = int((Path("/run/autolycus/services") / name).read_text())
         os.kill(pid, 0)
+    if os.getenv("WEBRTC_ENABLED", "1") != "0":
+        with socket.create_connection(("127.0.0.1", 9088), timeout=2):
+            pass
     secret = json.loads(Path("/data/secrets.json").read_text())
     from redis import Redis
     from pymongo import MongoClient

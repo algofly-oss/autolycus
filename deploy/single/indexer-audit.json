@@ -1,0 +1,97 @@
+{
+  "checked_at": "2026-11-01",
+  "environment": "isolated autolycus-ui-followup Jackett; existing Tor configuration",
+  "configuration_and_ubuntu": [
+    {
+      "id": "damagnet",
+      "configure_status": 204,
+      "search_status": 200,
+      "results": 100,
+      "with_magnet": 0,
+      "seconds": 12.1
+    },
+    {
+      "id": "filemood",
+      "configure_status": 204,
+      "search_status": 200,
+      "results": 20,
+      "with_magnet": 20,
+      "seconds": 1.7
+    },
+    {
+      "id": "torrentscsv",
+      "configure_status": 204,
+      "search_status": 200,
+      "results": 25,
+      "with_magnet": 25,
+      "seconds": 0.7
+    }
+  ],
+  "query_checks": [
+    {
+      "id": "filemood",
+      "query": "Hindi",
+      "count": 20,
+      "matching": 20,
+      "magnets": 20,
+      "seeded": 20,
+      "seconds": 0.6
+    },
+    {
+      "id": "filemood",
+      "query": "Blender",
+      "count": 20,
+      "matching": 20,
+      "magnets": 20,
+      "seeded": 20,
+      "seconds": 2.8
+    },
+    {
+      "id": "filemood",
+      "query": "Inception",
+      "count": 20,
+      "matching": 20,
+      "magnets": 20,
+      "seeded": 20,
+      "seconds": 2.5
+    },
+    {
+      "id": "torrentscsv",
+      "query": "Hindi",
+      "count": 25,
+      "matching": 25,
+      "magnets": 25,
+      "seeded": 25,
+      "seconds": 0.2
+    },
+    {
+      "id": "torrentscsv",
+      "query": "Blender",
+      "count": 25,
+      "matching": 25,
+      "magnets": 25,
+      "seeded": 25,
+      "seconds": 0.2
+    },
+    {
+      "id": "torrentscsv",
+      "query": "Inception",
+      "count": 25,
+      "matching": 25,
+      "magnets": 25,
+      "seeded": 25,
+      "seconds": 0.2
+    }
+  ],
+  "decisions": {
+    "filemood": "Enable: matching movie/language/software results with magnets and reported seeders",
+    "torrentscsv": "Enable: matching movie/language/software results with magnets and reported seeders",
+    "damagnet": "Do not enable: 12.1-second Ubuntu query, no direct magnets; extra resolution path unverified",
+    "torlock": "Unavailable in installed definitions; upstream issue marked Removed; no custom scraper added"
+  },
+  "sources": [
+    "https://fmhy.net/torrenting",
+    "https://github.com/Jackett/Jackett/issues/1650"
+  ],
+  "limits": "Indexer-reported seed counts are not proof that peers are reachable. Latency uses warm caches for follow-up queries and is not a comparative benchmark."
+}

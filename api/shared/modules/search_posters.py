@@ -90,7 +90,7 @@ def _imdb_title_details(imdb_id, hour):
     if not re.fullmatch(r'tt\d{7,12}', str(imdb_id or '')):
         return {}
     query = ('query{title(id:"' + imdb_id + '"){titleText{text}originalTitleText{text}'
-             'akas(first:40){edges{node{text}}}releaseDates(first:80){edges{node{year}}}primaryImage{url}}}')
+             'akas(first:40){edges{node{text}}}releaseDates(first:80){edges{node{year}}}primaryImage{url}plot{plotText{plainText}}}}')
     # Percent-encoded spaces (rather than '+') are required by this endpoint.
     url = 'https://caching.graphql.imdb.com/?' + urlencode({'query': query}, quote_via=quote)
     response = requests.get(url, headers={'Accept': 'application/json', 'User-Agent': 'Mozilla/5.0', 'x-imdb-client-name': 'imdb-web-next'}, timeout=8)
@@ -101,6 +101,7 @@ def _imdb_title_details(imdb_id, hour):
         'aliases': [edge['node']['text'] for edge in (title.get('akas') or {}).get('edges', []) if edge.get('node', {}).get('text')],
         'release_years': sorted({edge['node']['year'] for edge in (title.get('releaseDates') or {}).get('edges', []) if edge.get('node', {}).get('year')}),
         'image_url': (title.get('primaryImage') or {}).get('url'),
+        'overview': str(((title.get('plot') or {}).get('plotText') or {}).get('plainText') or '')[:2400],
     }
 
 

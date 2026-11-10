@@ -94,9 +94,9 @@ class SearchTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(len(result), 1)
         self.assertEqual(client._search_index.await_count, 1)
 
-    async def test_waiting_search_has_no_read_deadline_and_cancels_workers(self):
+    async def test_waiting_search_has_bounded_read_deadline_and_cancels_workers(self):
         client = AsyncJackett('key')
-        self.assertIsNone(client.timeout.read)
+        self.assertEqual(client.timeout.read, 25)
         self.assertEqual(client.timeout.connect, 5)
         started, stopped = asyncio.Event(), asyncio.Event()
         async def slow_source(*args):

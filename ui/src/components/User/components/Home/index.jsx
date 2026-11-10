@@ -12,6 +12,7 @@ import { authActions, authSelector } from "@/redux/features/authSlice";
 const VIEW_MODES = new Set(["list", "grid"]);
 
 export default function Home({ state, initialPath = null, onPathChange }) {
+  const scrollRef = useRef(null);
   const dispatch = useDispatch();
   const user = useSelector(authSelector);
   const savedViewMode = user?.preferences?.home_view_mode;
@@ -124,15 +125,17 @@ export default function Home({ state, initialPath = null, onPathChange }) {
           showViewToggle={isListView}
           onSearchChange={setDownloadSearch}
         />
-        <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden pb-[7rem] md:pb-6 mt-2 rounded-xl md:light-scrollbar dark:md:dark-scrollbar">
+        <div ref={scrollRef} data-file-scroller className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden pb-[7rem] md:pb-6 mt-2 rounded-xl md:light-scrollbar dark:md:dark-scrollbar">
           {currentPath ? (
             <FileExplorer
+              scrollRef={scrollRef}
               initialPath={currentPath}
               onPathChange={handlePathChange}
               selectedFileName={selectedFileName}
             />
           ) : downloadSearch.active ? (
             <DownloadSearchResults
+              scrollRef={scrollRef}
               state={state}
               query={downloadSearch.query}
               itemType={downloadSearch.itemType}
@@ -143,6 +146,7 @@ export default function Home({ state, initialPath = null, onPathChange }) {
             />
           ) : (
             <TorrentList
+              scrollRef={scrollRef}
               state={state}
               onPathChange={handlePathChange}
               viewMode={viewMode}

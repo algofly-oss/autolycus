@@ -75,8 +75,10 @@ export default function InfoCard({ collapsed = false }) {
 
   // Calculate percentage used
   const usagePercentage =
-    diskStatus.total > 0 ? (diskStatus.used / diskStatus.total) * 100 : 0;
+    (diskStatus.drive_total || diskStatus.total)>0 ? ((diskStatus.drive_used ?? diskStatus.used)/(diskStatus.drive_total || diskStatus.total))*100 : 0;
   const normalizedUsage = Math.min(Math.max(usagePercentage, 0), 100);
+  const driveUsage = normalizedUsage;
+  const drivePercentageLabel=`${driveUsage.toFixed(1)}%`;
 
   const segments = [
     { start: 0, end: 30, color: "#34C759" },
@@ -94,8 +96,10 @@ export default function InfoCard({ collapsed = false }) {
     return segments[segments.length - 1] ?? segments[0];
   };
 
-  const usedLabel = bytesToHumanReadable(diskStatus?.used || 0);
-  const totalLabel = bytesToHumanReadable(diskStatus?.total || 0);
+  const usedLabel = bytesToHumanReadable(diskStatus?.app_used || 0);
+  const driveUsedLabel = bytesToHumanReadable(diskStatus?.drive_used ?? diskStatus?.used ?? 0);
+  const driveTotalLabel = bytesToHumanReadable(diskStatus?.drive_total || diskStatus?.total || 0);
+  const freeLabel = bytesToHumanReadable(diskStatus?.free || 0);
   const activeSegment = getSegmentForValue(normalizedUsage) ?? segments[0];
 
   const StorageGauge = ({ size = 20, strokeWidth = 2, radius = 8 }) => {
@@ -148,18 +152,13 @@ export default function InfoCard({ collapsed = false }) {
     return (
       <Tooltip
         label={
-          <div className="w-40 text-xs">
-            <div className="mb-2 text-[11px] font-medium opacity-60">Storage</div>
-            <div className="flex items-center justify-between gap-4">
-              <span className="opacity-70">Autolycus</span>
-              <span className="font-medium tabular-nums" style={{ color: isDarkTheme ? activeSegment?.color : undefined }}>
-                {usedLabel}
-              </span>
-            </div>
-            <div className="mt-1 flex items-center justify-between gap-4">
-              <span className="opacity-70">Capacity</span>
-              <span className="font-medium tabular-nums">{totalLabel}</span>
-            </div>
+          <div className="w-48 text-xs">
+            <div className="mb-2 flex items-center justify-between text-[11px] font-medium"><span className="opacity-60">Drive storage</span><span className="tabular-nums">{drivePercentageLabel} used</span></div>
+            <div role="progressbar" aria-label="Overall drive space occupied" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Number(driveUsage.toFixed(1))} className="mb-2 h-1 overflow-hidden rounded-full bg-neutral-500/20"><div className="h-full rounded-full bg-blue-500" style={{width:`${driveUsage}%`}}/></div>
+            <div className="flex justify-between gap-3"><span className="opacity-60">Used</span><span className="font-medium tabular-nums">{driveUsedLabel}</span></div>
+            <div className="mt-1 flex justify-between gap-3"><span className="opacity-60">Total</span><span className="tabular-nums">{driveTotalLabel}</span></div>
+            <div className="mt-1 flex justify-between gap-3"><span className="opacity-60">Free</span><span className="tabular-nums">{freeLabel}</span></div>
+            <div className="mt-2 flex justify-between gap-3 border-t border-neutral-500/20 pt-2"><span className="opacity-60">Autolycus</span><span className="tabular-nums">{usedLabel}</span></div>
           </div>
         }
         position="right"
@@ -186,7 +185,7 @@ export default function InfoCard({ collapsed = false }) {
       >
         <div
           className="hidden h-10 w-10 items-center justify-center rounded-md text-neutral-700 transition-colors hover:bg-zinc-200 md:flex dark:text-neutral-300 dark:hover:bg-zinc-900"
-          aria-label={`Autolycus occupied ${usedLabel} of ${totalLabel} available capacity`}
+          aria-label={`Drive ${drivePercentageLabel} occupied, ${driveUsedLabel} of ${driveTotalLabel}; Autolycus uses ${usedLabel}`}
         >
           <StorageGauge size={24} strokeWidth={2.5} radius={9} />
         </div>
@@ -206,7 +205,7 @@ export default function InfoCard({ collapsed = false }) {
         <p className="py-0.5">{downloadStatus.finished_downloads} Finished</p>
       </div>
 
-      <div className="flex items-center space-x-2" title={`Storage: ${usedLabel} / ${totalLabel}`}>
+      <div className="flex items-center space-x-2" title={`Drive: ${driveUsedLabel} / ${driveTotalLabel} · ${drivePercentageLabel} used`}>
         <StorageGauge />
         <div className="py-0.5">
           <p
@@ -215,11 +214,11 @@ export default function InfoCard({ collapsed = false }) {
               color: activeSegment?.color,
             }}
           >
-            {usedLabel}
+            {driveUsedLabel}
           </p>
           {" / "}
           <p className="inline-block">
-            {totalLabel}
+            {driveTotalLabel}
           </p>
         </div>
       </div>

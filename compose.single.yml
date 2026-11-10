@@ -2,7 +2,8 @@
 name: autolycus-single
 services:
   autolycus:
-    image: ${AUTOLYCUS_SINGLE_IMAGE:-autolycus:single}
+    container_name: autolycus
+    image: ${AUTOLYCUS_SINGLE_IMAGE:-autolycus:latest}
     build:
       context: .
       target: production
@@ -15,12 +16,21 @@ services:
       - path: .env
         required: false
     environment:
-      CELERY_NUM_WORKERS: ${CELERY_NUM_WORKERS:-2}
+      SIGNUP_DISABLED: ${SIGNUP_DISABLED:-false}
+      TRANSCODE_USE_GPU: ${TRANSCODE_USE_GPU:-0}
+      TRANSCODE_MAX_CONCURRENT: ${TRANSCODE_MAX_CONCURRENT:-2}
+      TRANSCODE_THREADS: ${TRANSCODE_THREADS:-2}
+      TOR_TRACKER_FALLBACK: ${TOR_TRACKER_FALLBACK:-1}
+      CELERY_NUM_WORKERS: ${CELERY_NUM_WORKERS:-3}
       FTP_PASSIVE_PORT_START: ${FTP_PASSIVE_PORT_START:-50000}
       FTP_PASSIVE_PORT_END: ${FTP_PASSIVE_PORT_END:-50100}
+      WEBRTC_ENABLED: ${WEBRTC_ENABLED:-1}
+      WEBRTC_CANDIDATE_HOSTS: ${WEBRTC_CANDIDATE_HOSTS:-}
+      WEBRTC_UDP_PORT_START: 8555
     ports:
       - "${APP_HTTP_PORT:-8089}:80"
       - "${APP_HTTPS_PORT:-4439}:443"
+      - "8555-8562:8555-8562/udp"
       - "${FTP_HOST_PORT:-2121}:2121"
       - "127.0.0.1:${JACKETT_HOST_PORT_MAP:-9117}:9118"
       - "${FTP_PASSIVE_PORT_START:-50000}-${FTP_PASSIVE_PORT_END:-50100}:${FTP_PASSIVE_PORT_START:-50000}-${FTP_PASSIVE_PORT_END:-50100}"

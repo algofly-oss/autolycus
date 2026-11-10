@@ -2,6 +2,7 @@ const API_PREFIX = process.env.API_PREFIX || "/api";
 
 let apiRoutes = {
   // auth
+  authSettings: "/auth/settings",
   signUp: "/auth/signup",
   signIn: "/auth/signin",
   signOut: "/auth/signout",

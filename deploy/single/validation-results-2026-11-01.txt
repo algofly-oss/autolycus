@@ -1,0 +1,81 @@
+Autolycus release validation — 2026-11-01
+Shipping image: sha256:aed2551e664b992a7ab89467de3d5eff193b4f9ed98c0d9d352a5f2862c59bf3
+Archive SHA-256: 7357c926eecd4271eb4699e83dece7e86f45146f28146fede6f55881dcab80d1
+These are captured PASS lines. Controlled-source and local-swarm tests are identified by the report; they are not claims about provider uptime or physical phones.
+
+autolycus-current-continuity.log
+PASS: library → online source → library retains timeline, playing state and 1.25×; both directions also preserve paused state and 1.5×; online playback updates the library server bookmark; failed-source return preserves position
+
+autolycus-current-relay.log
+PASS: byte-exact partial/suffix/open/full responses; invalid ranges; required provider headers; no credentials forwarded; authenticated account-bound opaque grants; stream slots released even under cancellation; preview contention marker
+
+autolycus-artwork-final-visual.log
+PASS: hero height remains stable while data/images load at desktop/390/320px; no horizontal overflow; ownership markers outside artwork; completed-title recommendations; rich real-title detail; minimal trailer iframe when available; title/year search handoff; no JS exceptions
+
+autolycus-artwork-final-cinema.log
+PASS: anonymous root redirects to login, post-login root Cinema, local-title search, shelves, 320/390/768px layouts, parsed episode detail, private player without downloads, episode switching, URL refresh/resume and Home logo→root link
+
+autolycus-current-settings.log
+PASS: dark settings, aligned search/filter, all seven sections and profile popup at 1440/390/320px
+PASS: light settings, aligned search/filter, all seven sections and profile popup at 1440/390/320px
+PASS: styled profile switch and refresh persistence; Manage profiles opens the right section
+
+autolycus-archive-defaults.log
+PASS: fresh CPU-only boot, two configured verified public sources, Tor proxy defaults, new user sign-in and locally served JPEG; restart preservation fixture prepared
+
+autolycus-archive-restart.log
+PASS: CPU-only restart preserves user session, intentional direct proxy setting and removed starter indexer
+
+autolycus-online-final-browser.log
+PASS: real source discovery, Watch now, decoded video playback, source menu switching preserving timeline/autoplay, 390px layout, custom player and no top network badge
+
+autolycus-online-navigation-browser.log
+PASS: real source discovery, Watch now, decoded video playback, source menu switching preserving timeline/autoplay, 390px layout, custom player and no top network badge
+
+autolycus-torrent-preview-handoff-browser.log
+PASS: real local-swarm search result → contents; natural file list/filter; 320/390/768px dialog; original video in shared player; close returns to file list; selected download completes with chosen-only totals; poster menu browsing
+
+autolycus-native-torrent-test.log
+PASS: native libtorrent metadata-file download, HTTP tracker fallback through SOCKS, original case/binary announce fields, SHA-256 exact direct peer transfer
+
+autolycus-avatar-lan.log
+PASS: real 38.6 GB read-only Avatar; public HTTPS origin; host-LAN UDP candidate; 15.4 MB end index SHA-256 exact; bounded 256 KiB requests; {"connection_ms": 155, "ftyp": "ftyp", "metadata_bytes": 15443048, "metadata_ms": 1459, "metadata_sha256": "a0ccc6539063cef0b3b180963af115dc5049224991838101d5958c5c587d0c44", "origin": "https://autolycus.algofly.ai", "reads": 60, "received": 16460306, "remote": "192.168.0.3", "remote_port": 10155, "secure": true}
+
+Mobile follow-up (final image)
+
+autolycus-mobile-browser.log
+PASS: 260 real paged/indexed collections auto-load in list/grid/search with bounded mounted cards and failed-page retry; metadata-row Cinema shortcut; one-row scrolling settings; phone landscape fallback without fullscreen API, idle control fade and tap visibility without pausing, Fit/Fill, rotated seek and double-tap, paused tap visibility, hold-to-2x, rotated settings, exit/re-enter and close; no JS exceptions
+
+autolycus-mobile-native.log
+PASS: Play enters actual Chromium fullscreen from user activation; player requests landscape orientation; generated A/V plays; closing exits fullscreen and releases orientation. Orientation API is spied, not a physical-device rotation test.
+
+autolycus-desktop-navigation.log
+PASS: desktop collection pages auto-load, mounted cards stay bounded, one sidebar Cinema link, vertical settings retained, local video plays without forced rotation, Fit/Fill works, and long folder rows remain virtualized
+
+autolycus-mobile-install.log
+PASS: fresh CPU-only boot, two configured verified public sources, Tor proxy defaults, new user sign-in and locally served JPEG; restart preservation fixture prepared
+
+autolycus-mobile-install-restart.log
+PASS: CPU-only restart preserves user session, intentional direct proxy setting and removed starter indexer
+
+Icon-only follow-up: build/export passed; deployed bundle has distinct zoom label and exactly one fullscreen control. Earlier mobile/fresh-install runs used predecessor sha256:7ecfd9acbbf2fa674d669200e171c4dc8e2d91db529ebfee708487d7b81d9e77.
+
+Registration / auth layout follow-up
+
+autolycus-signup-enabled.log
+PASS: SIGNUP_DISABLED=false exposes registration, creates account/session, and permits sign-in; public policy is uncached
+
+autolycus-signup-disabled.log
+PASS: SIGNUP_DISABLED=true rejects direct and forged registration before account/session creation; existing account sign-in works; public policy is uncached
+
+autolycus-auth-layout-enabled.log
+PASS: top-aligned wallpaper copy in dark upper image area; laptop fields 400px, phone fields fit at 390/320px; signup link and direct route reflect enabled server policy
+
+autolycus-auth-layout-disabled.log
+PASS: top-aligned wallpaper copy in dark upper image area; laptop fields 400px, phone fields fit at 390/320px; signup link and direct route reflect disabled server policy
+
+Wallpaper follow-up: revised to vertical center. Build and live exported CSS verified; prior top-alignment checks are historical.
+
+Wallpaper placement update: text is raised above center into the dark area,
+with the complete group above the seats. Final live screenshots reviewed at
+1440x900 and 1366x768. This supersedes the centered placement checkpoint.

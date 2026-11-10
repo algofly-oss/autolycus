@@ -13,12 +13,12 @@ async def pause_torrent(info_hash: str, request: Request):
     user_id = authenticate_user(request).decode("utf-8")
 
     if info_hash.startswith("url_hash_"):
-        url_hash = info_hash.lstrip("url_hash_")
+        url_hash = info_hash.removeprefix("url_hash_")
         torrent = await db.torrents.find_one(
             {"url_hash": url_hash, "user_id": ObjectId(user_id)},
         )
         if torrent:
-            db.torrents.update_one(
+            await db.torrents.update_one(
                 {"_id": torrent["_id"]},
                 {
                     "$set": {
@@ -45,7 +45,7 @@ async def pause_torrent(info_hash: str, request: Request):
         )
 
         if torrent:
-            db.torrents.update_one(
+            await db.torrents.update_one(
                 {"_id": torrent["_id"]},
                 {"$set": {"is_paused": True, "is_finished": False}},
             )

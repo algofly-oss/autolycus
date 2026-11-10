@@ -55,7 +55,7 @@ for pid, parent in processes.items():
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--data", type=Path, default=ROOT / "volumes/single")
-    parser.add_argument("--image", default="autolycus:single")
+    parser.add_argument("--image", default="autolycus:latest")
     options = parser.parse_args()
     data = options.data.resolve()
     if data.exists() and any(data.iterdir()):

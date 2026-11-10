@@ -1,4 +1,6 @@
 import { useEffect, useState } from "react";
+import Link from "next/link";
+import { BiMeteor } from "react-icons/bi";
 import { FiX } from "react-icons/fi";
 import ViewModeToggle from "@/shared/components/ViewModeToggle";
 
@@ -71,7 +73,9 @@ export default function DownloadSearch({
 
   return (
     <div className="no-scrollbar mt-2 flex min-w-0 flex-wrap items-center gap-2 md:flex-nowrap md:overflow-x-auto">
-      <div className="relative w-full min-w-[7.5rem] basis-full md:flex-1 md:basis-[10rem] md:min-w-[10rem] lg:basis-[14rem]">
+      <div className="flex w-full min-w-0 basis-full items-center gap-2 md:flex-1 md:basis-[10rem] md:min-w-[10rem] lg:basis-[14rem]">
+        <Link href="/" aria-label="Autolycus home" title="Autolycus" className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg bg-zinc-100 text-neutral-700 dark:bg-black dark:text-neutral-300 md:hidden"><BiMeteor size={25}/></Link>
+        <div className="relative min-w-0 flex-1">
         <input
           type="text"
           value={query}
@@ -92,6 +96,7 @@ export default function DownloadSearch({
             <FiX size={15} />
           </button>
         ) : null}
+        </div>
       </div>
 
       <select

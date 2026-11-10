@@ -1,5 +1,12 @@
+import usePwaUpdates from "@/shared/usePwaUpdates";
+import {useRouter} from "next/router";
 import "@/styles/globals.css";
+import "@/styles/settings.css";
+import "@/styles/cinema.css";
+import "@videojs/react/video/neutral-skin.css";
+import "@/styles/movie-player.css";
 import Head from "next/head";
+import { MediaProfilesProvider } from "@/shared/MediaProfiles";
 import { AppProps } from "next/app";
 import { useEffect, useRef } from "react";
 import { Provider, useSelector } from "react-redux";
@@ -71,6 +78,9 @@ function SessionPublicIpReporter() {
 }
 
 export default function App({ Component, pageProps }: AppProps) {
+  usePwaUpdates();
+  const router=useRouter();
+  useEffect(()=>{if(router.pathname==="/watch")socket.disconnect();else if(!socket.connected)socket.connect();},[router.pathname]);
   const [colorScheme, setColorScheme] = useLocalStorage<ColorScheme>({
     key: "mantine-color-scheme",
     defaultValue: "dark",
@@ -94,7 +104,7 @@ export default function App({ Component, pageProps }: AppProps) {
         />
         <link
           rel="apple-touch-icon"
-          href="/icons/apple-touch-icon.png"
+          href="/icons/apple-touch-icon.png?v=2"
           sizes="180x180"
         />
         <link rel="manifest" href="/manifest.json" />
@@ -102,7 +112,7 @@ export default function App({ Component, pageProps }: AppProps) {
           name="description"
           content="stream torrent files from hosted web servers remotely."
         />
-        <meta name="theme-color" content="#172554" />
+        <meta name="theme-color" content="#000000" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
         <meta name="apple-mobile-web-app-title" content="Autolycus" />
@@ -118,8 +128,8 @@ export default function App({ Component, pageProps }: AppProps) {
             theme={{ colorScheme }}
           >
             <SocketContext.Provider value={socket}>
-              <SessionPublicIpReporter />
-              <Component {...pageProps} />
+              {router.pathname!=="/watch" && <SessionPublicIpReporter />}
+              {router.pathname==="/watch" ? <Component {...pageProps}/> : <MediaProfilesProvider><Component {...pageProps} /></MediaProfilesProvider>}
             </SocketContext.Provider>
           </MantineProvider>
         </ColorSchemeProvider>

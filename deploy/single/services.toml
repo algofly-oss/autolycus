@@ -1,4 +1,9 @@
 [[process]]
+name = "media"
+program = "/usr/local/bin/autolycus-runtime"
+args = ["media"]
+
+[[process]]
 name = "mongodb"
 program = "python"
 args = ["/opt/autolycus/service.py", "mongodb"]

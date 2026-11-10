@@ -29,3 +29,6 @@ router.include_router(download_zip_router)
 router.include_router(resolve_magnet_router)
 
 router.include_router(search_poster_router)
+
+from .preview import router as preview_router
+router.include_router(preview_router)

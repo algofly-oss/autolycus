@@ -8,6 +8,8 @@ from redis import Redis
 from bson import ObjectId
 from pymongo import MongoClient
 import signal
+import selectors
+from shared.modules.url_download import aria2_command
 from shared.modules.file_search_index import index_torrent_files_sync
 from shared.modules.media_metadata import cache_torrent_media_metadata_sync
 
@@ -45,7 +47,7 @@ def convert_to_bytes(speed_str):
     return int(value * multipliers[unit])
 
 
-@celery_worker.app.task(queue="transcoding")
+@celery_worker.app.task(queue="file_operations")
 def download_from_url(url, url_hash, save_dir, user_id):
     redis = Redis(
         host=REDIS_HOST,
@@ -56,22 +58,36 @@ def download_from_url(url, url_hash, save_dir, user_id):
     mongo_client = MongoClient(os.environ.get("MONGO_DATABASE_URI"))
     db = mongo_client[os.environ.get("MONGO_DATABASE_NAME")]
 
-    download_limit = ""  # "--max-overall-download-limit=1MiB"
-    cp = sp.Popen(
-        f"aria2c --file-allocation=none -c -x 10 -s 10 --summary-interval=1 --auto-file-renaming=false --allow-overwrite=false --console-log-level=warn --check-certificate=false {download_limit} -d '{save_dir}' '{url}'",
-        stdout=sp.PIPE,
-        stderr=sp.STDOUT,
-        text=True,
-        shell=True,
-        preexec_fn=os.setsid,
-    )
+    os.makedirs(save_dir, exist_ok=True)
+    cp = sp.Popen(aria2_command(url, save_dir), stdout=sp.PIPE, stderr=sp.STDOUT, text=True, start_new_session=True)
 
     key = f"{user_id}/{url_hash}/stop"
     last_downloaded_bytes = 0
     redis.delete(key)
 
+    selector = selectors.DefaultSelector()
+    selector.register(cp.stdout, selectors.EVENT_READ)
+    pending = ""
     while True:
-        line = cp.stdout.readline()
+        if redis.get(key):
+            line = ""
+        else:
+            events = selector.select(timeout=1)
+            if not events and cp.poll() is None:
+                continue
+            chunk = os.read(cp.stdout.fileno(), 65536) if events else b""
+            pending = (pending + chunk.decode("utf-8", errors="replace"))[-65536:]
+            parts = re.split(r"[\r\n]+", pending)
+            if chunk:
+                pending = parts.pop()
+                if not parts:
+                    continue
+                line = "\n".join(parts)
+                if not line:
+                    continue
+            else:
+                line, pending = pending, ""
+
         if not line or redis.get(key):
             db.torrents.update_one(
                 {"url_hash": url_hash, "user_id": ObjectId(user_id)},
@@ -86,10 +102,10 @@ def download_from_url(url, url_hash, save_dir, user_id):
 
         # print(line, end="")
         pattern = re.search(
-            r"(?P<downloaded>\d+(?:\.\d+)?[KMG]iB)/"
-            r"(?P<total>\d+(?:\.\d+)?[KMG]iB)\("
+            r"(?P<downloaded>\d+(?:\.\d+)?(?:[KMG]i)?B)/"
+            r"(?P<total>\d+(?:\.\d+)?(?:[KMG]i)?B)\("
             r"(?P<progress>\d+)%\).*?"
-            r"DL:(?P<speed>\d+(?:\.\d+)?[KMG]iB).*?"
+            r"DL:(?P<speed>\d+(?:\.\d+)?(?:[KMG]i)?B).*?"
             r"ETA:(?P<eta>[\dhms]+)",
             line,
         )
@@ -130,6 +146,7 @@ def download_from_url(url, url_hash, save_dir, user_id):
             )
             redis.publish("events", payload)
 
+    selector.close()
     if redis.get(key):
         redis.delete(key)
         if cp.poll() is None:
@@ -137,11 +154,20 @@ def download_from_url(url, url_hash, save_dir, user_id):
                 os.killpg(os.getpgid(cp.pid), signal.SIGKILL)
             except ProcessLookupError:
                 pass
+        cp.wait()
+        cp.stdout.close()
+        mongo_client.close()
+        redis.close()
         return {"message": "terminated"}
     else:
         redis.delete(key)
         cp.stdout.close()
         cp.wait()
+        if cp.returncode != 0:
+            db.torrents.update_one({"url_hash": url_hash, "user_id": ObjectId(user_id)}, {"$set": {"is_paused": True, "is_finished": False, "download_speed": 0, "download_error": f"aria2 exited with status {cp.returncode}"}})
+            mongo_client.close()
+            redis.close()
+            raise RuntimeError(f"Download failed (aria2 exit {cp.returncode})")
 
         # Some servers omit Content-Length. Use aria2's final transfer count,
         # not the save directory size: it may later also contain extracted files.
@@ -171,6 +197,8 @@ def download_from_url(url, url_hash, save_dir, user_id):
             try:
                 index_torrent_files_sync(user_id, torrent)
                 cache_torrent_media_metadata_sync(db, user_id, torrent)
+                from tasks.media_previews import preview_download_tree
+                preview_download_tree.delay(save_dir)
             except Exception:
                 pass
         payload = json.dumps(

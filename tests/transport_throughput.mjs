@@ -1,0 +1,14 @@
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+const source=fs.readFileSync('ui/src/shared/mediaTransport.js','utf8');
+const {recordThroughput}=await import('data:text/javascript;base64,'+Buffer.from(source).toString('base64'));
+const samples=[];
+for(let i=0;i<4;i++)recordThroughput(samples,262144,.01);
+assert.ok(recordThroughput(samples,262144,5)<210000);
+assert.ok(recordThroughput(samples,262144,5)<105000);
+assert.ok(recordThroughput(samples,262144,5)<70000);
+assert.equal(recordThroughput(samples,262144,5),52428.8);
+assert.equal(samples.length,4);
+for(let i=0;i<4;i++)recordThroughput(samples,262144,.01);
+assert.equal(recordThroughput(samples,262144,.01),26214400);
+console.log('PASS: bounded throughput window reacts to bandwidth loss and recovery without stale fast-burst bias');

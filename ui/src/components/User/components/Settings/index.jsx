@@ -1,7 +1,11 @@
+import {useRouter} from "next/router";
+import { IconUser, IconUsers, IconFileText, IconShieldLock, IconFolder, IconLink, IconDevices } from "@tabler/icons-react";
+import SubtitleConnection from "@/shared/SubtitleConnection";
+import { ProfileSettings } from "@/shared/MediaProfiles";
 import { useEffect, useRef, useState } from "react";
 import axios from "axios";
 import { useDispatch } from "react-redux";
-import { FiCopy, FiEdit3, FiRefreshCw, FiTrash2, FiUpload } from "react-icons/fi";
+import { FiCopy, FiEdit3, FiRefreshCw, FiTrash2, FiUpload, FiSearch } from "react-icons/fi";
 import { FaSignOutAlt } from "react-icons/fa";
 import { AiOutlineEye, AiOutlineEyeInvisible } from "react-icons/ai";
 import apiRoutes from "@/shared/routes/apiRoutes";
@@ -15,15 +19,11 @@ import {
 } from "@/shared/utils/clipboard";
 
 const settingsPanelClass =
-  "rounded-lg border border-neutral-200 bg-white dark:border-[#33363b] dark:bg-[#202124]";
-const settingsDividerClass = "border-neutral-200 dark:border-[#33363b]";
-const accountInputClass =
-  "mt-1 w-full rounded-md border border-neutral-300 bg-white px-3 py-2 text-sm text-neutral-900 outline-none ring-0 focus:border-neutral-300 focus:outline-none focus:ring-0 dark:border-[#33363b] dark:bg-[#18191b] dark:text-neutral-100 dark:focus:border-[#33363b]";
+  "min-w-0";
+const accountInputClass = "settings-input";
 const passwordInputClass = `${accountInputClass} pr-10`;
-const passwordToggleClass =
-  "absolute right-2 top-1/2 inline-flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-md text-neutral-500 transition hover:bg-neutral-100 hover:text-neutral-800 dark:text-neutral-400 dark:hover:bg-[#2a2b2f] dark:hover:text-neutral-100";
-const publicUrlDeleteButtonClass =
-  "public-url-delete-button rounded-md border border-red-300 px-3 py-2 text-sm font-medium text-red-600 transition disabled:cursor-not-allowed disabled:opacity-60 dark:border-red-900/70 dark:text-red-300";
+const passwordToggleClass = "settings-password-toggle";
+const publicUrlDeleteButtonClass = "settings-button settings-button-danger public-url-delete-button";
 const PUBLIC_URL_PAGE_SIZE = 10;
 const MAX_PROFILE_PICTURE_BYTES = 10 * 1024 * 1024;
 const ALLOWED_PROFILE_PICTURE_TYPES = new Set([
@@ -156,13 +156,25 @@ export default function Settings() {
     accountConfirm: false,
     ftp: false,
   });
-  const [profileEditing, setProfileEditing] = useState(false);
-  const [passwordEditing, setPasswordEditing] = useState(false);
   const [profilePicturePayload, setProfilePicturePayload] = useState(null);
   const [profilePictureRemoved, setProfilePictureRemoved] = useState(false);
   const [isSavingProfile, setIsSavingProfile] = useState(false);
   const [isSavingPassword, setIsSavingPassword] = useState(false);
   const [sessions, setSessions] = useState([]);
+  const router=useRouter();
+  const [settingsCategory, setSettingsCategory] = useState("account");
+  useEffect(()=>{
+    if(["account","profiles","subtitles","security","ftp","links","sessions"].includes(router.query.category))setSettingsCategory(router.query.category);
+  },[router.query.category]);
+  const [sessionQuery, setSessionQuery] = useState("");
+  const [sessionFilter, setSessionFilter] = useState("all");
+  const [sessionPage, setSessionPage] = useState(1);
+  const [sessionTotal, setSessionTotal] = useState(0);
+  const [filteredSessionCount, setFilteredSessionCount] = useState(0);
+  const sessionRequest = useRef(0);
+  const sessionPageCount = Math.max(1,Math.ceil(filteredSessionCount/10));
+  const visibleSessions = sessions;
+  useEffect(() => setSessionPage(1), [sessionQuery,sessionFilter]);
   const [isLoadingSessions, setIsLoadingSessions] = useState(true);
   const [activeSessionId, setActiveSessionId] = useState(null);
   const [sessionPendingSignOut, setSessionPendingSignOut] = useState(null);
@@ -207,6 +219,7 @@ export default function Settings() {
     forcePublicIp = false,
     showPublicIpError = false,
   } = {}) => {
+    const requestId=++sessionRequest.current;
     setIsLoadingSessions(true);
     try {
       if (syncPublicIp) {
@@ -223,20 +236,25 @@ export default function Settings() {
         }
       }
 
-      const response = await axios.get(apiRoutes.listSessions);
+      const response = await axios.get(apiRoutes.listSessions, {params:{page:sessionPage,page_size:10,query:sessionQuery,device_filter:sessionFilter}});
+      if(requestId!==sessionRequest.current)return;
       setSessions(response?.data?.data || []);
+      setSessionTotal(response.data.meta?.all_total || 0);
+      setFilteredSessionCount(response.data.meta?.total || 0);
+      setSessionPage(page=>Math.min(page,Math.max(1,Math.ceil((response.data.meta?.total || 0)/10))));
     } catch (error) {
       toast.error(
         error?.response?.data?.detail || "Failed to load active sessions."
       );
     } finally {
-      setIsLoadingSessions(false);
+      if(requestId===sessionRequest.current)setIsLoadingSessions(false);
     }
   };
 
   useEffect(() => {
-    loadSessions();
-  }, [user?.username]);
+    const timer=setTimeout(()=>loadSessions({syncPublicIp:!sessionQuery&&sessionFilter==="all"&&sessionPage===1}),150);
+    return ()=>clearTimeout(timer);
+  }, [user?.username,sessionQuery,sessionFilter,sessionPage]);
 
   const loadFtpSettings = async () => {
     setIsLoadingFtp(true);
@@ -353,19 +371,10 @@ export default function Settings() {
     }
   };
 
-  const handleToggleProfileEditing = () => {
-    setProfileEditing((editing) => {
-      if (editing) {
-        setProfilePicturePayload(null);
-        setProfilePictureRemoved(false);
-        setProfileForm({
-          name: user?.name || "",
-          email: user?.email || user?.username || "",
-          currentPassword: "",
-        });
-      }
-      return !editing;
-    });
+  const resetProfileForm = () => {
+    setProfilePicturePayload(null);
+    setProfilePictureRemoved(false);
+    setProfileForm({name:user?.name || "",email:user?.email || user?.username || "",currentPassword:""});
   };
 
   const togglePasswordVisibility = (key) => {
@@ -421,7 +430,6 @@ export default function Settings() {
       }));
       setProfilePicturePayload(null);
       setProfilePictureRemoved(false);
-      setProfileEditing(false);
       toast.success("Account updated.");
     } catch (error) {
       toast.error(error?.response?.data?.detail || "Failed to update account.");
@@ -460,7 +468,6 @@ export default function Settings() {
         newPassword: "",
         confirmPassword: "",
       });
-      setPasswordEditing(false);
       toast.success("Password updated.");
     } catch (error) {
       toast.error(
@@ -582,7 +589,7 @@ export default function Settings() {
 
   const publicUrlForKey = (key) => {
     if (!key || typeof window === "undefined") return "";
-    return `${window.location.origin}/api/files/public/${key}`;
+    return `${window.location.origin}/watch?key=${encodeURIComponent(key)}`;
   };
 
   const handleCopyPublicUrl = async (item) => {
@@ -678,13 +685,13 @@ export default function Settings() {
   const renderPublicUrlsSection = () => (
     <section className={settingsPanelClass}>
       <div
-        className={`flex flex-col items-stretch gap-3 border-b px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-5 ${settingsDividerClass}`}
+        className="settings-section-heading"
       >
         <div>
-          <p className="text-sm font-semibold text-neutral-900 dark:text-neutral-100">
+          <p className="text-sm font-semibold settings-foreground">
             Public URLs
           </p>
-          <p className="mt-1 text-sm text-neutral-500 dark:text-neutral-400">
+          <p className="mt-1 text-sm settings-secondary">
             Manage active public file links.
           </p>
         </div>
@@ -711,7 +718,7 @@ export default function Settings() {
           ) : null}
           <button
             type="button"
-            className="inline-flex items-center gap-2 rounded-md border border-neutral-300 px-3 py-2 text-sm font-medium text-neutral-700 transition hover:bg-neutral-100 disabled:cursor-not-allowed disabled:opacity-60 dark:border-[#33363b] dark:text-neutral-200 dark:hover:bg-[#2a2b2f]"
+            className="settings-button"
             onClick={() => loadPublicUrls(publicUrlsPage)}
             disabled={isLoadingPublicUrls}
           >
@@ -720,9 +727,9 @@ export default function Settings() {
           </button>
         </div>
       </div>
-      <div className="divide-y divide-neutral-100 dark:divide-[#33363b]">
+      <div className="settings-divided-list">
         {isLoadingPublicUrls ? (
-          <div className="px-5 py-6 text-sm text-neutral-500 dark:text-neutral-400">
+          <div className="px-5 py-6 text-sm settings-secondary">
             Loading public URLs...
           </div>
         ) : publicUrls.length ? (
@@ -735,20 +742,20 @@ export default function Settings() {
               return (
                 <div
                   key={item.path_hash}
-                  className="flex flex-col items-stretch gap-3 px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-5"
+                  className="settings-device-row"
                 >
                   <div className="flex min-w-0 items-center gap-3">
                     <input
                       type="checkbox"
-                      className="h-4 w-4 shrink-0 rounded border-neutral-300 text-blue-600 focus:ring-blue-500 dark:border-[#33363b] dark:bg-[#18191b]"
+                      className="h-4 w-4 shrink-0 rounded border-neutral-300 text-blue-600 focus:ring-blue-500 settings-border dark:bg-[#18191b]"
                       checked={isSelected}
                       onChange={() => togglePublicUrlSelection(item.path_hash)}
                     />
                     <div className="min-w-0">
-                      <p className="truncate text-sm font-medium text-neutral-900 dark:text-neutral-100">
+                      <p className="truncate text-sm font-medium settings-foreground">
                         {item.name || item.key}
                       </p>
-                      <p className="mt-1 truncate text-xs text-neutral-500 dark:text-neutral-400">
+                      <p className="mt-1 truncate text-xs settings-secondary">
                         {publicUrl}
                       </p>
                     </div>
@@ -756,7 +763,7 @@ export default function Settings() {
                   <div className="flex items-center gap-2 sm:shrink-0">
                     <button
                       type="button"
-                      className="inline-flex items-center gap-2 rounded-md border border-neutral-300 px-3 py-2 text-sm font-medium text-neutral-700 transition hover:bg-neutral-100 dark:border-[#33363b] dark:text-neutral-200 dark:hover:bg-[#2a2b2f]"
+                      className="settings-button"
                       onClick={() => handleCopyPublicUrl(item)}
                     >
                       <FiCopy size={14} />
@@ -774,14 +781,14 @@ export default function Settings() {
                 </div>
               );
             })}
-            <div className="flex flex-wrap items-center justify-between gap-3 px-5 py-3">
-              <p className="text-xs text-neutral-500 dark:text-neutral-400">
+            <div className="settings-pagination">
+              <p className="text-xs settings-secondary">
                 Page {publicUrlsPage} of {publicUrlsTotalPages}
               </p>
               <div className="flex flex-wrap items-center justify-end gap-2">
                 <button
                   type="button"
-                  className="rounded-md border border-neutral-300 px-3 py-1.5 text-sm font-medium text-neutral-700 transition hover:bg-neutral-100 disabled:cursor-not-allowed disabled:opacity-60 dark:border-[#33363b] dark:text-neutral-200 dark:hover:bg-[#2a2b2f]"
+                  className="settings-button"
                   onClick={() =>
                     setPublicUrlsPage((currentPage) =>
                       Math.max(1, currentPage - 1)
@@ -799,7 +806,7 @@ export default function Settings() {
                       className={`min-w-[2.25rem] rounded-md border px-3 py-1.5 text-sm font-medium transition disabled:cursor-not-allowed disabled:opacity-60 ${
                         page === publicUrlsPage
                           ? "border-blue-500 bg-blue-600 text-white dark:border-blue-500 dark:bg-blue-500 dark:text-white"
-                          : "border-neutral-300 text-neutral-700 hover:bg-neutral-100 dark:border-[#33363b] dark:text-neutral-200 dark:hover:bg-[#2a2b2f]"
+                          : "border-neutral-300 text-neutral-700 hover:bg-neutral-100 settings-border dark:text-neutral-200 dark:hover:bg-[#2a2b2f]"
                       }`}
                       onClick={() => setPublicUrlsPage(page)}
                       disabled={page === publicUrlsPage || isLoadingPublicUrls}
@@ -809,7 +816,7 @@ export default function Settings() {
                   ) : (
                     <span
                       key={page}
-                      className="px-1 text-sm text-neutral-400 dark:text-neutral-500"
+                      className="px-1 text-sm text-neutral-400 dark:settings-secondary"
                     >
                       ...
                     </span>
@@ -817,7 +824,7 @@ export default function Settings() {
                 )}
                 <button
                   type="button"
-                  className="rounded-md border border-neutral-300 px-3 py-1.5 text-sm font-medium text-neutral-700 transition hover:bg-neutral-100 disabled:cursor-not-allowed disabled:opacity-60 dark:border-[#33363b] dark:text-neutral-200 dark:hover:bg-[#2a2b2f]"
+                  className="settings-button"
                   onClick={() =>
                     setPublicUrlsPage((currentPage) =>
                       Math.min(publicUrlsTotalPages, currentPage + 1)
@@ -833,7 +840,7 @@ export default function Settings() {
             </div>
           </>
         ) : (
-          <div className="px-5 py-6 text-sm text-neutral-500 dark:text-neutral-400">
+          <div className="px-5 py-6 text-sm settings-secondary">
             No active public URLs.
           </div>
         )}
@@ -856,6 +863,7 @@ export default function Settings() {
         )
       );
       toast.success("Session signed out.");
+      loadSessions({syncPublicIp:false});
     } catch (error) {
       toast.error(
         error?.response?.data?.detail || "Failed to sign out session."
@@ -866,101 +874,42 @@ export default function Settings() {
   };
 
   return (
-    <div className="min-h-full bg-neutral-50 px-3 py-4 pb-24 dark:bg-[#18191b] md:px-6 md:py-6">
-      <div className="mx-auto max-w-5xl space-y-4">
-        <div>
-          <h1 className="text-2xl font-semibold text-neutral-900 dark:text-neutral-100">
-            Settings
-          </h1>
-          <p className="mt-1 text-sm text-neutral-500 dark:text-neutral-400">
-            Manage your account profile and password.
-          </p>
-        </div>
-
-        <section className={settingsPanelClass}>
-          <div
-            className={`flex flex-col items-stretch gap-3 border-b px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-5 ${settingsDividerClass}`}
-          >
-            <div className="flex min-w-0 items-center gap-3">
-              {profilePictureSource ? (
-                <img
-                  src={profilePictureSource}
-                  alt="Profile"
-                  className="h-12 w-12 shrink-0 rounded-md object-cover"
-                />
-              ) : (
-                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-md bg-blue-600 text-base font-semibold text-white dark:bg-blue-700">
-                  {initials}
-                </div>
-              )}
-              <div className="min-w-0">
-                <p className="truncate text-sm font-semibold text-neutral-900 dark:text-neutral-100">
-                  {user?.name || "Account"}
-                </p>
-                <p className="mt-0.5 truncate text-sm text-neutral-500 dark:text-neutral-400">
-                  {user?.email || user?.username || "Signed in user"}
-                </p>
-              </div>
-            </div>
-            <button
-              type="button"
-              className="w-full rounded-md border border-neutral-300 px-3 py-2 text-sm font-medium text-neutral-700 transition hover:bg-neutral-100 sm:w-auto dark:border-[#33363b] dark:text-neutral-200 dark:hover:bg-[#2a2b2f]"
-              onClick={handleToggleProfileEditing}
-            >
-              {profileEditing ? "Cancel" : "Edit"}
-            </button>
-          </div>
-
-          {!profileEditing ? (
-            <div className="divide-y divide-neutral-100 px-5 dark:divide-[#33363b]">
-              <div className="flex items-center justify-between gap-4 py-3">
-                <span className="text-sm text-neutral-500 dark:text-neutral-400">
-                  Name
-                </span>
-                <span className="min-w-0 truncate text-right text-sm font-medium text-neutral-900 dark:text-neutral-100">
-                  {user?.name || "Not available"}
-                </span>
-              </div>
-              <div className="flex items-center justify-between gap-4 py-3">
-                <span className="text-sm text-neutral-500 dark:text-neutral-400">
-                  Email
-                </span>
-                <span className="min-w-0 truncate text-right text-sm font-medium text-neutral-900 dark:text-neutral-100">
-                  {user?.email || user?.username || "Not available"}
-                </span>
-              </div>
-              <div className="flex items-center justify-between gap-4 py-3">
-                <span className="text-sm text-neutral-500 dark:text-neutral-400">
-                  Member since
-                </span>
-                <span className="min-w-0 truncate text-right text-sm font-medium text-neutral-900 dark:text-neutral-100">
-                  {formatCreatedAt(user?.created_at)}
-                </span>
-              </div>
-            </div>
-          ) : (
-            <div className="space-y-3 p-5">
-              <div className="flex flex-wrap items-center justify-between gap-3 rounded-md bg-neutral-50 p-3 dark:bg-[#18191b]">
+    <div className="porthub-settings">
+      <div className="settings-workspace">
+        <header className="settings-heading"><h1>Settings</h1></header>
+        <div className="settings-layout">
+          <nav aria-label="Settings categories" className="settings-category-nav">
+            {[
+              ["account","Account","Account details",IconUser],
+              ["profiles","Profiles","Identity & watch history",IconUsers],
+              ["subtitles","Subtitles","Languages & connection",IconFileText],
+              ["security","Security","Password & protection",IconShieldLock],
+              ["ftp","FTP sharing","File access",IconFolder],
+              ["links","Public links","Manage shared files",IconLink],
+              ["sessions","Sessions","Signed-in devices",IconDevices],
+            ].map(([key,label,description,Icon]) => <button key={key} type="button" aria-label={label} aria-pressed={settingsCategory===key} aria-current={settingsCategory===key?"page":undefined} onClick={()=>{setSettingsCategory(key);router.replace({pathname:router.pathname,query:{...router.query,category:key}},undefined,{shallow:true,scroll:false});}}>
+              <Icon size={18}/><span><span className="settings-nav-label">{label}</span><span className="settings-nav-description">{description}</span></span>
+            </button>)}
+          </nav>
+          <div className="settings-content">
+        <div hidden={settingsCategory!=="subtitles"}><SubtitleConnection /></div>
+        <div hidden={settingsCategory!=="profiles"}><ProfileSettings /></div>
+        <section hidden={settingsCategory!=="account"} className={settingsPanelClass}>
+          <div className="settings-intro"><h2>Account</h2><p>Manage your account identity and contact information.</p></div>
+          <div className="settings-row"><div><h3>Profile Photo</h3><p>PNG, JPG, or WebP. Maximum 10 MB.</p></div><div><div className="flex flex-wrap items-center gap-4 ">
                 <div className="flex min-w-0 items-center gap-3">
                   {profilePictureSource ? (
                     <img
                       src={profilePictureSource}
                       alt="Profile preview"
-                      className="h-12 w-12 shrink-0 rounded-md object-cover"
+                      className="h-14 w-14 shrink-0 rounded-full object-cover"
                     />
                   ) : (
-                    <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-md bg-blue-600 text-base font-semibold text-white dark:bg-blue-700">
+                    <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-blue-600 text-base font-semibold text-white dark:bg-blue-700">
                       {initials}
                     </div>
                   )}
-                  <div className="min-w-0">
-                    <p className="text-sm font-semibold text-neutral-900 dark:text-neutral-100">
-                      Profile picture
-                    </p>
-                    <p className="mt-0.5 text-xs text-neutral-500 dark:text-neutral-400">
-                      PNG, JPG, or WebP. Optimized before saving.
-                    </p>
-                  </div>
+
                 </div>
                 <input
                   ref={profilePictureInputRef}
@@ -972,11 +921,11 @@ export default function Settings() {
                 <div className="flex shrink-0 items-center gap-2">
                   <button
                     type="button"
-                    className="inline-flex items-center gap-2 rounded-md border border-neutral-300 px-3 py-2 text-sm font-medium text-neutral-700 transition hover:bg-neutral-100 dark:border-[#33363b] dark:text-neutral-200 dark:hover:bg-[#2a2b2f]"
+                    className="settings-button"
                     onClick={() => profilePictureInputRef.current?.click()}
                   >
                     <FiUpload size={14} />
-                    {profilePictureSource ? "Change" : "Upload"}
+                    Upload Photo
                   </button>
                   {profilePictureSource ? (
                     <button
@@ -992,12 +941,11 @@ export default function Settings() {
                     </button>
                   ) : null}
                 </div>
-              </div>
-
-              <div className="grid gap-3 md:grid-cols-2">
+              </div></div></div>
+          <div className="settings-row"><div><h3>Account Details</h3><p>Your name and email address.</p></div><div><div className="space-y-5">
                 <label className="block">
-                  <span className="text-xs font-medium text-neutral-500 dark:text-neutral-400">
-                    Name
+                  <span className="text-sm font-medium">
+                    Display name
                   </span>
                   <input
                     className={accountInputClass}
@@ -1011,7 +959,7 @@ export default function Settings() {
                   />
                 </label>
                 <label className="block">
-                  <span className="text-xs font-medium text-neutral-500 dark:text-neutral-400">
+                  <span className="text-sm font-medium">
                     Email
                   </span>
                   <input
@@ -1026,11 +974,10 @@ export default function Settings() {
                     }
                   />
                 </label>
-              </div>
-
-              {emailChanged ? (
+              </div></div></div>
+          {emailChanged ? (
                 <label className="block">
-                  <span className="text-xs font-medium text-neutral-500 dark:text-neutral-400">
+                  <span className="text-xs font-medium settings-secondary">
                     Current password for email changes
                   </span>
                   <div className="relative">
@@ -1054,47 +1001,16 @@ export default function Settings() {
                   </div>
                 </label>
               ) : null}
-
-              <div className="flex items-center justify-between gap-4 border-t border-neutral-100 pt-4 dark:border-[#33363b]">
-                <p className="text-sm text-neutral-500 dark:text-neutral-400">
-                  Member since {formatCreatedAt(user?.created_at)}
-                </p>
-                <button
-                  type="button"
-                  className="rounded-md bg-blue-600 px-3 py-2 text-sm font-medium text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
-                  onClick={handleSaveProfile}
-                  disabled={isSavingProfile}
-                >
-                  {isSavingProfile ? "Saving..." : "Save changes"}
-                </button>
-              </div>
-            </div>
-          )}
+          <div className="settings-form-footer">
+            <button type="button" className="rounded-md px-3 py-2 text-sm" onClick={()=>{resetProfileForm();}}>Discard Changes</button>
+            <button type="button" className="rounded-md bg-blue-600 px-3 py-2 text-sm font-medium text-white disabled:opacity-50" onClick={handleSaveProfile} disabled={isSavingProfile}>{isSavingProfile?"Saving…":"Save Profile"}</button>
+          </div>
         </section>
 
-        <section className={settingsPanelClass}>
-          <div
-            className={`flex flex-col items-stretch gap-3 border-b px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-5 ${settingsDividerClass}`}
-          >
-            <div>
-              <p className="text-sm font-semibold text-neutral-900 dark:text-neutral-100">
-                Password
-              </p>
-              <p className="mt-1 text-sm text-neutral-500 dark:text-neutral-400">
-                Change your password using your current password.
-              </p>
-            </div>
-            <button
-              type="button"
-              className="w-full whitespace-nowrap rounded-md border border-neutral-300 px-3 py-2 text-sm font-medium text-neutral-700 transition hover:bg-neutral-100 sm:w-auto dark:border-[#33363b] dark:text-neutral-200 dark:hover:bg-[#2a2b2f]"
-              onClick={() => setPasswordEditing((editing) => !editing)}
-            >
-              {passwordEditing ? "Cancel" : "Change password"}
-            </button>
-          </div>
-
-          {passwordEditing ? (
-            <div className="space-y-3 p-5">
+        <section hidden={settingsCategory!=="security"} className={settingsPanelClass}>
+          <div className="settings-intro"><h2>Security</h2><p>Manage your password and protect your account.</p></div>
+          <div className="settings-row"><div><h3>Change Password</h3><p>Use your current password to set a new one.</p></div>
+            <div className="space-y-5">
               <div className="relative">
                 <input
                   type={passwordVisibility.accountCurrent ? "text" : "password"}
@@ -1151,27 +1067,23 @@ export default function Settings() {
               </div>
               <button
                 type="button"
-                className="whitespace-nowrap rounded-md border border-neutral-300 px-3 py-2 text-sm font-medium text-neutral-700 transition hover:bg-neutral-100 disabled:cursor-not-allowed disabled:opacity-60 dark:border-[#33363b] dark:text-neutral-200 dark:hover:bg-[#2a2b2f]"
+                className="settings-button"
                 onClick={handleSavePassword}
                 disabled={isSavingPassword}
               >
                 {isSavingPassword ? "Updating..." : "Update password"}
               </button>
             </div>
-          ) : (
-            <div className="px-5 py-4 text-sm text-neutral-500 dark:text-neutral-400">
-              Password changes are hidden until you choose to update them.
-            </div>
-          )}
+          </div>
         </section>
 
-        <section className={settingsPanelClass}>
+        <section hidden={settingsCategory!=="ftp"} className={settingsPanelClass}>
           <div
-            className={`flex flex-col items-stretch gap-3 border-b px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-5 ${settingsDividerClass}`}
+            className="settings-section-heading"
           >
             <div className="min-w-0">
               <div className="flex flex-wrap items-center gap-2">
-                <p className="text-sm font-semibold text-neutral-900 dark:text-neutral-100">
+                <p className="text-sm font-semibold settings-foreground">
                   FTP share
                 </p>
                 {!isLoadingFtp ? (
@@ -1186,14 +1098,14 @@ export default function Settings() {
                   </span>
                 ) : null}
               </div>
-              <p className="mt-1 text-sm text-neutral-500 dark:text-neutral-400">
+              <p className="mt-1 text-sm settings-secondary">
                 Enable FTP access to your downloads.
               </p>
             </div>
             <div className="flex items-center sm:shrink-0">
               <button
                 type="button"
-                className="inline-flex w-full min-w-[7.75rem] items-center justify-center gap-2 rounded-md border border-neutral-300 px-3 py-2 text-sm font-medium text-neutral-700 transition hover:bg-neutral-100 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto dark:border-[#33363b] dark:text-neutral-200 dark:hover:bg-[#2a2b2f]"
+                className="settings-button"
                 onClick={ftpEditing ? cancelFtpEditor : openFtpEditor}
                 disabled={isLoadingFtp || isSavingFtp}
               >
@@ -1207,27 +1119,27 @@ export default function Settings() {
             </div>
           </div>
 
-          <div className="space-y-3 p-5">
+          <div className="space-y-5">
             {isLoadingFtp ? (
-              <div className="text-sm text-neutral-500 dark:text-neutral-400">
+              <div className="text-sm settings-secondary">
                 Loading FTP settings...
               </div>
             ) : !ftpEditing ? (
               <>
                 {ftpSettings?.url ? (
-                  <div className="rounded-md bg-neutral-50 p-3 dark:bg-[#18191b]">
+                  <div className="rounded-md settings-muted-surface p-4">
                     <div className="flex items-center justify-between gap-3">
                       <div className="min-w-0">
-                        <p className="text-xs font-medium text-neutral-500 dark:text-neutral-400">
+                        <p className="text-xs font-medium settings-secondary">
                           FTP URL
                         </p>
-                        <p className="mt-1 truncate text-sm font-medium text-neutral-900 dark:text-neutral-100">
+                        <p className="mt-1 truncate text-sm font-medium settings-foreground">
                           {ftpSettings.url}
                         </p>
                       </div>
                       <button
                         type="button"
-                        className="inline-flex shrink-0 items-center gap-2 rounded-md border border-neutral-300 px-3 py-2 text-sm font-medium text-neutral-700 transition hover:bg-neutral-100 dark:border-[#33363b] dark:text-neutral-200 dark:hover:bg-[#2a2b2f]"
+                        className="settings-button"
                         onClick={handleCopyFtpUrl}
                       >
                         <FiCopy size={14} />
@@ -1236,7 +1148,7 @@ export default function Settings() {
                     </div>
                   </div>
                 ) : (
-                  <div className="rounded-md bg-neutral-50 p-3 text-sm text-neutral-500 dark:bg-[#18191b] dark:text-neutral-400">
+                  <div className="rounded-md settings-muted-surface p-4 text-sm settings-secondary">
                     Configure FTP credentials to generate a client URL.
                   </div>
                 )}
@@ -1244,12 +1156,12 @@ export default function Settings() {
               </>
             ) : (
               <>
-                <div className="flex flex-wrap items-center justify-between gap-3 rounded-md bg-neutral-50 p-3 dark:bg-[#18191b]">
+                <div className="flex flex-wrap items-center justify-between gap-3 rounded-md settings-muted-surface p-4">
                   <div>
-                    <p className="text-xs font-medium text-neutral-500 dark:text-neutral-400">
+                    <p className="text-xs font-medium settings-secondary">
                       FTP access
                     </p>
-                    <p className="mt-1 text-sm font-medium text-neutral-900 dark:text-neutral-100">
+                    <p className="mt-1 text-sm font-medium settings-foreground">
                       {ftpForm.enabled
                         ? ftpSettings.enabled
                           ? "Enabled"
@@ -1266,7 +1178,7 @@ export default function Settings() {
                     className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full border p-0.5 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 disabled:cursor-not-allowed disabled:opacity-60 ${
                       ftpForm.enabled
                         ? "border-blue-500/40 bg-blue-600/75 dark:border-blue-400/30 dark:bg-blue-500/55"
-                        : "border-neutral-300 bg-neutral-200 dark:border-[#33363b] dark:bg-[#2a2b2f]"
+                        : "border-neutral-300 bg-neutral-200 settings-border dark:bg-[#2a2b2f]"
                     }`}
                     onClick={() =>
                       setFtpForm((currentForm) => ({
@@ -1288,12 +1200,12 @@ export default function Settings() {
                   </button>
                 </div>
 
-                <div className="flex flex-wrap items-center justify-between gap-3 rounded-md bg-neutral-50 p-3 dark:bg-[#18191b]">
+                <div className="flex flex-wrap items-center justify-between gap-3 rounded-md settings-muted-surface p-4">
                   <div>
-                    <p className="text-sm font-medium text-neutral-900 dark:text-neutral-100">
+                    <p className="text-sm font-medium settings-foreground">
                       Use parsed folder names
                     </p>
-                    <p className="mt-1 text-xs text-neutral-500 dark:text-neutral-400">
+                    <p className="mt-1 text-xs settings-secondary">
                       Show movie titles with the last part of the hash instead of
                       hash directories.
                     </p>
@@ -1305,7 +1217,7 @@ export default function Settings() {
                     className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full border p-0.5 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 disabled:cursor-not-allowed disabled:opacity-60 ${
                       ftpForm.friendly_names
                         ? "border-blue-500/40 bg-blue-600/75 dark:border-blue-400/30 dark:bg-blue-500/55"
-                        : "border-neutral-300 bg-neutral-200 dark:border-[#33363b] dark:bg-[#2a2b2f]"
+                        : "border-neutral-300 bg-neutral-200 settings-border dark:bg-[#2a2b2f]"
                     }`}
                     onClick={() =>
                       setFtpForm((currentForm) => ({
@@ -1337,7 +1249,7 @@ export default function Settings() {
 
                 <div className="grid gap-3 md:grid-cols-2">
                   <label className="block">
-                    <span className="text-xs font-medium text-neutral-500 dark:text-neutral-400">
+                    <span className="text-xs font-medium settings-secondary">
                       FTP username
                     </span>
                     <input
@@ -1353,7 +1265,7 @@ export default function Settings() {
                     />
                   </label>
                   <label className="block">
-                    <span className="text-xs font-medium text-neutral-500 dark:text-neutral-400">
+                    <span className="text-xs font-medium settings-secondary">
                       FTP password
                     </span>
                     <div className="relative">
@@ -1376,7 +1288,7 @@ export default function Settings() {
                       {renderPasswordToggle("ftp", passwordVisibility.ftp)}
                     </div>
                     {ftpSettings.has_password && !ftpSettings.password ? (
-                      <p className="mt-1 text-xs text-neutral-500 dark:text-neutral-400">
+                      <p className="mt-1 text-xs settings-secondary">
                         Re-enter your current password once to make it available
                         here for future edits.
                       </p>
@@ -1384,10 +1296,10 @@ export default function Settings() {
                   </label>
                 </div>
 
-                <div className="flex items-center justify-end gap-2 border-t border-neutral-100 pt-4 dark:border-[#33363b]">
+                <div className="flex items-center justify-end gap-2 border-t border-neutral-100 pt-4 settings-border">
                   <button
                     type="button"
-                    className="whitespace-nowrap rounded-md border border-neutral-300 px-3 py-2 text-sm font-medium text-neutral-700 transition hover:bg-neutral-100 disabled:cursor-not-allowed disabled:opacity-60 dark:border-[#33363b] dark:text-neutral-200 dark:hover:bg-[#2a2b2f]"
+                    className="settings-button"
                     onClick={cancelFtpEditor}
                     disabled={isSavingFtp}
                   >
@@ -1407,23 +1319,23 @@ export default function Settings() {
           </div>
         </section>
 
-        {renderPublicUrlsSection()}
+        <div hidden={settingsCategory!=="links"}>{renderPublicUrlsSection()}</div>
 
-        <section className={settingsPanelClass}>
+        <section hidden={settingsCategory!=="sessions"} className={settingsPanelClass}>
           <div
-            className={`flex flex-col items-stretch gap-3 border-b px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-5 ${settingsDividerClass}`}
+            className="settings-section-heading"
           >
             <div>
-              <p className="text-sm font-semibold text-neutral-900 dark:text-neutral-100">
+              <p className="text-sm font-semibold settings-foreground">
                 Active sessions
               </p>
-              <p className="mt-1 text-sm text-neutral-500 dark:text-neutral-400">
+              <p className="mt-1 text-sm settings-secondary">
                 Review devices that are signed in and revoke access when needed.
               </p>
             </div>
             <button
               type="button"
-              className="inline-flex shrink-0 items-center gap-2 rounded-md border border-neutral-300 px-3 py-2 text-sm font-medium text-neutral-700 transition hover:bg-neutral-100 disabled:cursor-not-allowed disabled:opacity-60 dark:border-[#33363b] dark:text-neutral-200 dark:hover:bg-[#2a2b2f]"
+              className="settings-button"
               onClick={() =>
                 loadSessions({
                   forcePublicIp: true,
@@ -1436,39 +1348,43 @@ export default function Settings() {
               Refresh
             </button>
           </div>
-          <div className="divide-y divide-neutral-100 dark:divide-[#33363b]">
+          <div className="settings-toolbar">
+            <label className="settings-search"><FiSearch size={18} aria-hidden="true"/><input type="search" aria-label="Search sessions" placeholder="Search devices or IP addresses" value={sessionQuery} onChange={event=>setSessionQuery(event.target.value)}/></label>
+            <select aria-label="Filter sessions" value={sessionFilter} onChange={event=>setSessionFilter(event.target.value)} className="settings-select"><option value="all">All devices</option><option value="current">This device</option><option value="other">Other devices</option></select>
+          </div>
+          <div className="settings-divided-list">
             {isLoadingSessions ? (
-              <div className="px-5 py-6 text-sm text-neutral-500 dark:text-neutral-400">
+              <div className="px-5 py-6 text-sm settings-secondary">
                 Loading sessions...
               </div>
-            ) : sessions.length ? (
-              sessions.map((session) => (
+            ) : visibleSessions.length ? (
+              visibleSessions.map((session) => (
                 <div
                   key={session.id}
-                  className="flex flex-col items-stretch gap-3 px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-5"
+                  className="settings-device-row"
                 >
                   <div className="min-w-0">
                     <div className="flex items-center gap-2">
-                      <p className="truncate text-sm font-medium text-neutral-900 dark:text-neutral-100">
+                      <p className="truncate text-sm font-medium settings-foreground">
                         {session.device_name}
                       </p>
                       {session.current ? (
-                        <span className="rounded-full border border-blue-200 bg-blue-50 px-2 py-0.5 text-[11px] font-medium text-blue-700 dark:border-blue-500/20 dark:bg-blue-500/10 dark:text-blue-300">
+                        <span className="rounded border border-neutral-200 px-1.5 py-0.5 text-[10px] font-medium text-neutral-600 dark:border-neutral-700 dark:text-neutral-300">
                           Current
                         </span>
                       ) : null}
                     </div>
-                    <p className="mt-1 text-xs text-neutral-500 dark:text-neutral-400">
+                    <p className="mt-1 text-xs settings-secondary">
                       {session.ip || "Unknown IP"} · Last active{" "}
                       {formatRelativeTime(session.last_accessed_at, Date.now())}
                     </p>
-                    <p className="mt-1 text-xs text-neutral-500 dark:text-neutral-500">
+                    <p className="mt-1 text-xs settings-secondary dark:settings-secondary">
                       Created {formatCreatedAt(session.created_at)}
                     </p>
                   </div>
                   <button
                     type="button"
-                    className="inline-flex items-center justify-center gap-2 rounded-md border border-neutral-300 px-3 py-2 text-sm font-medium text-neutral-700 transition hover:bg-neutral-100 disabled:cursor-not-allowed disabled:opacity-60 sm:shrink-0 dark:border-[#33363b] dark:text-neutral-200 dark:hover:bg-[#2a2b2f]"
+                    className="settings-button"
                     onClick={() => setSessionPendingSignOut(session)}
                     disabled={activeSessionId === session.id}
                   >
@@ -1480,39 +1396,45 @@ export default function Settings() {
                 </div>
               ))
             ) : (
-              <div className="px-5 py-6 text-sm text-neutral-500 dark:text-neutral-400">
-                No active sessions found.
+              <div className="px-5 py-6 text-sm settings-secondary">
+                No sessions match your search.
               </div>
             )}
           </div>
+          <div className="settings-pagination">
+            <span>{filteredSessionCount} session{filteredSessionCount===1?"":"s"} · Page {Math.min(sessionPage,sessionPageCount)} of {sessionPageCount}</span>
+            <div className="flex gap-2"><button type="button" className="settings-button" disabled={sessionPage<=1} onClick={()=>setSessionPage(page=>page-1)}>Previous</button><button type="button" className="settings-button" disabled={sessionPage>=sessionPageCount} onClick={()=>setSessionPage(page=>page+1)}>Next</button></div>
+          </div>
         </section>
+          </div>
+        </div>
       </div>
 
       {sessionPendingSignOut ? (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 px-4 backdrop-blur-[1px]">
-          <div className="w-full max-w-sm rounded-lg border border-neutral-200 bg-white p-4 shadow-lg dark:border-[#33363b] dark:bg-[#202124]">
-            <p className="text-sm font-semibold text-neutral-900 dark:text-neutral-100">
+          <div className="w-full max-w-sm rounded-lg border border-neutral-200 bg-white p-4 shadow-lg settings-border dark:bg-[#202124]">
+            <p className="text-sm font-semibold settings-foreground">
               {sessionPendingSignOut.current
                 ? "Sign out current session?"
                 : "Sign out this session?"}
             </p>
-            <p className="mt-2 text-sm leading-6 text-neutral-500 dark:text-neutral-400">
+            <p className="mt-2 text-sm leading-6 settings-secondary">
               {sessionPendingSignOut.current
                 ? "You will be signed out of this browser."
                 : "That device will need to sign in again."}
             </p>
             <div className="mt-4 rounded-md bg-neutral-50 px-3 py-2 dark:bg-[#18191b]">
-              <p className="truncate text-sm font-medium text-neutral-900 dark:text-neutral-100">
+              <p className="truncate text-sm font-medium settings-foreground">
                 {sessionPendingSignOut.device_name}
               </p>
-              <p className="mt-1 truncate text-xs text-neutral-500 dark:text-neutral-400">
+              <p className="mt-1 truncate text-xs settings-secondary">
                 {sessionPendingSignOut.ip || "Unknown IP"}
               </p>
             </div>
             <div className="mt-4 flex items-center justify-end gap-2">
               <button
                 type="button"
-                className="rounded-md border border-neutral-200 px-3 py-2 text-sm text-neutral-600 transition-colors hover:bg-neutral-100 disabled:cursor-not-allowed disabled:opacity-60 dark:border-[#33363b] dark:text-neutral-300 dark:hover:bg-[#2a2b2f]"
+                className="rounded-md border border-neutral-200 px-3 py-2 text-sm text-neutral-600 transition-colors hover:bg-neutral-100 disabled:cursor-not-allowed disabled:opacity-60 settings-border dark:text-neutral-300 dark:hover:bg-[#2a2b2f]"
                 onClick={() => setSessionPendingSignOut(null)}
                 disabled={activeSessionId === sessionPendingSignOut.id}
               >
@@ -1535,22 +1457,22 @@ export default function Settings() {
 
       {confirmDeleteAllPublicUrls ? (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 px-4 backdrop-blur-[1px]">
-          <div className="w-full max-w-sm rounded-lg border border-neutral-200 bg-white p-4 shadow-lg dark:border-[#33363b] dark:bg-[#202124]">
-            <p className="text-sm font-semibold text-neutral-900 dark:text-neutral-100">
+          <div className="w-full max-w-sm rounded-lg border border-neutral-200 bg-white p-4 shadow-lg settings-border dark:bg-[#202124]">
+            <p className="text-sm font-semibold settings-foreground">
               Delete all public URLs?
             </p>
-            <p className="mt-2 text-sm leading-6 text-neutral-500 dark:text-neutral-400">
+            <p className="mt-2 text-sm leading-6 settings-secondary">
               All active public file links will stop working for clients.
             </p>
             <div className="mt-4 rounded-md bg-neutral-50 px-3 py-2 dark:bg-[#18191b]">
-              <p className="text-sm font-medium text-neutral-900 dark:text-neutral-100">
+              <p className="text-sm font-medium settings-foreground">
                 {publicUrlsTotal} active public URLs
               </p>
             </div>
             <div className="mt-4 flex items-center justify-end gap-2">
               <button
                 type="button"
-                className="rounded-md border border-neutral-200 px-3 py-2 text-sm text-neutral-600 transition-colors hover:bg-neutral-100 disabled:cursor-not-allowed disabled:opacity-60 dark:border-[#33363b] dark:text-neutral-300 dark:hover:bg-[#2a2b2f]"
+                className="rounded-md border border-neutral-200 px-3 py-2 text-sm text-neutral-600 transition-colors hover:bg-neutral-100 disabled:cursor-not-allowed disabled:opacity-60 settings-border dark:text-neutral-300 dark:hover:bg-[#2a2b2f]"
                 onClick={() => setConfirmDeleteAllPublicUrls(false)}
                 disabled={deactivatingPublicUrl === "__all__"}
               >

@@ -19,7 +19,7 @@ class AsyncJackett:
         apikey: str,
         base_url: Optional[str] = None,
         max_concurrency: int = 20,
-        timeout: Optional[float] = None,
+        timeout: Optional[float] = 25.0,
         store=None,
     ):
         self.base_url = (base_url or os.environ.get("JACKETT_URL", "http://jackett:9117")).rstrip("/")
@@ -260,18 +260,19 @@ class AsyncJackett:
 
     async def _search_round(self, query, indexes, cancel_event, deep=False):
         timeout = httpx.Timeout(65, connect=5) if deep else self.timeout
+        # A tab must not enqueue every source ahead of other active searches.
+        search_slots = asyncio.Semaphore(4)
         async with httpx.AsyncClient(
             headers=self.headers,
             timeout=timeout,
             follow_redirects=True,
         ) as client:
 
-            tasks = [
-                asyncio.create_task(
-                    self._search_index(client, query, index, cancel_event)
-                )
-                for index in indexes
-            ]
+            async def search_source(index):
+                async with search_slots:
+                    return await self._search_index(client, query, index, cancel_event)
+
+            tasks = [asyncio.create_task(search_source(index)) for index in indexes]
 
             try:
                 for coro in asyncio.as_completed(tasks):

@@ -1,0 +1,110 @@
+.movie-player-dialog, .movie-player-body { background: #000 !important; border: 0 !important; border-radius: 0 !important; }
+.movie-player {
+  position: relative;
+  width: 100%;
+  height: 100dvh;
+  border: 0;
+  border-radius: 0;
+  background: #000;
+  overflow: hidden;
+  color: #fff;
+  isolation: isolate;
+}
+.movie-player::after { border: 0 !important; border-radius: 0; }
+.movie-player:focus-visible { outline: none; }
+.movie-player-video { display: block; width: 100%; height: 100%; max-height: 100%; min-height: 0; border-radius: 0; object-fit: contain; background: #000; }
+.movie-player-top { position: absolute; inset: 0 0 auto; z-index: 35; display: flex; align-items: center; gap: 12px; padding: 8px 10px 20px 16px; background: linear-gradient(#0008, transparent); transition: opacity .15s; }
+.movie-player-top:not([data-visible]) { opacity: 0; pointer-events: none; }
+.movie-player-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 13px; font-weight: 500; text-shadow: 0 1px 3px #000; }
+.movie-player .movie-player-close { width: 44px; height: 44px; display: grid; background: transparent; }
+.movie-player .movie-settings-popup { max-width: min(320px, calc(100vw - 32px)); }
+.movie-player .media-menu-trigger-item, .movie-player .media-menu-radio-item, .movie-player .media-menu-back-item { min-height: 44px; }
+.movie-menu-label { min-width: 0; flex: 1; overflow-wrap: anywhere; }
+.movie-menu-chevron { width: 16px; height: 16px; flex-shrink: 0; }
+.movie-menu-back { rotate: 180deg; }
+.movie-playback-info { padding: 10px 12px; color: #a3a3a3; font-size: 11px; line-height: 1.5; }
+.movie-playback-info p { margin-top: 8px; }
+.movie-player-error { position: absolute; inset: 52px 16px 62px; z-index: 20; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; text-align: center; font-size: 13px; pointer-events: none; }
+.movie-player-error p { max-width: 440px; padding: 8px 12px; background: #000b; border-radius: 6px; }
+.movie-player-error button { padding: 10px 14px; min-height: 44px; border-radius: 6px; background: #ffffffeb; color: #111; pointer-events: auto; }
+.movie-player[data-fullscreen] { border-radius: 0; height: 100%; }
+.movie-player[data-fullscreen] .movie-player-video { height: 100%; max-height: 100%; }
+@media (max-width: 600px) {
+  .movie-player-top { padding-left: 12px; padding-top: 4px; }
+  .movie-player-name { font-size: 12px; }
+}
+
+.movie-player-video { touch-action: none; -webkit-touch-callout: none; user-select: none; }
+.movie-gesture-hud {
+  position: absolute; z-index: 5; left: 50%; top: 40%; transform: translate(-50%, -50%);
+  padding: 10px 16px; border-radius: 8px; background: rgb(0 0 0 / 70%);
+  color: #fff; font-size: 15px; font-variant-numeric: tabular-nums; pointer-events: none;
+}
+.movie-player[data-gesture-scrubbing] .media-time-slider { --media-slider-fill: var(--movie-preview-percent) !important; }
+.movie-player .movie-player-top { padding-top: max(12px, env(safe-area-inset-top)); }
+.movie-player .video-controls { padding-bottom: max(12px, env(safe-area-inset-bottom)); }
+.movie-player button:disabled { opacity: .35; }
+@media (max-width: 480px) {
+  .movie-player .video-controls-start, .movie-player .video-controls-end { gap: 0; }
+  .movie-player .movie-previous { display: none; }
+}
+.movie-quality-unavailable { margin-left: 10px; color: #8a8a8a; font-size: 11px; }
+.movie-player .media-menu-radio-item[data-disabled] { opacity: .45; cursor: not-allowed; }
+.watch-progress-bar { position:absolute;bottom:0;left:0;right:0;height:3px;background:rgb(255 255 255 / 18%);z-index:32;pointer-events:none; }
+.watch-progress-bar > div { height:100%;background:#3b82f6;transition:width .2s; }
+.movie-startup-loading { position:absolute;inset:0;display:grid;place-items:center;background:#000;z-index:24;pointer-events:none;color:#a3a3a3; }
+.movie-startup-loading svg { width:32px;height:32px;animation:movie-loading-spin 1s linear infinite; }
+@keyframes movie-loading-spin { to { transform:rotate(360deg); } }
+.movie-rotate-hint { display:none; }
+@media (orientation:portrait) and (pointer:coarse) {
+  .movie-rotate-hint { position:absolute;top:max(76px,calc(env(safe-area-inset-top) + 64px));left:50%;transform:translateX(-50%);z-index:25;display:flex;align-items:center;gap:8px;white-space:nowrap;color:#a3a3a3;font-size:12px;pointer-events:none; }
+}
+.movie-seek-thumbnail { border-radius:4px;background-repeat:no-repeat;background-color:#111;margin-bottom:5px; }
+.movie-player .media-time-slider-preview-content:has(.movie-seek-thumbnail) { display:flex;flex-direction:column;align-items:center;padding:5px; }
+
+.settings-category-nav { scrollbar-width: none; }
+.settings-category-nav::-webkit-scrollbar { display: none; }
+.movie-player .media-cast-button:is([data-disabled], [disabled], [aria-disabled="true"]) { display: none; }
+.movie-player .movie-episodes-popup { width: min(340px, calc(100vw - 24px)); max-height: min(420px, calc(100dvh - 140px)); }
+.movie-player .movie-episodes-popup .media-menu-content { max-height: inherit; }
+.movie-player .movie-episodes-popup .movie-menu-label { white-space: normal; line-height: 1.4; }
+.movie-player .media-time-slider-preview-content:has(.movie-seek-thumbnail){padding:0;gap:6px;background:transparent;border:0;box-shadow:none}
+.movie-player .movie-seek-thumbnail{margin:0;border:0;border-radius:5px;box-shadow:0 4px 16px #0004}
+.movie-player .media-time-slider-preview-content:has(.movie-seek-thumbnail) .media-time-slider-value{border-radius:4px;background:#111b;padding:3px 7px}
+/* Let the menu scroll as a whole; a capped group allowed its rows to paint over the footer. */
+.movie-player .movie-settings-popup .media-menu-radio-group{max-height:none;flex-shrink:0}
+.movie-player .movie-quality-error{position:relative;clear:both}
+/* Readable OTT-style captions without the browser's filled caption rectangles. */
+.movie-player .movie-player-video::cue{font-family:Arial,Helvetica,sans-serif;font-size:clamp(16px,1.65vw,28px);font-weight:500;line-height:1.35;color:#fff;background-color:transparent;text-shadow:0 2px 3px #000e,1px 0 2px #000c,-1px 0 2px #000c}
+.movie-player .movie-player-video::cue-region{background-color:transparent}
+.movie-player .movie-settings-popup .media-menu-content:not([data-submenu]){padding-bottom:8px}
+.movie-player .movie-settings-popup{--movie-menu-max-height:min(var(--media-menu-available-height,420px),420px,calc(100dvh - 140px));max-height:var(--movie-menu-max-height)}
+.movie-player .movie-settings-popup .media-menu-content{max-height:calc(var(--movie-menu-max-height) - 16px)}
+
+/* Keep the custom player in landscape even where element fullscreen / screen
+   orientation locking is unavailable (notably iPhone Safari). */
+.movie-player[data-landscape]{position:absolute!important;left:50%;top:50%;width:100dvh!important;height:100vw!important;max-width:none;max-height:none;transform:translate(-50%,-50%) rotate(90deg)}
+.movie-player[data-landscape] .movie-settings-popup,.movie-player[data-landscape] .movie-episodes-popup{--movie-menu-max-height:min(320px,calc(100vw - 90px));max-height:var(--movie-menu-max-height);max-width:min(320px,calc(100dvh - 32px))}
+.movie-player[data-landscape] .video-controls{padding:8px max(12px,env(safe-area-inset-top)) 8px max(12px,env(safe-area-inset-bottom))}
+.movie-landscape-timeline{position:relative;display:flex;align-items:center;flex:1;min-width:40px;height:36px;cursor:pointer;touch-action:none}
+.movie-landscape-track{position:relative;display:block;width:100%;height:4px;border-radius:4px;background:#ffffff45}
+.movie-landscape-played{position:relative;display:block;width:var(--seek-percent);height:100%;border-radius:inherit;background:#fff}
+.movie-landscape-track>i{position:absolute;left:var(--seek-percent);top:50%;width:12px;height:12px;transform:translate(-50%,-50%);border-radius:50%;background:#fff}
+.movie-landscape-timeline:focus-visible{outline:2px solid #60a5fa;outline-offset:2px}
+.movie-player[data-touch-controls=hidden] :is(.movie-player-top,.video-controls-content,.video-controls-backdrop){opacity:0!important;visibility:hidden;pointer-events:none!important}
+.movie-player[data-touch-controls=visible] :is(.movie-player-top,.video-controls-content){opacity:1!important;visibility:visible;pointer-events:auto}
+/* Native popovers enter the browser's top layer, which skips ancestor transforms.
+   Explicitly orient and anchor them alongside the rotated control bar. */
+.media-popup[data-landscape-popup]{translate:none!important;scale:none!important;rotate:none!important;position:fixed!important;inset:auto!important;left:64px!important;top:calc(100dvh - 16px)!important;right:auto!important;bottom:auto!important;margin:0!important;transform-origin:0 0!important;transform:rotate(90deg) translate(-100%,-100%)!important;position-anchor:none!important;position-area:none!important;width:min(320px,calc(100dvh - 32px));max-width:calc(100dvh - 32px)!important;--movie-menu-max-height:min(320px,calc(100vw - 96px));max-height:var(--movie-menu-max-height)!important}
+.media-popup[data-landscape-popup=volume]{top:150px!important;width:120px;max-height:48px!important}
+.movie-landscape-preview{position:absolute;bottom:38px;left:clamp(72px,var(--seek-percent),calc(100% - 72px));transform:translateX(-50%);pointer-events:none}
+
+/* Dark unloaded track, faded buffered video, bright playback progress. */
+.movie-player .media-time-slider .media-slider-track,.movie-landscape-track{background:rgb(255 255 255 / 18%)}
+.movie-buffered-ranges{position:absolute;inset:0;pointer-events:none;border-radius:inherit;overflow:hidden}
+.movie-buffered-range{position:absolute;top:0;bottom:0;min-width:2px;background:rgb(255 255 255 / 65%)}
+.movie-player .media-time-slider .media-slider-fill{z-index:1}
+.movie-player .media-time-slider .media-slider-fill:before{background:#fff}
+
+.movie-player[data-pointer-edge]{cursor:none}
+.movie-player[data-pointer-edge] :is(.movie-player-top,.video-controls-content,.video-controls-backdrop,.media-popup,.movie-gesture-hud,.movie-landscape-preview){opacity:0!important;visibility:hidden!important;pointer-events:none!important;transition:none!important}

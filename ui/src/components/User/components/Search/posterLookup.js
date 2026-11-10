@@ -11,10 +11,12 @@ export const posterDescriptor = (item) => {
   const ids = categories.map((category) => Number(category?.ID ?? category?.id ?? category));
   const tv = ids.some((id) => id >= 5000 && id < 6000) || Boolean(item.parsed?.season || item.parsed?.episode);
   const movie = ids.some((id) => id >= 2000 && id < 3000);
+  const software = !movie && (ids.some(id=>id>=4000&&id<5000) || /(?:\b(?:windows|photoshop|autocad|office|adobe|ubuntu|debian|solidworks)\b|\.(?:exe|msi|dmg|apk)\b)/i.test(item.Title||""));
+  const platform = /\b(?:macos|mac os|mac|osx)\b/i.test(item.Title||"")?"macOS":/\b(?:linux|ubuntu|debian)\b/i.test(item.Title||"")?"Linux":/\b(?:android|apk)\b/i.test(item.Title||"")?"Android":/\b(?:windows|win\d*|x64|x86)\b/i.test(item.Title||"")?"Windows":"Application";
   const other = ids.some((id) => id >= 1000 && id < 8000) && !tv && !movie;
   const title = item.parsed?.title || item.Title || "";
   const year = item.parsed?.year || "";
-  return {key: JSON.stringify([String(title).toLowerCase(), year, tv ? "tv" : "movie"]), name: String(item.Title || "").slice(0, 500), kind: tv ? "tv" : "movie", enabled: !other && Boolean(title)};
+  return {key: JSON.stringify([String(title).toLowerCase(), year, tv ? "tv" : "movie"]), name: String(item.Title || "").slice(0, 500), kind: tv ? "tv" : "movie", software, platform, enabled: !software && !other && Boolean(title)};
 };
 
 const pump = () => {

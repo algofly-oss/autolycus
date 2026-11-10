@@ -128,7 +128,7 @@ emulation, not a test on a physical iPhone or Safari.
 The Search view switch sits beside the secondary title filter, separated by a
 thin vertical divider. Its neutral icon styling matches the minimal filter bar.
 Each button is square and matches the filter height: 28 pixels on desktop and
-44 pixels on phones. The control remains available before and after searching.
+44 pixels on phones. The title filter and switch stay hidden until results are available.
 The main search field keeps its full width; Home's switch is unchanged.
 Search thumbnails use Home's poster-only proportions,
 neutral fallback, rounded corners, bottom title/metadata gradient, compact
@@ -158,3 +158,21 @@ original/alternate titles and explicit release dates before accepting the image.
 This handles renamed films and differing festival/theatrical dates without a
 blanket year tolerance. Failed entries from the older lookup are retried after the
 upgrade. The card retains the release filename's year when available.
+
+The initial search page shows only the main search field. Secondary title/view
+controls appear with results and retain the saved account preference.
+
+## Public-indexer audit — 2026-11-01
+
+FileMood and TorrentsCSV were tested in the disposable instance before enabling
+both in production. Ubuntu, Hindi, Blender and Inception queries returned matching
+results, direct magnets and reported seeders. Live Ubuntu queries returned 20 and
+25 matching magnet-bearing results respectively. The existing 46 configurations
+were preserved; the live total is now 48. Index discovery refreshes within 30
+seconds without a container restart. Existing Jackett proxy settings were retained.
+
+DaMagNet was not added: its Ubuntu query took 12.1 seconds and its download-link
+resolution path has not been verified. Torlock is absent from the installed Jackett
+definitions; upstream https://github.com/Jackett/Jackett/issues/1650 is marked
+Removed. No custom scraper was introduced. See `indexer-audit.json` for measurements
+and limits; reported seed counts do not prove peer reachability.

@@ -65,7 +65,7 @@ ENV DEBIAN_FRONTEND=noninteractive PYTHONUNBUFFERED=1 PYTHONDONTWRITEBYTECODE=1 
 RUN apt-get update && apt-get install -y --no-install-recommends \
       ca-certificates tini nginx redis-server musl libgcc-s1 libcurl4t64 liblzma5 \
       libxml2 libxslt1.1 libffi8 libpq5 libicu76 libssl3t64 libgssapi-krb5-2 \
-      ffmpeg handbrake-cli aria2 p7zip-full rsync \
+      ffmpeg aria2 p7zip-full rsync \
       chromium chromium-driver xvfb xauth python3-venv iptables redsocks privoxy && \
     mkdir -p /usr/share/licenses/debian && \
     for file in /usr/share/doc/*/copyright; do \
@@ -100,11 +100,12 @@ COPY --from=rust-build /usr/local/bin/autolycus-runtime /usr/local/bin/autolycus
 COPY api /app
 COPY proxy/nginx.conf /opt/autolycus/nginx.template
 COPY deploy/single/bootstrap.py deploy/single/service.py deploy/single/healthcheck.py deploy/single/services.toml /opt/autolycus/
+COPY deploy/single/indexers /opt/autolycus/indexers
 COPY LICENSE.txt /usr/share/licenses/autolycus/LICENSE.txt
 RUN chown -R 10001:10001 /data /downloads /opt/ui && \
     ln -sf /dev/stdout /var/log/nginx/access.log && ln -sf /dev/stderr /var/log/nginx/error.log
 WORKDIR /app
-EXPOSE 80 443 2121 9118 50000-50100
+EXPOSE 80 443 2121 9118 50000-50100 8555-8562/udp
 VOLUME ["/data", "/downloads"]
 HEALTHCHECK --interval=30s --timeout=15s --start-period=240s --retries=3 CMD ["python", "/opt/autolycus/healthcheck.py"]
 ENTRYPOINT ["/usr/bin/tini", "--", "python", "/opt/autolycus/bootstrap.py"]

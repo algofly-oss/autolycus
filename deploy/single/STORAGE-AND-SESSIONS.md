@@ -1,18 +1,18 @@
 # Storage relocation and persistent sign-in
 
-The installed repository and its complete `volumes/` tree now live at
-`/mnt/WD8TB/autolycus`, moved from `/mnt/WD512/autolycus`. The 8 TB ext4 filesystem is
-mounted at `/mnt/WD8TB` (UUID `cee81b24-57da-417f-9be0-fd50d8ff8a0f`). After the
-verified cutover, the old repository path remains a compatibility symlink. Docker's
-shared image/build cache remains in its existing system-managed location; all
-application bind-mounted data and the distributable archive live on the HDD.
+The active repository, distribution archive and application data are on the SSD:
+`/mnt/WD512/autolycus`, with `/data` bound to its `volumes/single` directory.
+Downloaded media stays on the 8 TB HDD at
+`/mnt/WD8TB/autolycus/volumes/downloads`, mounted as `/downloads`.
+The HDD ext4 filesystem UUID is `cee81b24-57da-417f-9be0-fd50d8ff8a0f`.
+Docker's shared image/build cache remains in its existing system-managed location.
 
-The relocation uses a live initial copy, a stopped final sync, content checksums
-for mutable service state, a full metadata reconciliation, and head/tail samples
-from large payloads. User, torrent and session identity digests are compared
-before the verified SSD copy is removed. Repository history, uncommitted files,
-ignored files, credentials, old rollback data, downloads, hard links, ownership,
-ACLs, extended attributes and sparse files are included.
+This supersedes the earlier all-HDD relocation at the user's request. The HDD
+repository/state copy remains a rollback backup, with `ACTIVE_LOCATION.txt`
+pointing to the SSD installation. Media was not copied back to the SSD. The
+cutover used a stopped final sync and verified account, torrent and session
+identities. The existing-data guard refuses to start an empty application state
+when `AUTOLYCUS_REQUIRE_EXISTING_DATA=1` is configured.
 
 ## Drive capacity
 
@@ -20,15 +20,17 @@ Previously, three separate implementations scanned each user's files and
 reported a per-user virtual capacity. They counted hard-linked copies more than
 once, which could show values such as 607/753 GB on a physically smaller SSD.
 
-All storage responses now come from `shared.modules.storage_usage`. The selected
-display is **Autolycus occupied / (drive capacity − occupied outside Autolycus)**.
-The occupied value includes the repository, service data and downloads on the
-downloads drive. Allocated blocks are deduplicated by device/inode, so hard links
-and overlapping mounts count once. The repository is mounted read-only at
-`/installation` for this measurement. New accounts see the same figures as
-existing accounts. A background sample runs every 60 seconds; HTTP, Socket.IO and
-job updates use the shared snapshot instead of scanning files per request. The
-UI refreshes every 30 seconds.
+All storage responses come from `shared.modules.storage_usage`. The navbar
+ring and the hover percentage show **drive occupied / total drive capacity**.
+The hover lists drive used, total, and free space, plus Autolycus usage as a
+separate row. There is no adjusted application capacity or per-user quota.
+Every account sees the same drive figures.
+
+Drive statistics come from the downloads filesystem. Autolycus usage includes
+repository, service data and downloads on that drive, deduplicated by allocated
+device/inode blocks so hard links and overlapping mounts count once. That app
+footprint is sampled every 60 seconds outside request and progress paths; the UI
+refreshes every 30 seconds. No filesystem scan runs just to display a hover.
 
 ## HomeSense comparison and chosen policy
 

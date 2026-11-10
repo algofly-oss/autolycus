@@ -1,3 +1,4 @@
+from pathlib import Path
 import hashlib
 from fastapi import APIRouter, Request, Response, HTTPException, UploadFile, File
 from pydantic import BaseModel
@@ -25,6 +26,7 @@ import traceback
 import json
 import threading
 from tasks.download_from_url import download_from_url
+from shared.modules.url_download import aria2_command, validate_url
 
 router = APIRouter()
 
@@ -129,7 +131,7 @@ async def add_torrent_file(request: Request, torrent: UploadFile = File(...)):
         redis.delete(f"{user_id}/{info_hash}/stop")
         redis.delete(f"{user_id}/{info_hash}/copied_from_existing")
 
-        handle = lt_session.add_torrent(magnet, f"/downloads/{user_id}")
+        handle = lt_session.add_torrent(temp_file_path, f"/downloads/{user_id}")
         handle.set_callback(
             lambda props: update_to_db(props, ObjectId(user_id)),
             callback_interval=1,
@@ -144,13 +146,7 @@ async def add_torrent_file(request: Request, torrent: UploadFile = File(...)):
 
 
 def get_filename_from_url(url):
-    result = sp.run(
-        f"aria2c --check-certificate=false --console-log-level=info --dry-run '{url}'",
-        shell=True,
-        stdout=sp.PIPE,
-        stderr=sp.PIPE,
-        text=True,
-    )
+    result = sp.run(aria2_command(url, dry_run=True), stdout=sp.PIPE, stderr=sp.PIPE, text=True, timeout=30)
 
     response = {"filename": None, "content_type": None, "content_length": None}
     if result.returncode == 0:
@@ -174,7 +170,23 @@ def get_filename_from_url(url):
                 except:
                     traceback.print_exc()
     else:
-        print(f"Error: {result.stderr}")
+        # aria2 dry-run uses HEAD; many otherwise valid media endpoints reject
+        # HEAD. Read only GET response headers and close without buffering media.
+        from urllib.parse import urlsplit, unquote
+        if urlsplit(url).scheme.lower() not in {"http", "https"}:
+            raise ValueError("Could not open download URL")
+        import requests
+        from email.message import Message
+        with requests.Session() as client:
+            client.trust_env = False
+            with client.get(url, stream=True, timeout=(10,20), verify=os.getenv("URL_VERIFY_TLS","1").lower() not in {"0","false","no"}) as result:
+                result.raise_for_status()
+                disposition=Message();disposition['content-disposition']=result.headers.get('Content-Disposition','')
+                filename=disposition.get_filename() or unquote(urlsplit(result.url).path.rsplit('/',1)[-1])
+                response['filename']=Path(filename).name if filename else None
+                response['content_type']=result.headers.get('Content-Type')
+                length=result.headers.get('Content-Length','')
+                response['content_length']=int(length) if length.isdigit() else None
 
     return response
 
@@ -184,7 +196,8 @@ async def direct_download(dto: UrlDto, request: Request):
     user_id = authenticate_user(request).decode("utf-8")
 
     try:
-        file_info = get_filename_from_url(dto.url)
+        validate_url(dto.url)
+        file_info = await asyncio.to_thread(get_filename_from_url, dto.url)
         url_hash = hashlib.md5(dto.url.encode()).hexdigest()
         save_dir = f"/downloads/{user_id}/{url_hash}"
 
@@ -194,14 +207,14 @@ async def direct_download(dto: UrlDto, request: Request):
 
         obj = {
             "user_id": ObjectId(str(user_id)),
-            "name": file_info.get("filename", "Unknown"),
+            "name": file_info.get("filename") or os.path.basename(__import__("urllib.parse", fromlist=["urlsplit"]).urlsplit(dto.url).path) or "download",
             "is_direct_download": True,
             "url": dto.url,
             "url_hash": url_hash,
             "ok": True,
             "download_speed": 0,
             "downloaded_bytes": 0,
-            "total_bytes": file_info.get("content_length", 0),
+            "total_bytes": file_info.get("content_length") or 0,
             "progress": 0,
             "save_dir": save_dir,
             "is_paused": False,

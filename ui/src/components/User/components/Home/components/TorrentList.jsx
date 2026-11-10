@@ -1,261 +1,30 @@
-import React, {
-  useState,
-  useEffect,
-  useContext,
-  useMemo,
-  useCallback,
-} from "react";
-import axios from "axios";
-import apiRoutes from "@/shared/routes/apiRoutes";
-import TorrentCard from "./TorrentCard";
-import { SocketContext } from "@/shared/contexts/socket";
-import socketRoutes from "@/shared/routes/socketRoutes";
-import Pagination from "./Pagination";
-
-const PAGE_SIZE_OPTIONS = [10, 20, 50, 100, 200];
-const getTorrentKey = (torrent) => torrent?.info_hash || torrent?.url_hash;
-
-export default function TorrentList({ state, onPathChange, viewMode = "list" }) {
-  const socket = useContext(SocketContext);
-  const [torrentList, setTorrentList] = useState(() => {
-    const cachedList = state?.get("torrentListCache");
-    return Array.isArray(cachedList) ? cachedList : [];
-  });
-  const [currentPage, setCurrentPage] = useState(() => {
-    const storedPage = state?.get("torrentListPage");
-    const parsedPage = Number(storedPage);
-    return Number.isFinite(parsedPage) && parsedPage > 0 ? parsedPage : 1;
-  });
-  const [pageSize, setPageSize] = useState(() => {
-    const storedSize = state?.get("torrentListPageSize");
-    const parsedSize = Number(storedSize);
-    if (Number.isFinite(parsedSize) && PAGE_SIZE_OPTIONS.includes(parsedSize)) {
-      return parsedSize;
-    }
-    return PAGE_SIZE_OPTIONS[0];
-  });
-  const [totalTorrents, setTotalTorrents] = useState(() => {
-    const cachedTotal = state?.get("torrentListTotal");
-    if (typeof cachedTotal === "number" && cachedTotal >= 0) {
-      return cachedTotal;
-    }
-    const cachedList = state?.get("torrentListCache");
-    return Array.isArray(cachedList) ? cachedList.length : 0;
-  });
-  const [pageInput, setPageInput] = useState("1");
-
-  const totalPages = useMemo(
-    () => Math.max(1, Math.ceil((totalTorrents || 0) / pageSize)),
-    [pageSize, totalTorrents]
-  );
-
-  const rangeStart = totalTorrents === 0 ? 0 : (currentPage - 1) * pageSize + 1;
-  const rangeEnd = Math.min(totalTorrents, currentPage * pageSize);
-
-  const fetchTorrents = useCallback(async () => {
-    try {
-      const response = await axios.get(apiRoutes.listTorrents, {
-        params: { page: currentPage, page_size: pageSize },
-      });
-
-      const responseData = response.data || {};
-      const retrievedTorrents = Array.isArray(responseData)
-        ? responseData
-        : Array.isArray(responseData.data)
-        ? responseData.data
-        : [];
-
-      const meta = responseData.meta || {};
-      const total =
-        typeof meta.total === "number" ? meta.total : retrievedTorrents.length;
-      const computedPages = Math.max(1, Math.ceil((total || 0) / pageSize));
-      const sortedTorrents = [...retrievedTorrents].sort((a, b) => {
-        if (a.is_finished === b.is_finished) {
-          return 0;
-        }
-        return a.is_finished ? 1 : -1;
-      });
-
-      setTotalTorrents(total);
-
-      if (currentPage > computedPages) {
-        setCurrentPage(computedPages);
-        return;
-      }
-
-      setTorrentList(sortedTorrents);
-    } catch (error) {
-      console.error("Error fetching torrents:", error);
-    }
-  }, [currentPage, pageSize]);
-
-  useEffect(() => {
-    fetchTorrents();
-  }, [fetchTorrents]);
-
-  useEffect(() => {
-    const handleSocketUpdate = () => fetchTorrents();
-    socket.on(socketRoutes.stcTorrentAddedOrRemoved, handleSocketUpdate);
-
-    return () => {
-      socket.off(socketRoutes.stcTorrentAddedOrRemoved, handleSocketUpdate);
-    };
-  }, [socket, fetchTorrents]);
-
-  const handlePageInputChange = (value) => {
-    if (value === "" || /^\d+$/.test(value)) {
-      setPageInput(value);
-    }
-  };
-
-  const applyPageInput = () => {
-    if (!pageInput) {
-      setPageInput(String(currentPage));
-      return;
-    }
-
-    const parsedPage = Number(pageInput);
-    if (Number.isNaN(parsedPage)) {
-      setPageInput(String(currentPage));
-      return;
-    }
-
-    const clampedPage = Math.min(Math.max(parsedPage, 1), totalPages);
-    if (clampedPage !== currentPage) {
-      setCurrentPage(clampedPage);
-    } else {
-      setPageInput(String(currentPage));
-    }
-  };
-
-  useEffect(() => {
-    setPageInput(String(currentPage));
-  }, [currentPage]);
-
-  useEffect(() => {
-    state?.set("torrentListPage", currentPage);
-  }, [state, currentPage]);
-
-  useEffect(() => {
-    state?.set("torrentListPageSize", pageSize);
-  }, [state, pageSize]);
-
-  useEffect(() => {
-    state?.set({
-      torrentListCache: torrentList,
-      torrentListTotal: totalTorrents,
-    });
-  }, [state, torrentList, totalTorrents]);
-
-  const handlePageSizeChange = (value) => {
-    const parsedSize = Number(value);
-    if (Number.isNaN(parsedSize) || parsedSize <= 0) {
-      return;
-    }
-    setPageSize(parsedSize);
-    setCurrentPage(1);
-  };
-
-  const handlePageButtonClick = (pageNumber) => {
-    const clamped = Math.min(Math.max(pageNumber, 1), totalPages);
-    if (clamped !== currentPage) {
-      setCurrentPage(clamped);
-    }
-  };
-
-  const handleTorrentClick = (torrent) => {
-    state.set({
-      hoveredTorrentInfoHash: getTorrentKey(torrent),
-      activeTorrent: torrent,
-    });
-    onPathChange(torrent.save_dir);
-  };
-
-  const handleTorrentMouseEnter = (torrent) => {
-    state.set({
-      hoveredTorrentInfoHash: getTorrentKey(torrent),
-      hoveredTorrent: torrent,
-    });
-  };
-
-  useEffect(() => {
-    if (state.get("hoveredTorrentInfoHash")) {
-      let hoveredTorrent = torrentList.find(
-        (torrent) =>
-          getTorrentKey(torrent) === state.get("hoveredTorrentInfoHash")
-      );
-      state.set({ hoveredTorrent: hoveredTorrent || null });
-    }
-  }, [state.get("hoveredTorrentInfoHash"), torrentList]);
-
-  useEffect(() => {
-    torrentList.forEach((torrent) => {
-      socket.on(
-        socketRoutes.stcTorrentPropsUpdate + `/${getTorrentKey(torrent)}`,
-        (data) => {
-          if (data?.info_hash || data?.url_hash) {
-            setTorrentList((prevTorrentList) =>
-              prevTorrentList.map((t) =>
-                getTorrentKey(t) === getTorrentKey(data)
-                  ? { ...t, ...data }
-                  : t
-              )
-            );
-          }
-        }
-      );
-    });
-
-    return () => {
-      torrentList.forEach((torrent) => {
-        socket.off(
-          socketRoutes.stcTorrentPropsUpdate + `/${getTorrentKey(torrent)}`
-        );
-      });
-    };
-  }, [torrentList?.length]);
-
-  const shouldShowPagination = torrentList.length > 0;
-
-  return (
-    <div className="flex flex-col gap-3 pb-[4rem] md:pb-4">
-      <div
-        className={
-          viewMode === "grid"
-            ? "grid grid-cols-2 items-start gap-x-2.5 gap-y-4 px-1 pt-1 sm:grid-cols-5 lg:grid-cols-6 2xl:grid-cols-8"
-            : "flex flex-col gap-1.5 pr-1.5"
-        }
-      >
-        {torrentList.map((torrent) => (
-          <div
-            key={torrent.id}
-            onClick={() => handleTorrentClick(torrent)}
-            onMouseEnter={() => handleTorrentMouseEnter(torrent)}
-            className={`cursor-pointer ${
-              viewMode === "grid" ? "w-full min-w-0" : "rounded-xl"
-            }`}
-          >
-            <TorrentCard torrentData={torrent} compact={viewMode === "grid"} />
-          </div>
-        ))}
-      </div>
-      {shouldShowPagination && (
-        <Pagination
-          currentPage={currentPage}
-          totalPages={totalPages}
-          pageInput={pageInput}
-          pageSize={pageSize}
-          pageSizeOptions={PAGE_SIZE_OPTIONS}
-          rangeStart={rangeStart}
-          rangeEnd={rangeEnd}
-          totalItems={totalTorrents}
-          onPageButtonClick={handlePageButtonClick}
-          onPageInputChange={handlePageInputChange}
-          onApplyPageInput={applyPageInput}
-          onPageSizeChange={handlePageSizeChange}
-        />
-      )}
-      <div className="h-16 md:h-6" aria-hidden="true" />
-    </div>
-  );
+import React,{useState,useEffect,useContext,useCallback} from 'react';
+import axios from 'axios';
+import apiRoutes from '@/shared/routes/apiRoutes';
+import useInfinitePages from '@/shared/useInfinitePages';
+import InfiniteMediaList from '@/shared/InfiniteMediaList';
+import useWatchProgress,{relativeMediaPath} from '@/shared/useWatchProgress';
+import {SocketContext} from '@/shared/contexts/socket';
+import socketRoutes from '@/shared/routes/socketRoutes';
+import TorrentCard from './TorrentCard';
+const PAGE_SIZE=50;
+const getTorrentKey=item=>item.info_hash||item.url_hash||item.id;
+export default function TorrentList({state,onPathChange,viewMode='list',scrollRef}) {
+ const socket=useContext(SocketContext),[range,setRange]=useState([0,20]);
+ const fetchPage=useCallback(async(offset,signal)=>{const {data}=await axios.get(apiRoutes.listTorrents,{params:{page:Math.floor(offset/PAGE_SIZE)+1,page_size:PAGE_SIZE},signal});return {items:data.data||[],total:data.meta?.total||0};},[]);
+ const pages=useInfinitePages(fetchPage,getTorrentKey,{initial:state?.get('torrentInfiniteCache'),onReset:()=>{if(scrollRef.current)scrollRef.current.scrollTop=0;}});
+ useEffect(()=>{state?.set('torrentInfiniteCache',pages.snapshot);},[state,pages.snapshot]);
+ useEffect(()=>{const refresh=()=>pages.reload();socket.on(socketRoutes.stcTorrentAddedOrRemoved,refresh);return()=>socket.off(socketRoutes.stcTorrentAddedOrRemoved,refresh);},[socket,pages.reload]);
+ const visible=pages.items.slice(range[0],range[1]),visibleKeys=visible.map(getTorrentKey).join(',');
+ useEffect(()=>{
+  const listeners=visible.map(item=>{const event=socketRoutes.stcTorrentPropsUpdate+'/'+getTorrentKey(item);const handler=data=>pages.update(items=>items.map(old=>getTorrentKey(old)===getTorrentKey(data)?{...old,...data}:old));socket.on(event,handler);return [event,handler];});
+  return()=>listeners.forEach(([event,handler])=>socket.off(event,handler));
+ },[socket,visibleKeys,pages.update]);
+ const watched=useWatchProgress(visible.filter(item=>item.save_dir).map(item=>({path:relativeMediaPath(item.save_dir),directory:true})));
+ const hovered=state.get('hoveredTorrentInfoHash');
+ useEffect(()=>{if(hovered)state.set('hoveredTorrent',pages.items.find(item=>getTorrentKey(item)===hovered)||null);},[hovered,pages.items,state]);
+ const onRange=useCallback((start,end)=>setRange(old=>old[0]===start&&old[1]===end?old:[start,end]),[]);
+ return <InfiniteMediaList {...pages} scrollRef={scrollRef} viewMode={viewMode} itemKey={getTorrentKey} onRange={onRange} initialOffset={state.get('torrentListScrollOffset')||0} onScrollOffset={offset=>state.set('torrentListScrollOffset',offset)} renderItem={torrent=><div className="cursor-pointer min-w-0" onClick={()=>{state.set({hoveredTorrentInfoHash:getTorrentKey(torrent),activeTorrent:torrent});onPathChange(torrent.save_dir);}} onMouseEnter={()=>state.set({hoveredTorrentInfoHash:getTorrentKey(torrent),hoveredTorrent:torrent})}>
+  <TorrentCard watchProgress={watched[relativeMediaPath(torrent.save_dir)]} torrentData={torrent} compact={viewMode==='grid'}/>
+ </div>}/>;
 }

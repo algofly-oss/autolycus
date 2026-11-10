@@ -14,43 +14,10 @@ class MagnetUtils:
             bool: True if valid
         """
 
-        # Parse the magnet link into its individual components
-        parsed_link = urllib.parse.urlparse(magnet)
-
-        # Check that the scheme is "magnet"
-        if parsed_link.scheme != "magnet":
+        try:
+            return lt.parse_magnet_uri(magnet).info_hashes.has_v1()
+        except Exception:
             return False
-
-        # Check that the link includes a "xt" (exact topic) parameter
-        # with a value that starts with "urn:btih:"
-        query_dict = urllib.parse.parse_qs(parsed_link.query)
-        if "xt" not in query_dict or not query_dict["xt"][0].startswith("urn:btih:"):
-            return False
-
-        # Check that the info hash is a base32-encoded string of 40 characters
-        info_hash = query_dict["xt"][0][9:]
-        if len(info_hash) != 40 or any(
-            c not in "0123456789abcdefghijklmnopqrstuvwxyz" for c in info_hash
-        ):
-            return False
-
-        # Check that the "dn" (display name) parameter, if present, is a valid UTF-8 string
-        if "dn" in query_dict:
-            try:
-                query_dict["dn"][0].encode("utf-8")
-            except UnicodeEncodeError:
-                return False
-
-        # Check that the "tr" (tracker) parameters, if present, are valid URLs
-        if "tr" in query_dict:
-            for tracker in query_dict["tr"]:
-                try:
-                    urllib.parse.urlparse(tracker)
-                except ValueError:
-                    return False
-
-        # If all checks pass, the magnet link is valid
-        return True
 
     def _clean_magnet_uri(self, magnet):
         """Clean magnet uri
@@ -64,25 +31,21 @@ class MagnetUtils:
         Returns:
             str: cleaned magnet uri
         """
-        magnet = magnet.strip().lower()
-
-        if ("magnet:?xt=urn:btih:" in magnet) and (
-            not magnet.startswith("magnet:?xt=urn:btih:")
-        ):
-            # Most probably magnet link is from vidmate
-            # where file name is pre appended to magnet link
-            magnet = magnet.split("magnet:?xt=urn:btih:")[1]
-            magnet = f"magnet:?xt=urn:btih:{magnet}"
-
-        elif not magnet.startswith("magnet:?xt=urn:btih:"):
-            # Most probably magnet link is from TPB
-            # where only info_hash is present
-            magnet = f"magnet:?xt=urn:btih:{magnet}"
-
-        if self._validate_magnet_uri(magnet):
-            return magnet
+        magnet = magnet.strip()
+        marker = re.search(r"magnet:\?", magnet, re.I)
+        if marker:
+            magnet = "magnet:?" + magnet[marker.end():]
         else:
-            raise ValueError("invalid magnet uri")
+            magnet = f"magnet:?xt=urn:btih:{magnet}"
+        try:
+            params = lt.parse_magnet_uri(magnet)
+            if not params.info_hashes.has_v1():
+                raise ValueError("A v1 info hash is required")
+            # Canonical hash/parameter ordering, without changing case-sensitive
+            # tracker paths, passkeys or the display name.
+            return lt.make_magnet_uri(params)
+        except Exception as error:
+            raise ValueError("invalid magnet uri") from error
 
     def _get_magnet_from_torrent_file(self, torrent_file):
         """Get magnet uri from torrent file

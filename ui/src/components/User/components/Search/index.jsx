@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/router";
 import Fuse from "fuse.js";
+import dynamic from "next/dynamic";
+const TorrentContents=dynamic(()=>import("./components/TorrentContents"),{ssr:false});
 import SearchBar from "./components/SearchBar";
 import SortFilters from "./components/SortFilters";
 import TorrentResults from "./components/TorrentResults";
@@ -22,6 +24,7 @@ import {
   FUSE_OPTIONS,
   normalizeSearchText,
   filterByTitle,
+  matchingTorrentSources,
   getNextSort,
   getOrderedSources,
   getSavedSort,
@@ -117,7 +120,8 @@ const Search = ({ torrentSearchState }) => {
 
   useResultsOffset(filtersRef, visibleResults.length);
 
-  const { handleCopyMagnet, handleDownload } = useTorrentActions();
+  const { handleCopyMagnet, handleDownload, resolveMagnet } = useTorrentActions();
+  const [contents,setContents]=useState(null);
   const { handleCancel, handleSearch } = useTorrentSearchStream({
     query,
     setSearchStatus,
@@ -200,7 +204,7 @@ const Search = ({ torrentSearchState }) => {
 
         {searchStatus && <p role="status" className="text-xs text-zinc-500">{searchStatus}</p>}
 
-        <div ref={filtersRef}>
+        {results.length > 0 && <div ref={filtersRef}>
             <SortFilters
               sort={sort}
               onSortChange={handleSortChange}
@@ -216,7 +220,7 @@ const Search = ({ torrentSearchState }) => {
               onViewModeChange={changeView}
               savingView={savingView}
             />
-        </div>
+        </div>}
 
         {showLoadingIndicator && (
           <div className="py-10 flex justify-center">
@@ -231,6 +235,7 @@ const Search = ({ torrentSearchState }) => {
               items={visibleResults}
               onCopy={handleCopyMagnet}
               onDownload={handleDownload}
+              onBrowse={setContents}
               isMobile={isMobile}
               scrollOffset={scrollOffset}
               onScrollOffsetChange={setScrollOffset}
@@ -260,6 +265,7 @@ const Search = ({ torrentSearchState }) => {
           </div>
         )}
       </div>
+      {contents&&<TorrentContents item={contents} onCopy={handleCopyMagnet} onDownload={handleDownload} alternatives={matchingTorrentSources(contents,results)} onChooseSource={setContents} resolveMagnet={resolveMagnet} onClose={()=>setContents(null)}/>}
     </div>
   );
 };

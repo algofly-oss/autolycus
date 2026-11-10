@@ -5,6 +5,7 @@ from .common import update_to_db
 from shared.modules.libtorrentx import LibTorrentSession
 from shared.sockets import emit
 from bson import ObjectId
+import libtorrent as lt
 from tasks.download_from_url import download_from_url
 
 router = APIRouter()
@@ -15,7 +16,7 @@ async def resume_torrent(info_hash: str, request: Request):
     user_id = authenticate_user(request).decode("utf-8")
 
     if info_hash.startswith("url_hash_"):
-        url_hash = info_hash.lstrip("url_hash_")
+        url_hash = info_hash.removeprefix("url_hash_")
         torrent = await db.torrents.find_one(
             {"url_hash": url_hash, "user_id": ObjectId(user_id)},
         )
@@ -47,9 +48,15 @@ async def resume_torrent(info_hash: str, request: Request):
                 "is_paused": True,
                 "is_finished": True,
                 "magnet": True,
+                "selected_files":True,
+                "torrent_metadata":True,
             },
         )
 
+        metadata=None
+        if torrent and torrent.get('selected_files') is not None:
+            if not torrent.get('torrent_metadata'):raise HTTPException(409,'Selected-file metadata is missing. Remove and re-add this download.')
+            metadata=lt.torrent_info(bytes(torrent['torrent_metadata']))
         lt_session = LibTorrentSession(redis=redis)
         lt_session_eligible = False
 
@@ -66,7 +73,7 @@ async def resume_torrent(info_hash: str, request: Request):
             redis.delete(f"{user_id}/{info_hash}/copied_from_existing")
 
             handle = lt_session.add_torrent(
-                torrent.get("magnet"), f"/downloads/{user_id}"
+                torrent.get("magnet"), f"/downloads/{user_id}",file_indices=torrent.get("selected_files"),metadata=metadata
             )
             handle.set_callback(
                 lambda props: update_to_db(props, ObjectId(user_id)),

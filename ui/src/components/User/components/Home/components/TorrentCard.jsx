@@ -1,3 +1,4 @@
+import WatchProgressBar from "@/shared/WatchProgressBar";
 import React, { useState } from "react";
 import { BsCircleFill } from "react-icons/bs";
 import { formatFileSize, getQuality } from "@/shared/utils/fileUtils";
@@ -104,7 +105,7 @@ function PosterProgressRing({ progress, isPaused }) {
   );
 }
 
-const TorrentCard = ({ torrentData, compact = false }) => {
+const TorrentCard = ({ torrentData, compact = false, watchProgress }) => {
   const {
     name,
     total_bytes,
@@ -313,11 +314,12 @@ const TorrentCard = ({ torrentData, compact = false }) => {
   if (compact) {
     return (
       <>
-        <div className="group flex w-full min-w-0 flex-col text-neutral-950 dark:text-white">
+        <div className="group flex w-full min-w-0 flex-col text-neutral-900 dark:text-white">
           <div
             className="group/poster relative w-full overflow-hidden rounded-md bg-neutral-200 transition-[box-shadow,filter] group-hover:shadow-lg group-hover:shadow-blue-500/20 group-hover:brightness-110 dark:bg-neutral-900 dark:group-hover:shadow-blue-950/40"
             style={{ aspectRatio: "2 / 3" }}
           >
+            <WatchProgressBar progress={watchProgress} />
             {!is_finished ? (
               <PosterProgressRing progress={progress} isPaused={is_paused} />
             ) : null}
@@ -345,7 +347,7 @@ const TorrentCard = ({ torrentData, compact = false }) => {
                 className={`absolute bottom-0 left-0 right-0 flex h-24 flex-col justify-end p-2 ${
                   posterUrl
                     ? "text-white [text-shadow:0_2px_14px_rgba(0,0,0,1),0_1px_3px_rgba(0,0,0,1)]"
-                    : "text-neutral-950 dark:text-white dark:[text-shadow:0_2px_12px_rgba(0,0,0,0.85)]"
+                    : "text-neutral-900 dark:text-white dark:[text-shadow:0_2px_12px_rgba(0,0,0,0.85)]"
                 }`}
               >
                 <p className="max-h-12 overflow-hidden text-xs font-semibold leading-4 [display:-webkit-box] [-webkit-box-orient:vertical] [-webkit-line-clamp:3]">
@@ -462,6 +464,7 @@ const TorrentCard = ({ torrentData, compact = false }) => {
           compact ? "h-full min-h-[11rem]" : ""
         }`}
       >
+        <WatchProgressBar progress={watchProgress} />
         <div className="flex min-w-0 items-center gap-3">
           <div
             className="group relative h-16 w-11 shrink-0 overflow-hidden rounded-md bg-neutral-200 dark:bg-neutral-900"

@@ -1,3 +1,4 @@
+import useSignupPolicy from "@/shared/useSignupPolicy";
 import Link from "next/link";
 import TextBox from "@/shared/components/TextBox";
 import useReactState from "@/shared/hooks/reactState";
@@ -11,6 +12,8 @@ import { FcGoogle } from "react-icons/fc";
 
 export default function SignUp() {
   const auth = useAuth();
+  const signupPolicy = useSignupPolicy();
+  const [signupError, setSignupError] = useState("");
 
   const router = useRouter();
   const data = useReactState();
@@ -67,6 +70,7 @@ export default function SignUp() {
 
     error.set("username", "");
     error.set("password", "");
+    setSignupError("");
     setSignUpProgress(true);
 
     const msg = await auth.signUp(
@@ -81,6 +85,7 @@ export default function SignUp() {
         auth.autoRoute();
         break;
       default:
+        setSignupError(msg || "Unable to create an account. Please try again.");
         setSignUpProgress(false);
     }
   };
@@ -91,8 +96,10 @@ export default function SignUp() {
     }
   };
 
+  if (signupPolicy.loading) return <div className="auth-form" role="status" aria-label="Loading registration" />;
+  if (!signupPolicy.enabled) return <div className="auth-form"><h1 className="text-2xl font-semibold">{signupPolicy.error ? "Registration unavailable" : "Registrations are closed"}</h1><p className="mt-3 text-sm opacity-75">{signupPolicy.error ? "Please refresh and try again." : "Existing users can still sign in."}</p><Link href={uiRoutes.signIn} className="mt-6 inline-block text-blue-500">Sign in</Link></div>;
   return (
-    <div className="rounded-lg p-6 lg:p-16 w-full 2xl:w-[45rem]">
+    <div className="auth-form">
       <GoBack />
       <p className="text-3xl font-bold">Create Account</p>
       <p className="mb-6">Please enter your details</p>
@@ -128,6 +135,7 @@ export default function SignUp() {
           Forgot password
         </p>
       </Link> */}
+      {signupError && <p role="alert" className="mt-3 text-sm text-red-500">{signupError}</p>}
       <button
         className="flex items-center justify-center bg-blue-500 dark:bg-blue-700 text-white w-full p-3 rounded-md text-sm md:text-base mt-3"
         onClick={handleSignUp}

@@ -84,8 +84,8 @@ public final class NativePlayerActivity extends Activity {
     private PlayerView video;
     private FrameLayout overlay;
     private LinearLayout top, bottom;
-    private TextView title, subtitle, time, durationLabel, notice, previewTime;
-    private ImageButton play, mute;
+    private TextView title, subtitle, time, durationLabel, notice;
+    private ImageButton play, mute, subtitleControl;
     private Dialog menuDialog;
     private ProgressBar loading;
     private SeekBar timeline;
@@ -93,6 +93,8 @@ public final class NativePlayerActivity extends Activity {
     private Runnable nextMenuParent;
     private long lastSeekKeyAt;
     private NativePlayerPreview preview;
+    private final Runnable hideSeekPreview = this::hidePreview;
+    private final int[] timelineLocation = new int[2], overlayLocation = new int[2];
     private boolean controls = true, dragging, autoNext = true, remote, resumed, destroyed, fill;
     private boolean firstFrame;
     private float volume = 1f;
@@ -241,7 +243,14 @@ public final class NativePlayerActivity extends Activity {
                     @Override
                     public void onTracksChanged(Tracks tracks) {
                         updateSubtitle();
+                        updateSubtitleControl();
                         if (pendingSubtitle != null) restoreSubtitle(pendingSubtitle);
+                    }
+
+                    @Override
+                    public void onTrackSelectionParametersChanged(
+                            androidx.media3.common.TrackSelectionParameters parameters) {
+                        updateSubtitleControl();
                     }
                 });
         player.addAnalyticsListener(
@@ -457,8 +466,9 @@ public final class NativePlayerActivity extends Activity {
         actions.addView(durationLabel);
         View spacer = new View(this);
         actions.addView(spacer, new LinearLayout.LayoutParams(0, 1, 1));
-        actions.addView(
-                iconButton(R.drawable.native_player_subtitles, "Subtitles", this::showSubtitles));
+        subtitleControl =
+                iconButton(R.drawable.native_player_subtitles, "Subtitles", this::showSubtitles);
+        actions.addView(subtitleControl);
         if ("series".equals(item.optString("kind")) && files.length() > 1)
             actions.addView(
                     iconButton(R.drawable.native_player_episodes, "Episodes", this::showEpisodes));
@@ -467,20 +477,17 @@ public final class NativePlayerActivity extends Activity {
         bottom.addView(actions);
         overlay.addView(bottom, new FrameLayout.LayoutParams(-1, -2, Gravity.BOTTOM));
         preview = new NativePlayerPreview(this, api, network);
+        GradientDrawable previewBackground = new GradientDrawable();
+        previewBackground.setColor(Color.BLACK);
+        previewBackground.setCornerRadius(dp(8));
+        preview.setBackground(previewBackground);
+        preview.setClipToOutline(true);
+        preview.setElevation(dp(6));
         FrameLayout.LayoutParams previewPosition =
-                new FrameLayout.LayoutParams(
-                        dp(192), dp(108), Gravity.BOTTOM | Gravity.CENTER_HORIZONTAL);
-        previewPosition.bottomMargin = dp(126);
+                new FrameLayout.LayoutParams(dp(192), dp(108), Gravity.BOTTOM | Gravity.LEFT);
+        previewPosition.bottomMargin = dp(98);
         preview.setVisibility(View.GONE);
         overlay.addView(preview, previewPosition);
-        previewTime = label("", 14, Color.WHITE);
-        previewTime.setGravity(Gravity.CENTER);
-        FrameLayout.LayoutParams previewTimePosition =
-                new FrameLayout.LayoutParams(
-                        dp(192), dp(28), Gravity.BOTTOM | Gravity.CENTER_HORIZONTAL);
-        previewTimePosition.bottomMargin = dp(98);
-        previewTime.setVisibility(View.GONE);
-        overlay.addView(previewTime, previewTimePosition);
     }
 
     private TextView button(String text, Runnable action) {
@@ -600,6 +607,8 @@ public final class NativePlayerActivity extends Activity {
         timeline.setThumb(thumb);
         timeline.setThumbOffset(dp(6));
         timeline.setPadding(dp(6), 0, dp(6), 0);
+        if (timeline.getBackground() instanceof android.graphics.drawable.RippleDrawable)
+            ((android.graphics.drawable.RippleDrawable) timeline.getBackground()).setRadius(dp(9));
     }
 
     private TextView label(String value, int size, int color) {
@@ -786,7 +795,8 @@ public final class NativePlayerActivity extends Activity {
         syncDonor(true);
         showPreview(position);
         main.removeCallbacks(hideControls);
-        main.postDelayed(this::hidePreview, 2000);
+        main.removeCallbacks(hideSeekPreview);
+        main.postDelayed(hideSeekPreview, 2000);
         main.postDelayed(hideControls, 3500);
         updateTimeline();
         saveProgress(true);
@@ -794,14 +804,33 @@ public final class NativePlayerActivity extends Activity {
 
     private void showPreview(long position) {
         if (remote) return;
+        main.removeCallbacks(hideSeekPreview);
+        if (validDuration()) timeline.setProgress((int) (10000 * position / player.getDuration()));
+        timeline.getLocationInWindow(timelineLocation);
+        overlay.getLocationInWindow(overlayLocation);
+        float head =
+                timelineLocation[0]
+                        - overlayLocation[0]
+                        + timeline.getPaddingLeft()
+                        - timeline.getThumbOffset()
+                        + timeline.getThumb().getBounds().exactCenterX();
+        float left =
+                Math.max(dp(20), Math.min(overlay.getWidth() - dp(20) - dp(192), head - dp(96)));
+        preview.animate().cancel();
+        if (preview.getVisibility() == View.VISIBLE && !dragging)
+            preview.animate()
+                    .translationX(left)
+                    .setDuration(80)
+                    .setInterpolator(new android.view.animation.LinearInterpolator())
+                    .start();
+        else preview.setTranslationX(left);
         preview.showPosition(position);
-        previewTime.setText(clock(position));
-        previewTime.setVisibility(View.VISIBLE);
     }
 
     private void hidePreview() {
+        main.removeCallbacks(hideSeekPreview);
+        preview.animate().cancel();
         preview.hide();
-        previewTime.setVisibility(View.GONE);
     }
 
     private void updateTimeline() {
@@ -1091,6 +1120,19 @@ public final class NativePlayerActivity extends Activity {
             return;
         }
         menu("Audio", labels.toArray(new String[0]), which -> actions.get(which).run());
+    }
+
+    private void updateSubtitleControl() {
+        if (subtitleControl == null || player == null) return;
+        boolean enabled =
+                !player.getTrackSelectionParameters().disabledTrackTypes.contains(C.TRACK_TYPE_TEXT)
+                        && player.getCurrentTracks().isTypeSelected(C.TRACK_TYPE_TEXT);
+        subtitleControl.setImageResource(
+                enabled
+                        ? R.drawable.native_player_subtitles_filled
+                        : R.drawable.native_player_subtitles);
+        subtitleControl.setSelected(enabled);
+        subtitleControl.setContentDescription(enabled ? "Subtitles on" : "Subtitles off");
     }
 
     private void showSubtitles() {

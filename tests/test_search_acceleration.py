@@ -32,6 +32,38 @@ class AccelerationTests(unittest.IsolatedAsyncioTestCase):
     async def search(self, query='Ubuntu'):
         return [item async for item in self.client.search(query, indexes=['source'])]
 
+    async def test_other_tabs_progress_while_first_search_sources_are_stalled(self):
+        saturated, release = asyncio.Event(), asyncio.Event()
+        active = 0
+
+        async def source(client, query, index, event):
+            nonlocal active
+            async with self.client.semaphore:
+                if query == 'stalled':
+                    active += 1
+                    if active == 4:
+                        saturated.set()
+                    await release.wait()
+                    return index, [], None
+                return index, [{'Title': query}], None
+
+        self.client._search_index = source
+        async def collect(query, indexes):
+            return [row async for row in self.client.search(query, indexes=indexes)]
+
+        stalled = asyncio.create_task(collect('stalled', [str(i) for i in range(48)]))
+        try:
+            await asyncio.wait_for(saturated.wait(), 2)
+            rows = await asyncio.wait_for(collect('other tab', ['fast']), 2)
+            self.assertTrue(any(row.get('Title') == 'other tab' for row in rows))
+            self.assertEqual(active, 4)
+        finally:
+            release.set()
+            await stalled
+
+    def test_default_source_timeout_is_bounded(self):
+        self.assertEqual(self.client.timeout.read, 25)
+
     async def test_repeat_streams_cache_before_contacting_source(self):
         self.client._search_index = AsyncMock(return_value=('source', [{'Title':'Ubuntu', 'Seeders':5}], None))
         await self.search()

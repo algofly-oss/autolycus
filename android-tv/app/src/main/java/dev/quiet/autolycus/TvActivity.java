@@ -751,7 +751,9 @@ public final class TvActivity extends Activity {
     protected void onResume() {
         super.onResume();
         immersive();
-        if (returnFromPlayer && repository != null) {
+        // Refresh a retained home when returning from any app, including after
+        // downloads were added on the web. The first load starts in onCreate.
+        if (repository != null && (returnFromPlayer || catalog != null)) {
             returnFromPlayer = false;
             loadCatalog(false);
         }

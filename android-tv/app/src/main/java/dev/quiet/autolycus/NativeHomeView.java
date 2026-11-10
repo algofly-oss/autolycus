@@ -16,6 +16,7 @@ import android.graphics.Typeface;
 import android.graphics.drawable.Drawable;
 import android.graphics.drawable.GradientDrawable;
 import android.text.TextUtils;
+import android.util.TypedValue;
 import android.view.Gravity;
 import android.view.KeyEvent;
 import android.view.View;
@@ -63,7 +64,7 @@ public final class NativeHomeView extends FrameLayout {
     private final NativeArtwork artwork;
     private final LinearLayout header;
     private boolean scrolledHeader;
-    private final LinearLayout content;
+    private LinearLayout content;
     private final ScrollView scroll;
     private final List<List<View>> rows = new ArrayList<>();
     private final List<View> sections = new ArrayList<>();
@@ -72,21 +73,36 @@ public final class NativeHomeView extends FrameLayout {
     private final List<JSONObject> shelves = new ArrayList<>();
     private final List<TextView> categoryButtons = new ArrayList<>();
     private final List<PosterCard> posters = new ArrayList<>();
+    private final List<PageImage> pageImages = new ArrayList<>();
+    private final SharedPreferences navigationDebug;
+    private final NativePageCache<PageState> pages = new NativePageCache<>(4, 1000);
+    private String pageCategory;
+    private long tabStarted;
+    private boolean cacheHit;
+    private long tabGeneration;
+    private ViewTreeObserver.OnPreDrawListener pendingTabDraw;
+    private ViewTreeObserver tabDrawObserver;
+    private final Runnable switchCategory = () -> activateCategory();
     private boolean refreshPosted;
     private final Runnable refreshPosters =
             () -> {
                 refreshPosted = false;
+                long started = android.os.SystemClock.uptimeMillis();
+                int visibleCount = 0;
                 int[] position = new int[2];
                 Rect visible = new Rect();
                 int height = getResources().getDisplayMetrics().heightPixels;
                 for (PosterCard card : posters) {
-                    if (card.getGlobalVisibleRect(visible)) card.requestArtwork();
-                    else {
+                    if (card.getGlobalVisibleRect(visible)) {
+                        card.requestArtwork();
+                        ++visibleCount;
+                    } else {
                         card.getLocationInWindow(position);
                         if (position[1] < -height || position[1] > height * 2)
                             card.releaseArtwork();
                     }
                 }
+                recordPosterRefresh(started, visibleCount);
             };
     private JSONObject catalog = new JSONObject();
     private String category = "all";
@@ -103,7 +119,6 @@ public final class NativeHomeView extends FrameLayout {
     private View initialFocus;
     private Dialog searchDialog;
     private final FrameLayout searchLoading;
-    private final SharedPreferences navigationDebug;
     private final Runnable recordSettledFocus = () -> recordNavigationFocus(findFocus());
     private final ViewTreeObserver.OnGlobalFocusChangeListener navigationObserver =
             (previous, focused) -> {
@@ -199,6 +214,12 @@ public final class NativeHomeView extends FrameLayout {
         for (int i = 0; i < names.length; i++) {
             String id = ids[i];
             TextView button = action(getContext(), names[i], false);
+            View.OnFocusChangeListener focusStyle = button.getOnFocusChangeListener();
+            button.setOnFocusChangeListener(
+                    (view, focused) -> {
+                        if (focusStyle != null) focusStyle.onFocusChange(view, focused);
+                        button.setTextColor(id.equals(category) || focused ? WHITE : MUTED);
+                    });
             button.setTextSize(14);
             button.setPadding(dp(getContext(), 10), 0, dp(getContext(), 10), 0);
             button.setTag(id);
@@ -269,6 +290,10 @@ public final class NativeHomeView extends FrameLayout {
     public void render(JSONObject value) {
         preserveFocus();
         boolean keepSearch = searchResults;
+        removeCallbacks(switchCategory);
+        ++tabGeneration;
+        pages.clear();
+        pageCategory = null;
         catalog = value == null ? new JSONObject() : value;
         library.clear();
         shelves.clear();
@@ -282,6 +307,7 @@ public final class NativeHomeView extends FrameLayout {
         if (keepSearch) showSearchResults(searchQuery, refreshedSearchItems());
         else {
             searchResults = false;
+            replaceContent();
             rebuild();
         }
     }
@@ -289,10 +315,211 @@ public final class NativeHomeView extends FrameLayout {
     public void setCategory(String value) {
         setSearchLoading(false);
         if (value == null) value = "all";
+        if (!"all".equals(value)
+                && !"movie".equals(value)
+                && !"series".equals(value)
+                && !"library".equals(value)) value = "all";
+        if (!searchResults && value.equals(category)) return;
+        if (!searchResults && value.equals(pageCategory)) {
+            category = value;
+            ++tabGeneration;
+            removeCallbacks(switchCategory);
+            updateCategoryButtons();
+            return;
+        }
         category = value;
+        updateCategoryButtons();
+        tabStarted = android.os.SystemClock.uptimeMillis();
+        ++tabGeneration;
         searchResults = false;
         lastMovie = "";
-        rebuild();
+        removeCallbacks(switchCategory);
+        if (pages.contains(category)) activateCategory();
+        else {
+            long generation = tabGeneration;
+            postOnAnimation(
+                    () -> {
+                        if (generation == tabGeneration) post(switchCategory);
+                    });
+        }
+    }
+
+    private void activateCategory() {
+        long buildStart = android.os.SystemClock.uptimeMillis();
+        View headerFocus = findFocus();
+        int headerColumn = rows.isEmpty() ? -1 : rows.get(0).indexOf(headerFocus);
+        PageState cached = pages.take(category);
+        saveCurrentPage();
+        if (navigationDebug != null && navigationDebug.getBoolean("disable_page_cache", false))
+            cached = null;
+        cacheHit = cached != null;
+        if (cached == null) {
+            replaceContent();
+            if (headerColumn >= 0) {
+                savedFocusRow = 0;
+                savedFocusColumn = headerColumn;
+            }
+            rebuild();
+        } else {
+            detachContent();
+            content = cached.content;
+            scroll.addView(content, new ScrollView.LayoutParams(-1, -2));
+            rows.clear();
+            rows.addAll(cached.rows);
+            sections.clear();
+            sections.addAll(cached.sections);
+            rails.clear();
+            rails.addAll(cached.rails);
+            posters.clear();
+            posters.addAll(cached.posters);
+            pageImages.clear();
+            pageImages.addAll(cached.images);
+            initialFocus = cached.initialFocus;
+            savedFocusRow = headerColumn >= 0 ? 0 : cached.row;
+            savedFocusColumn = headerColumn >= 0 ? headerColumn : cached.column;
+            lastMovie = headerColumn >= 0 ? "" : cached.movie;
+            pageCategory = category;
+            updateCategoryButtons();
+            for (PageImage image : pageImages) image.load();
+            scroll.scrollTo(0, headerColumn >= 0 ? 0 : cached.scrollY);
+            restoreFocusAfterLayout();
+            refreshArtworkSoon();
+        }
+        recordTabDraw(android.os.SystemClock.uptimeMillis() - buildStart);
+    }
+
+    private void saveCurrentPage() {
+        if (pageCategory == null || content.getChildCount() == 0) return;
+        preserveFocus();
+        for (PosterCard poster : posters) poster.releaseArtwork();
+        for (PageImage image : pageImages) image.release();
+        pages.put(pageCategory, new PageState(), posters.size());
+    }
+
+    private void detachContent() {
+        clearTabDraw();
+        if (pendingFocusRestore != null && content.getViewTreeObserver().isAlive())
+            content.getViewTreeObserver().removeOnGlobalLayoutListener(pendingFocusRestore);
+        pendingFocusRestore = null;
+        if (verticalScroll != null) {
+            verticalScroll.cancel();
+            verticalScroll = null;
+        }
+        scroll.removeAllViews();
+    }
+
+    private void replaceContent() {
+        for (PosterCard poster : posters) poster.releaseArtwork();
+        for (PageImage image : pageImages) image.release();
+        detachContent();
+        content = new LinearLayout(getContext());
+        content.setOrientation(LinearLayout.VERTICAL);
+        content.setClipChildren(false);
+        scroll.addView(content, new ScrollView.LayoutParams(-1, -2));
+        pageImages.clear();
+    }
+
+    private final class PageState {
+        final LinearLayout content = NativeHomeView.this.content;
+        final List<List<View>> rows = new ArrayList<>(NativeHomeView.this.rows);
+        final List<View> sections = new ArrayList<>(NativeHomeView.this.sections);
+        final List<HorizontalScrollView> rails = new ArrayList<>(NativeHomeView.this.rails);
+        final List<PosterCard> posters = new ArrayList<>(NativeHomeView.this.posters);
+        final List<PageImage> images = new ArrayList<>(pageImages);
+        final View initialFocus = NativeHomeView.this.initialFocus;
+        final int row = savedFocusRow, column = savedFocusColumn, scrollY = scroll.getScrollY();
+        final String movie = lastMovie;
+    }
+
+    private final class PageImage {
+        final ImageView target;
+        final String address;
+        final int width, height;
+        final Runnable shown, released;
+
+        PageImage(
+                ImageView target,
+                String address,
+                int width,
+                int height,
+                Runnable shown,
+                Runnable released) {
+            this.target = target;
+            this.address = address;
+            this.width = width;
+            this.height = height;
+            this.shown = shown;
+            this.released = released;
+        }
+
+        void load() {
+            artwork.load(target, address, width, height, shown);
+        }
+
+        void release() {
+            NativeArtwork.cancel(target);
+            target.animate().cancel();
+            target.setImageDrawable(null);
+            target.setAlpha(1f);
+            if (released != null) released.run();
+        }
+    }
+
+    private void pageArtwork(
+            ImageView target,
+            String address,
+            int width,
+            int height,
+            Runnable shown,
+            Runnable released) {
+        PageImage image = new PageImage(target, address, width, height, shown, released);
+        pageImages.add(image);
+        image.load();
+    }
+
+    private void recordTabDraw(long built) {
+        if (!BuildConfig.DEBUG || tabStarted == 0) return;
+        clearTabDraw();
+        long started = tabStarted, generation = tabGeneration;
+        LinearLayout measured = content;
+        tabDrawObserver = measured.getViewTreeObserver();
+        pendingTabDraw =
+                new ViewTreeObserver.OnPreDrawListener() {
+                    @Override
+                    public boolean onPreDraw() {
+                        clearTabDraw();
+                        if (generation == tabGeneration) {
+                            long draw = android.os.SystemClock.uptimeMillis() - started;
+                            navigationDebug
+                                    .edit()
+                                    .putLong("tab_build_ms", built)
+                                    .putLong("tab_first_draw_ms", draw)
+                                    .putBoolean("tab_cache_hit", cacheHit)
+                                    .putInt("page_posters", posters.size())
+                                    .putInt("cached_pages", pages.size())
+                                    .apply();
+                            android.util.Log.d(
+                                    "AutolycusHome",
+                                    "tab build="
+                                            + built
+                                            + "ms firstDraw="
+                                            + draw
+                                            + "ms cached="
+                                            + cacheHit
+                                            + " posters="
+                                            + posters.size());
+                        }
+                        return true;
+                    }
+                };
+        tabDrawObserver.addOnPreDrawListener(pendingTabDraw);
+    }
+
+    private void clearTabDraw() {
+        if (pendingTabDraw != null && tabDrawObserver != null && tabDrawObserver.isAlive())
+            tabDrawObserver.removeOnPreDrawListener(pendingTabDraw);
+        pendingTabDraw = null;
+        tabDrawObserver = null;
     }
 
     public void setSearchLoading(boolean loading) {
@@ -311,7 +538,11 @@ public final class NativeHomeView extends FrameLayout {
         searchResults = true;
         searchQuery = query == null ? "" : query;
         searchItems = items == null ? new JSONArray() : items;
-        content.removeAllViews();
+        removeCallbacks(switchCategory);
+        ++tabGeneration;
+        saveCurrentPage();
+        replaceContent();
+        pageCategory = null;
         content.setPadding(0, dp(getContext(), 48), 0, dp(getContext(), 40));
         resetRows();
         TextView heading =
@@ -394,9 +625,7 @@ public final class NativeHomeView extends FrameLayout {
             return true;
         }
         if (searchResults || !"all".equals(category)) {
-            category = "all";
-            searchResults = false;
-            rebuild();
+            setCategory("all");
             return true;
         }
         View focused = findFocus();
@@ -483,6 +712,10 @@ public final class NativeHomeView extends FrameLayout {
             if (child.isFocusable()) top.add(child);
         }
         registerRow(top, null, null);
+        updateCategoryButtons();
+    }
+
+    private void updateCategoryButtons() {
         for (TextView button : categoryButtons) {
             boolean active = category.equals(button.getTag());
             button.setTextColor(active ? WHITE : MUTED);
@@ -550,6 +783,7 @@ public final class NativeHomeView extends FrameLayout {
         restoreFocusAfterLayout();
         refreshArtworkSoon();
         updateHeaderTint();
+        pageCategory = category;
     }
 
     private JSONObject firstDiscovery() {
@@ -572,7 +806,7 @@ public final class NativeHomeView extends FrameLayout {
         hero.addView(background, art);
         String backdrop = item.optString("background", "");
         if (backdrop.isEmpty()) backdrop = item.optString("poster", "");
-        artwork.load(background, backdrop, 1600, 900);
+        pageArtwork(background, backdrop, 1600, 900, null, null);
         View shade = new View(getContext());
         shade.setBackground(
                 new GradientDrawable(
@@ -616,6 +850,8 @@ public final class NativeHomeView extends FrameLayout {
         copy.addView(titleSlot, titleBounds);
         TextView title = label(getContext(), item.optString("title", ""), 38, WHITE, true);
         title.setMaxLines(3);
+        title.setAutoSizeTextTypeUniformWithConfiguration(18, 38, 1, TypedValue.COMPLEX_UNIT_SP);
+        title.setEllipsize(TextUtils.TruncateAt.END);
         title.setLineSpacing(0, 1.02f);
         title.setGravity(Gravity.CENTER_VERTICAL);
         titleSlot.addView(title, new FrameLayout.LayoutParams(-1, -1));
@@ -628,7 +864,13 @@ public final class NativeHomeView extends FrameLayout {
                     new FrameLayout.LayoutParams(
                             dp(getContext(), 400), -1, Gravity.LEFT | Gravity.CENTER_VERTICAL));
             titleLogo.setContentDescription(item.optString("title"));
-            artwork.load(titleLogo, logo, 800, 260, () -> title.setVisibility(INVISIBLE));
+            pageArtwork(
+                    titleLogo,
+                    logo,
+                    800,
+                    260,
+                    () -> title.setVisibility(INVISIBLE),
+                    () -> title.setVisibility(VISIBLE));
         }
         TextView metadata = label(getContext(), metadata(item), 13, 0xffb7bec9, false);
         copy.addView(metadata);
@@ -772,9 +1014,21 @@ public final class NativeHomeView extends FrameLayout {
                         }
                         if (keyCode == KeyEvent.KEYCODE_DPAD_UP
                                 || keyCode == KeyEvent.KEYCODE_DPAD_DOWN) {
+                            // A held Up reaches the primary hero action, then stops.
+                            // Entering the header requires releasing and pressing Up again.
+                            boolean heldUp =
+                                    keyCode == KeyEvent.KEYCODE_DPAD_UP
+                                            && event.getRepeatCount() > 0
+                                            && !searchResults;
+                            if (heldUp && rowIndex == 1) {
+                                preferredColumn = 0;
+                                if (v != rows.get(1).get(0)) focus(rows.get(1).get(0));
+                                return true;
+                            }
                             int next = rowIndex + (keyCode == KeyEvent.KEYCODE_DPAD_DOWN ? 1 : -1);
                             if (next >= 0 && next < rows.size()) {
                                 List<View> target = rows.get(next);
+                                if (heldUp && next == 1) preferredColumn = 0;
                                 focus(target.get(Math.min(preferredColumn, target.size() - 1)));
                             }
                             return true;
@@ -846,6 +1100,15 @@ public final class NativeHomeView extends FrameLayout {
         postDelayed(refreshPosters, 65);
     }
 
+    private void recordPosterRefresh(long started, int visibleCount) {
+        if (navigationDebug != null)
+            navigationDebug
+                    .edit()
+                    .putLong("poster_refresh_ms", android.os.SystemClock.uptimeMillis() - started)
+                    .putInt("visible_posters", visibleCount)
+                    .apply();
+    }
+
     private void recordNavigationFocus(View focused) {
         if (navigationDebug == null || focused == null) return;
         for (int row = 0; row < rows.size(); row++) {
@@ -883,6 +1146,7 @@ public final class NativeHomeView extends FrameLayout {
 
     @Override
     protected void onDetachedFromWindow() {
+        clearTabDraw();
         if (pendingFocusRestore != null && content.getViewTreeObserver().isAlive()) {
             content.getViewTreeObserver().removeOnGlobalLayoutListener(pendingFocusRestore);
             pendingFocusRestore = null;
@@ -894,6 +1158,7 @@ public final class NativeHomeView extends FrameLayout {
         if (BuildConfig.DEBUG && getViewTreeObserver().isAlive())
             getViewTreeObserver().removeOnGlobalFocusChangeListener(navigationObserver);
         removeCallbacks(refreshPosters);
+        removeCallbacks(switchCategory);
         removeCallbacks(recordSettledFocus);
         refreshPosted = false;
         super.onDetachedFromWindow();
@@ -1117,7 +1382,7 @@ public final class NativeHomeView extends FrameLayout {
 
         void releaseArtwork() {
             if (!artworkRequested) return;
-            image.setTag(null);
+            NativeArtwork.cancel(image);
             image.animate().cancel();
             image.setImageDrawable(null);
             image.setAlpha(1f);

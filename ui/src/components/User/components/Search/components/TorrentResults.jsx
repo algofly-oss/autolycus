@@ -1,4 +1,4 @@
-import { FiClipboard, FiDownload } from "react-icons/fi";
+import { FiClipboard, FiDownload, FiFolder } from "react-icons/fi";
 import { useRef, useEffect, useState, useCallback } from "react";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { formatBytes, formatDate, truncateText } from "../utils";
@@ -22,6 +22,7 @@ const TorrentCardContent = ({
   item,
   onCopy,
   onDownload,
+  onBrowse,
   browserProxyBaseUrl,
 }) => {
   const imdbSearchUrl = buildImdbSearchUrl(item);
@@ -36,6 +37,7 @@ const TorrentCardContent = ({
         </p>
 
         <div className="flex items-center gap-2 shrink-0">
+          <button type="button" aria-label="Browse torrent files" title="Browse files" onClick={()=>onBrowse(item)} className="rounded-md p-1.5 hover:bg-blue-500/10 text-blue-500"><FiFolder size={16}/></button>
           <button
             onClick={() => onCopy(item)}
             className="p-1.5 rounded-md bg-zinc-200 hover:bg-zinc-300
@@ -104,6 +106,7 @@ const VirtualizedResults = ({
   items,
   onCopy,
   onDownload,
+  onBrowse,
   onItemHover,
   scrollOffset,
   onScrollOffsetChange,
@@ -122,6 +125,7 @@ const VirtualizedResults = ({
     count: items.length,
     getScrollElement: () => parentRef.current,
     estimateSize: () => 85,
+    gap: 8,
     overscan: 6,
   });
 
@@ -191,6 +195,7 @@ const VirtualizedResults = ({
           return (
             <li
               key={virtualRow.key}
+              data-index={virtualRow.index}
               onMouseEnter={() => onItemHover?.(item)}
               className="absolute left-0 w-full p-4 rounded-md
                         bg-neutral-50 dark:bg-black
@@ -206,6 +211,7 @@ const VirtualizedResults = ({
                 item={item}
                 onCopy={onCopy}
                 onDownload={onDownload}
+                onBrowse={onBrowse}
                 browserProxyBaseUrl={browserProxyBaseUrl}
               />
             </li>
@@ -223,6 +229,7 @@ const PlainResults = ({
   items,
   onCopy,
   onDownload,
+  onBrowse,
   onItemHover,
   scrollOffset,
   onScrollOffsetChange,
@@ -307,6 +314,7 @@ const PlainResults = ({
               item={item}
               onCopy={onCopy}
               onDownload={onDownload}
+                onBrowse={onBrowse}
               browserProxyBaseUrl={browserProxyBaseUrl}
             />
           </li>
@@ -370,6 +378,7 @@ const TorrentResults = ({
   items,
   onCopy,
   onDownload,
+  onBrowse,
   onItemHover,
   isMobile,
   scrollOffset,
@@ -384,6 +393,7 @@ const TorrentResults = ({
       items={items}
       onCopy={onCopy}
       onDownload={onDownload}
+                onBrowse={onBrowse}
       onItemHover={onItemHover}
       scrollOffset={scrollOffset}
       onScrollOffsetChange={onScrollOffsetChange}
@@ -395,6 +405,7 @@ const TorrentResults = ({
       items={items}
       onCopy={onCopy}
       onDownload={onDownload}
+                onBrowse={onBrowse}
       onItemHover={onItemHover}
       scrollOffset={scrollOffset}
       onScrollOffsetChange={onScrollOffsetChange}

@@ -20,7 +20,7 @@ async def get_download_status(user_id: str) -> Dict[str, int]:
         # Fetch torrents from database
         torrents: List[Dict] = await db.torrents.find({
             "user_id": ObjectId(user_id)
-        }).to_list(length=None)
+        }, {"is_finished":1}).to_list(length=None)
         
         # Initialize counters
         active_count = 0

@@ -31,7 +31,7 @@ async def all_torrent(
     skip = (page - 1) * page_size
 
     torrents = (
-        await db.torrents.find(filter_query)
+        await db.torrents.find(filter_query,{"torrent_metadata":0})
         .sort("created_at", -1)
         .skip(skip)
         .limit(page_size)

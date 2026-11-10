@@ -10,6 +10,7 @@ from pydantic import BaseModel
 from bson import ObjectId
 from shared.factory import db, redis
 from .public_url import ensure_public_url_record
+from shared.modules.media_filename import file_presentation
 
 
 
@@ -25,6 +26,8 @@ class FileItem(BaseModel):
     is_partial: bool = False
     is_transcoding: bool = False
     public_url_key: Optional[str] = None
+    episode_info: Optional[dict] = None
+    display_name: Optional[str] = None
     archive_status: Optional[str] = None
     archive_progress: Optional[float] = None
     archive_eta: Optional[int] = None
@@ -91,7 +94,7 @@ async def is_unfinished_torrent_path(path: str, user_id: str):
 
 
 @router.get("/browse", response_model=List[FileItem])
-async def browse_directory(path: str, request: Request):
+async def browse_directory(path: str, request: Request, names_only: bool = False):
     user_id = authenticate_user(request).decode("utf-8")
     try:
         # Convert the relative path to absolute path
@@ -105,8 +108,20 @@ async def browse_directory(path: str, request: Request):
             raise HTTPException(status_code=400, detail="Not a directory")
 
         # Ensure the path is within the base directory
-        if not str(abs_path.resolve()).startswith(str(base_path.resolve())):
+        if abs_path.resolve() != base_path.resolve() and base_path.resolve() not in abs_path.resolve().parents:
             raise HTTPException(status_code=403, detail="Access denied")
+
+        # Episode discovery needs names only: avoid recursive folder sizing,
+        # torrent lookups and public-link record creation for every queued file.
+        if names_only:
+            files = []
+            for item in abs_path.iterdir():
+                if item.is_symlink() or item.name.startswith(".autolycus-transcode-"):
+                    continue
+                presentation = file_presentation(item.relative_to(base_path)) if item.is_file() and item.suffix.lower() in {".mp4", ".mkv", ".avi", ".mov", ".wmv", ".flv", ".webm", ".m4v", ".ts", ".m2ts", ".ogv"} else {}
+                files.append(FileItem(name=item.name, last_modified=datetime.fromtimestamp(item.stat().st_mtime),
+                                      is_directory=item.is_dir(), size=None, **presentation))
+            return sorted(files, key=lambda item: (not item.is_directory, item.name.lower()))
 
         # List directory contents
         files = []
@@ -114,6 +129,8 @@ async def browse_directory(path: str, request: Request):
         path_parts = Path(path).parts
         torrent_id = path_parts[1] if len(path_parts) >= 2 else None
         for item in abs_path.iterdir():
+            if item.name.startswith(".autolycus-transcode-"):
+                continue
             if item.is_dir():
                 current_size, total_size = tree_display_sizes(item, use_allocated_size)
             else:

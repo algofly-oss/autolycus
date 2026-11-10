@@ -40,6 +40,7 @@ class TorrentCallBack:
     def handle_callback(self):
         """Handle callback, this can be used to update to db in the background"""
         while self.callback_thread_running:
+            self.session.pump_alerts()
             props = self.props()
 
             if not props.ok:
@@ -47,7 +48,7 @@ class TorrentCallBack:
                 continue
 
             key = f"{self.user_id}/{self.info_hash}/stop"
-            if self.session.redis.get(key) == b"1":
+            if self.session.redis is not None and self.session.redis.get(key) == b"1":
                 self.session.redis.delete(key)
                 self.callback(self.props(paused=True))
                 self.stop()

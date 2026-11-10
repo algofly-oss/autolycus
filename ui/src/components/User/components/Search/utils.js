@@ -270,6 +270,22 @@ export const appendUniqueSource = (sources, tracker) => {
   return [...sources, tracker];
 };
 
+// Matching release names are suggestions, not proof of identical torrent data.
+export const matchingTorrentSources = (item, results) => {
+  const title = String(item?.Title || '').trim().toLowerCase();
+  if (!title) return [];
+  const source = item.TrackerId || item.Tracker;
+  const seen = new Set();
+  return results.filter(candidate => {
+    const other = candidate.TrackerId || candidate.Tracker;
+    if (!other || other === source || seen.has(other) ||
+        String(candidate.Title || '').trim().toLowerCase() !== title ||
+        !extractMagnet(candidate)) return false;
+    seen.add(other);
+    return true;
+  }).sort((a,b) => (Number(b.Seeders)||0)-(Number(a.Seeders)||0)).slice(0,3);
+};
+
 // Replace cached rows as fresh batches arrive, retaining separate indexer sources.
 export const mergeSearchResults = (existing, incoming) => {
   const rows = [...existing];

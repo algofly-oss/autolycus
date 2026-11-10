@@ -691,13 +691,9 @@ def schedule_torrent_media_metadata_refresh(user_id, torrents):
             try:
                 cache_torrent_media_metadata_sync(db, user_id, torrent)
                 torrent_id = _torrent_identifier(torrent)
-                metadata = db.movie_metadata.find_one(
-                    {
-                        "user_id": str(user_id),
-                        "torrent_id": torrent_id,
-                    },
-                    sort=[("file_size", -1)],
-                )
+                metadata = max(db.movie_metadata.find(
+                    {"user_id": str(user_id), "torrent_id": torrent_id}, {"poster_bytes":False}
+                ), key=_metadata_priority, default=None)
                 public = _public_metadata(metadata)
                 if public:
                     from shared.sockets import emit
@@ -719,6 +715,12 @@ def schedule_torrent_media_metadata_refresh(user_id, torrents):
     threading.Thread(target=_refresh, daemon=True).start()
 
 
+def _metadata_priority(doc):
+    matched=bool(doc.get("tmdb_id") or doc.get("imdb_id"))
+    poster=bool(doc.get("poster_bytes") or doc.get("poster_mime") or doc.get("poster_source_url"))
+    return (matched and poster,matched,poster,int(doc.get("file_size") or 0))
+
+
 async def attach_media_metadata(db, user_id, items):
     if not items:
         return items
@@ -735,7 +737,8 @@ async def attach_media_metadata(db, user_id, items):
 
     by_torrent = {}
     for doc in docs:
-        by_torrent.setdefault(doc.get("torrent_id"), doc)
+        key=doc.get("torrent_id")
+        if key not in by_torrent or _metadata_priority(doc)>_metadata_priority(by_torrent[key]):by_torrent[key]=doc
 
     for item in items:
         metadata = by_torrent.get(_torrent_identifier(item))
@@ -760,8 +763,11 @@ async def media_metadata_for_torrent_ids(db, user_id, torrent_ids):
     ).sort("file_size", -1)
     docs = await cursor.to_list(length=None)
     results = {}
+    selected={}
     for doc in docs:
-        results.setdefault(doc.get("torrent_id"), _public_metadata(doc))
+        key=doc.get("torrent_id")
+        if key not in selected or _metadata_priority(doc)>_metadata_priority(selected[key]):selected[key]=doc
+    results={key:_public_metadata(doc) for key,doc in selected.items()}
     return results
 
 

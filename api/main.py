@@ -25,6 +25,40 @@ app = FastAPI(
 app.mount(f"/socket.io", app=sio_app)
 ftp_sync_task = None
 storage_usage_task = None
+preview_backfill_task = None
+
+
+async def _preview_backfill_loop():
+    from shared.factory import redis
+    from tasks.media_previews import backfill_missing_previews
+    import os
+    while True:
+        try:
+            if os.getenv('MEDIA_PREVIEWS_ENABLED', '1') != '0':
+                def enqueue():
+                    # Multiple API processes share one scan dispatch per interval.
+                    if redis.set('media-preview:scan-dispatch', 1, nx=True, ex=300):
+                        try:
+                            backfill_missing_previews.delay()
+                        except Exception:
+                            redis.delete('media-preview:scan-dispatch')
+                            raise
+                await asyncio.to_thread(enqueue)
+        except Exception as error:
+            print(f'Preview backfill dispatch failed: {type(error).__name__}')
+        await asyncio.sleep(300)
+
+
+@app.on_event('startup')
+async def startup_preview_backfill():
+    global preview_backfill_task
+    preview_backfill_task = asyncio.create_task(_preview_backfill_loop())
+
+
+@app.on_event('shutdown')
+async def shutdown_preview_backfill():
+    if preview_backfill_task:
+        preview_backfill_task.cancel()
 
 
 async def _storage_usage_loop():

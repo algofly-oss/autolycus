@@ -1,0 +1,10 @@
+# Optional NVIDIA CDI override; the base Compose file needs no GPU/toolkit.
+# docker compose -f compose.single.yml -f compose.single.gpu.yml up -d
+services:
+  autolycus:
+    devices:
+      - "${NVIDIA_GPU_DEVICE:-nvidia.com/gpu=0}"
+    environment:
+      TRANSCODE_USE_GPU: "1"
+      TRANSCODE_MAX_CONCURRENT: "${TRANSCODE_MAX_CONCURRENT:-2}"
+      TRANSCODE_THREADS: "${TRANSCODE_THREADS:-2}"

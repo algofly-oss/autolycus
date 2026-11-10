@@ -16,6 +16,9 @@ from shared.modules.file_search_index import (
     torrent_root_document_id,
 )
 from shared.modules.media_metadata import delete_media_metadata_for_torrent
+from shared.modules.preview_cache import preview_keys_for_tree, delete_cached_previews
+from pymongo import MongoClient
+from shared.env import MONGO_DATABASE_URI, MONGO_DATABASE_NAME
 
 router = APIRouter()
 
@@ -74,7 +77,10 @@ def _delete_torrent_storage(user_id: str, torrent: dict, torrent_id: str):
             continue
 
         document_ids.extend(document_ids_for_tree(storage_path, user_id))
+        preview_keys = preview_keys_for_tree(storage_path)
         delete_dir(storage_path)
+        with MongoClient(MONGO_DATABASE_URI) as client:
+            delete_cached_previews(client[MONGO_DATABASE_NAME].media_previews, storage_path, preview_keys)
         _remove_empty_parent_dirs(storage_path.parent, user_root)
         break
 
@@ -86,7 +92,7 @@ async def delete_torrent(request: DeleteTorrentRequest, request_obj: Request):
     user_id = authenticate_user(request_obj).decode("utf-8")
 
     if request.info_hash.startswith("url_hash_"):
-        url_hash = request.info_hash.lstrip("url_hash_")
+        url_hash = request.info_hash.removeprefix("url_hash_")
         torrent = await db.torrents.find_one(
             {"url_hash": url_hash, "user_id": ObjectId(user_id)},
         )
@@ -126,6 +132,7 @@ async def delete_torrent(request: DeleteTorrentRequest, request_obj: Request):
         await delete_document_ids(document_ids)
 
         await db.torrents.delete_one({"_id": torrent["_id"]})
+        redis.delete('cinema:catalog:v2:' + str(user_id))
         await delete_media_metadata_for_torrent(db, user_id, url_hash)
 
         emit(
@@ -184,6 +191,7 @@ async def delete_torrent(request: DeleteTorrentRequest, request_obj: Request):
             await delete_document_ids(document_ids)
 
             await db.torrents.delete_one({"_id": torrent["_id"]})
+            redis.delete('cinema:catalog:v2:' + str(user_id))
             await delete_media_metadata_for_torrent(db, user_id, request.info_hash)
 
             emit(

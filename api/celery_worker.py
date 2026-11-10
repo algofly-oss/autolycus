@@ -9,8 +9,12 @@ app = Celery(
     backend=redis_url,
     include=[
         "tasks.transcode_video",
+        "tasks.media_previews",
         "tasks.download_from_url",
         "tasks.archive",
         "tasks.delete_path",
     ],
 )
+
+# Reserve one task at a time so long transcodes do not hoard download jobs.
+app.conf.worker_prefetch_multiplier = 1

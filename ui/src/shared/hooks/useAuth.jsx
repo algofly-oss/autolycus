@@ -22,7 +22,9 @@ export default function useAuth() {
   const clearStorage = () => {
     // remove all user data except theme preference
     const theme = localStorage.theme || "light";
+    const profiles=Object.entries(localStorage).filter(([key])=>key.startsWith("autolycus:profile:"));
     localStorage.clear();
+    for(const [key,value] of profiles)localStorage.setItem(key,value);
     sessionStorage.clear();
     localStorage.theme = theme;
     dispatch(authActions.resetAccountInfo());
@@ -103,10 +105,10 @@ export default function useAuth() {
     await getAccountInfo().then((data) => {
       switch (data?.role) {
         case "admin":
-          router.push(uiRoutes.home);
+          router.push(uiRoutes.root);
           break;
         case "user":
-          router.push(uiRoutes.home);
+          router.push(uiRoutes.root);
           break;
         default:
           router.push(redirectUrl || uiRoutes.signIn);

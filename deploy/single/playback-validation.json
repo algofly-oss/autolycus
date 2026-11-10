@@ -1,0 +1,110 @@
+{
+  "date": "2026-11-01",
+  "container_name": "autolycus",
+  "image_tag": "autolycus:latest",
+  "shipping_image": "sha256:aed2551e664b992a7ab89467de3d5eff193b4f9ed98c0d9d352a5f2862c59bf3",
+  "image_reported_content_bytes": 760599147,
+  "archive_bytes": 756327432,
+  "archive_sha256": "7357c926eecd4271eb4699e83dece7e86f45146f28146fede6f55881dcab80d1",
+  "archive_sha256_verified": true,
+  "archive_import_verified": true,
+  "production_healthy": true,
+  "production_identity_preserved": true,
+  "preserved_counts": {
+    "users": 3,
+    "torrents": 32,
+    "user_sessions": 43
+  },
+  "verification": {
+    "fresh_cpu_only_installation": "passed: API, databases, jobs, archive, FFmpeg CPU encode, FTP, URL download, search, posters, sessions, browser UI, player, resource grants, restart and Redis recovery; final imported archive additionally verifies starter indexers, Tor defaults, local artwork, user signup/sign-in and preserved intentional settings on restart",
+    "private_player": "passed: native/RTC/HTTP delivery, AAC/AC3/DTS, optional HEVC software fallback, audio switches at later timestamps, embedded and sidecar captions, gestures, menu dismissal, episode queue, fullscreen and black-stage layout",
+    "public_player": "passed: anonymous custom player, scoped real RTC delivery, opaque MKV key, sidecar and embedded subtitles, audio changes, public-only download URL, no account/folder requests, refresh/resume and revocation",
+    "downloads": "passed: private download URL for account playback, public key for shared playback, download=1 overrides player=1; no public link activation from private player",
+    "profiles_and_bookmarks": "passed: per-profile server history/preferences; browser-local profile choice survives refresh; URL resume and thin watch bars",
+    "adaptive_quality": "passed: real HTTP rate limit steps down to existing variant and recovers Original after bandwidth/buffer stabilization; missing quality disabled; manual preference survives missing episodes",
+    "gpu_jobs": "passed: real NVENC and CPU encoding, two-slot concurrency, queued and actual-running bulk cancellation, atomic publication, file-menu relative-path submission",
+    "subtitles_and_previews": "passed: mocked OpenSubtitles provider contract and authorization; persisted preferences; real queued FFmpeg PNG stored in MongoDB without companion files",
+    "real_media": "passed: Wall-E English\u2192Hindi at 40 seconds keeps time and plays; Papa Yaar English cues after seek; Avatar EAC3 client audio with separate H264 video; manual delay/rate and synthetic three-second auto alignment",
+    "storage": "passed: actual drive used/total for all accounts, app_used separate, no adjusted quota; compact tooltip percentage/bar and navbar ring",
+    "live_public_url": "Hanuman Ansh URL redirects to custom player; download precedence returns attachment; OpenTabs playback advanced beyond one minute",
+    "rust_unit_tests": 3,
+    "python_storage_tests": 3,
+    "python_filename_tests": 4,
+    "python_tracker_tests": 5,
+    "local_js_tests": [
+      "episode_order",
+      "playback_quality",
+      "audio_timeline",
+      "transport_throughput"
+    ],
+    "compose_and_diff_checks": "passed",
+    "rust_clippy": "passed with warnings denied",
+    "cinema": "passed: anonymous root\u2192sign-in, successful sign-in\u2192root, account-only cached catalog, movies/series and natural episodes, quality deduplication, Continue Watching, explicit playlist playback, Home link, refresh/resume and 320/390/768px layouts",
+    "settings_and_profiles": "passed: all seven sections in dark/light at 1440/390/320px, aligned search/filter, profile menu theme/placement, switching persists, Manage profiles deep link",
+    "watch_aggregation": "passed: episode fractional progress combined across unwatched folder/series content; quality variants count once; file progress unchanged",
+    "player_polish": "passed: no status footer over 720p, scrollable full quality list, padded Download hover bounds at desktop/phone, modest white transparent captions, wide sprite corner pixels fill without artificial padding",
+    "poster_priority": "passed: matched cached episode artwork outranks larger local-only season pack",
+    "mobile_followup": "passed; see current_deployment.mobile_followup and captured results"
+  },
+  "phone_viewport_widths": [
+    320,
+    375,
+    390,
+    414,
+    768
+  ],
+  "observed_runtime_sample": {
+    "memory_mib": 487.6,
+    "cpu_percent_of_one_core": 0.74,
+    "context": "Earlier idle post-deployment single observation before the mobile follow-up; not peak use or a quota"
+  },
+  "limits": [
+    "Physical iPhone orientation/gestures and actual Cast/AirPlay receivers require device verification.",
+    "Actual 4K HEVC/HDR video support depends on the viewing device; software fallback is explicit and can use battery.",
+    "Live OpenSubtitles search requires a configured API key/account; provider contract was tested with a mock.",
+    "Audio alignment is bounded and best-effort; dubs/edits can require manual offsets and speed adjustment.",
+    "Cached PNG/subtitle data still occupies database disk space; budgets are not zero-resource promises.",
+    "Online playback currently resolves compatible MovieBox MP4 sources; availability and CDN uptime vary. A transient upstream timeout was reproduced and returns a recoverable 502. Signed iframe-only sites are not embedded as substitutes for the custom player.",
+    "Torrent preview testing uses a real local seed connected by a disposable-only hook; public swarm availability varies. Preview budget is bounded, not zero-resource. v2-only downloads remain unsupported by the existing permanent download wrapper.",
+    "Phone checks use browser viewports; they do not prove physical iPhone orientation, hardware decoding or receiver behavior."
+  ],
+  "current_deployment": {
+    "date": "2026-11-01",
+    "image": "sha256:aed2551e664b992a7ab89467de3d5eff193b4f9ed98c0d9d352a5f2862c59bf3",
+    "tag": "autolycus:latest",
+    "container": "autolycus",
+    "public_health_http": 200,
+    "online_source_browser": "passed: real MP4, source switching, continued clock, refresh resume, phone layout and browser Back",
+    "torrent_preview_browser": "passed: real local seed, list/poster entry points, natural order, filtering, 320/390/768px layouts, video playback, close, selected download completes with chosen-only totals",
+    "torrent_ranges": "passed: exact verified bytes, delayed start, seek, file switch, cancellation, idle suspension and data deletion",
+    "local_library_browser_regression": "passed",
+    "fixture_discovery": "Local seed connected explicitly by a disposable-only hook; independent normal tracker discovery/fallback regression passed",
+    "distribution_archive_matches_current_image": true,
+    "remaining": null,
+    "avatar_lan": "passed: real read-only 38.6 GB file, public HTTPS origin, forced advertised LAN candidate, exact 15.4 MB index in 1.459 seconds",
+    "avatar_client_fallback": "passed: explicit client fallback, 3840\u00d72076, 29 decoded frames and decoded audio; first frames ~4.05 seconds; native headless HEVC unsupported",
+    "startup_priority": "passed for private/public/online/torrent player info before frames or first lease renewal; thumbnail task defers",
+    "archive_fresh_cpu_boot": "Fresh CPU-only install and restart verified on sha256:7ecfd9acbbf2fa674d669200e171c4dc8e2d91db529ebfee708487d7b81d9e77; not repeated for the subsequent icon-only frontend patch. Archive import identity verified for current shipping image.",
+    "source_continuity": "passed: controlled byte adapter verifies library/online switches preserve position, play/pause and 1.25x/1.5x; library server bookmark updated; unavailable provider returns 502 and return to library retains position. Separate prior live-provider browser tests passed.",
+    "artwork": "passed: source-keyed loaded state avoids cached-image visibility reset; image loaded class and computed opacity checked at desktop/390/320px; hero height remains stable",
+    "mobile_followup": {
+      "touch_player": "passed: landscape CSS fallback with native fullscreen APIs disabled, idle fade and tap visibility during play/pause, Fit/Fill, correctly mapped rotated seek/double-tap, hold-to-2x, rotated settings, exit/re-enter and close",
+      "native_fullscreen": "passed: actual Chromium fullscreen from Play, landscape-lock request observed with API spy, close releases fullscreen/orientation; not physical iPhone verification",
+      "infinite_files": "passed: 260 real database/indexed collections loaded in list/grid/search, bounded mounted cards, failed-page retry, rapid query replacement; folders virtualized too",
+      "navigation": "passed: no extra mobile navbar logo, root link next to metadata search, horizontally scrollable settings categories at 320/390px; desktop sidebar and vertical settings preserved"
+    },
+    "icon_followup": "Fit/Fill uses magnifying-glass +/- icons and tooltip; one fullscreen control. Production build, compiled control count, image/archive import identity and public health verified.",
+    "fresh_install_verified_image": "sha256:7ecfd9acbbf2fa674d669200e171c4dc8e2d91db529ebfee708487d7b81d9e77",
+    "auth_followup": {
+      "signup_disabled": true,
+      "variable": "SIGNUP_DISABLED",
+      "default": "false for independent new installations",
+      "api": "passed: public local/HTTPS policy is disabled, direct signup 403, no signup cookies; isolated disabled-mode user count unchanged, forged enable flag rejected; existing test account can still sign in",
+      "layout": "passed: top wallpaper copy, 400px visual field width at 1024/1366/1440px; no overflow at 320/390px; signup link/form follow server policy",
+      "reference": "PortHub AuthShell caps content at 400px; DataHub and original Autolycus use the wider half-panel layout",
+      "tests": "enabled registration/create/session and disabled registration/sign-in verified in a disposable CPU-only installation; disabled mode and layout verified on shipping image"
+    },
+    "wallpaper_alignment": "Above center in dark image area: centered group raised 18vh, visually reviewed on live deployment at 1440x900 and 1366x768."
+  },
+  "preserved_counts_context": "IDs compared immediately before/after this deployment; prior historical session counts differ because sessions expire or are revoked."
+}

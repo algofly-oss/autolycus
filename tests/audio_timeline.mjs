@@ -1,0 +1,11 @@
+import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
+const m=await import('data:text/javascript;base64,'+readFileSync('ui/src/shared/audioTimeline.js').toString('base64'));
+assert.equal(m.donorTime(60,2,1.04),60.32);
+assert.equal(m.videoTime(60.32,2,1.04),60);
+let state=19;const random=()=>{state=(state*1664525+1013904223)>>>0;return state/2**32;};
+const reference=Array.from({length:800},random),donor=[...Array(60).fill(0),...reference];
+assert.equal(m.alignEnvelopes(reference,donor).delay,-3);
+assert.equal(m.alignEnvelopes(reference,Array.from({length:800},random)),null);
+assert.equal(m.alignEnvelopes(Array(800).fill(0),donor),null);
+console.log('PASS: alternate soundtrack time/rate mapping and bounded alignment reject silence/unrelated audio');

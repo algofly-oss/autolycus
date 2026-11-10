@@ -58,7 +58,10 @@ def first_int(value):
 
 
 def parse_title(name):
-    info = parse(name)
+    return format_title(parse(name))
+
+
+def format_title(info):
 
     # --- Clean title ---
     raw_title = info.get("title", "")
@@ -72,11 +75,15 @@ def parse_title(name):
     season = first_int(info.get("season"))
     episode = first_int(info.get("episode"))
 
-    se_part = None
-    if season is not None and episode is not None:
-        se_part = f"S{season:02d}.E{episode:02d}"
-    elif season is not None:
-        se_part = f"S{season:02d}"
+    se_part = f"S{season:02d}" if season is not None else ""
+    if episode is not None:
+        episodes = info.get("episode")
+        values = sorted(set(int(value) for value in episodes)) if isinstance(episodes, list) else [episode]
+        if len(values) > 1 and values == list(range(values[0], values[-1] + 1)):
+            episode_part = f"E{values[0]:02d}-E{values[-1]:02d}"
+        else:
+            episode_part = ".".join(f"E{value:02d}" for value in values)
+        se_part = ".".join(part for part in (se_part, episode_part) if part)
 
     parts = [
         title,

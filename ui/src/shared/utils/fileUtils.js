@@ -10,7 +10,7 @@ export const getFileType = (filename) => {
   const extension = filename.split(".").pop()?.toLowerCase();
 
   const fileTypes = {
-    video: ["mp4", "mkv", "avi", "mov", "wmv", "flv", "webm"],
+    video: ["mp4", "mkv", "avi", "mov", "wmv", "flv", "webm", "m4v", "ts", "m2ts", "ogv"],
     audio: ["mp3", "wav", "ogg", "aac", "m4a", "flac"],
     image: ["jpg", "jpeg", "png", "gif", "webp", "bmp", "avif"],
     document: [

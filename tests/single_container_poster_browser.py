@@ -42,10 +42,11 @@ with webdriver.Chrome(options=options) as browser:
     wait=WebDriverWait(browser,30,ignored_exceptions=(StaleElementReferenceException,))
     browser.get('http://127.0.0.1/home?tab=search')
     field=wait.until(EC.visibility_of_element_located((By.CSS_SELECTOR,'input[placeholder="Search torrent here"]')))
-    assert browser.find_element(By.CSS_SELECTOR,'[aria-label="Search result view"] button[aria-label="List view"]').get_attribute('aria-pressed')=='true'
+    assert not browser.find_elements(By.CSS_SELECTOR,'[aria-label="Search result view"], input[placeholder="Filter results by title"]')
     browser.execute_script(script)
     field.send_keys('Dune',Keys.ENTER)
     wait.until(lambda d:len(d.find_elements(By.CSS_SELECTOR,'button[title="Copy magnet link"]'))==4)
+    assert browser.find_element(By.CSS_SELECTOR,'[aria-label="Search result view"] button[aria-label="List view"]').get_attribute('aria-pressed')=='true'
     assert browser.execute_script('return window.posterLookups')==0,'List view must not request movie posters'
     toggle(browser,'grid')
     wait.until(lambda d:len(d.find_elements(By.CSS_SELECTOR,'[data-search-poster-card] img'))>=2)
@@ -102,6 +103,9 @@ with webdriver.Chrome(options=options) as browser:
     browser.execute_cdp_cmd('Emulation.setTouchEmulationEnabled',{'enabled':False})
     # Both modes must survive a real refresh using the account endpoint.
     browser.refresh()
+    field=wait.until(EC.visibility_of_element_located((By.CSS_SELECTOR,'input[placeholder="Search torrent here"]')))
+    browser.execute_script(script)
+    field.send_keys(Keys.CONTROL,'a');field.send_keys('Dune',Keys.ENTER)
     wait.until(lambda d:d.find_element(By.CSS_SELECTOR,'[aria-label="Search result view"] button[aria-label="Thumbnail view"]').get_attribute('aria-pressed')=='true')
     print('PASS: real posters, release deduplication, no list-view lookups, copy magnet, silent refresh, desktop and phone/tablet layouts (320/375/390/414/768)')
 
@@ -114,11 +118,18 @@ with webdriver.Chrome(options=other) as browser:
     wait.until(EC.visibility_of_element_located((By.CSS_SELECTOR,'input[placeholder="Enter your email"]'))).send_keys('single-container-smoke@example.test')
     browser.find_element(By.CSS_SELECTOR,'input[placeholder="Enter your password"]').send_keys('Smoke-Test-Password-123!')
     browser.find_element(By.XPATH,"//button[.//p[text()='Sign in']]").click()
-    wait.until(EC.url_contains('/home'))
+    wait.until(lambda driver: driver.execute_script("return location.pathname==='/' || location.pathname==='/home'"))
     browser.get('http://127.0.0.1/home?tab=search')
+    field=wait.until(EC.visibility_of_element_located((By.CSS_SELECTOR,'input[placeholder="Search torrent here"]')))
+    assert not browser.find_elements(By.CSS_SELECTOR,'[aria-label="Search result view"], input[placeholder="Filter results by title"]')
+    browser.execute_script(script)
+    field.send_keys('Dune',Keys.ENTER)
     wait.until(lambda d:d.find_element(By.CSS_SELECTOR,'[aria-label="Search result view"] button[aria-label="Thumbnail view"]').get_attribute('aria-pressed')=='true')
     toggle(browser,'list')
     browser.refresh()
+    field=wait.until(EC.visibility_of_element_located((By.CSS_SELECTOR,'input[placeholder="Search torrent here"]')))
+    browser.execute_script(script)
+    field.send_keys(Keys.CONTROL,'a');field.send_keys('Dune',Keys.ENTER)
     wait.until(lambda d:d.find_element(By.CSS_SELECTOR,'[aria-label="Search result view"] button[aria-label="List view"]').get_attribute('aria-pressed')=='true')
     browser.execute_cdp_cmd('Network.enable',{})
     browser.execute_cdp_cmd('Network.setBlockedURLs',{'urls':['*://*/api/auth/preferences']})

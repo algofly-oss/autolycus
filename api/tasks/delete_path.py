@@ -9,6 +9,8 @@ from shared.env import MONGO_DATABASE_NAME, MONGO_DATABASE_URI
 from shared.modules.file_search_index import delete_document_ids_sync, document_ids_for_tree
 from shared.sockets import emit
 from shared.modules.storage_usage import get_disk_usage
+from shared.modules.preview_cache import preview_keys_for_tree, delete_cached_previews
+from shared.factory import redis
 
 
 DOWNLOAD_ROOT = Path(os.getenv("DOWNLOAD_PATH", "/downloads")).resolve()
@@ -31,6 +33,7 @@ def delete_path(relative_path, user_id):
         raise ValueError("Invalid or missing delete path")
 
     document_ids = document_ids_for_tree(target, user_id)
+    preview_keys = preview_keys_for_tree(target)
     if target.is_file():
         relative_paths = [target.relative_to(DOWNLOAD_ROOT).as_posix()]
     else:
@@ -55,6 +58,8 @@ def delete_path(relative_path, user_id):
             target.unlink()
         else:
             shutil.rmtree(target)
+        redis.delete('cinema:catalog:v2:' + str(user_id))
+        delete_cached_previews(database.media_previews, target, preview_keys)
         delete_document_ids_sync(document_ids)
         if relative_paths:
             database.movie_metadata.delete_many(

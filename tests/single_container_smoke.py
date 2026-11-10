@@ -27,7 +27,7 @@ def wait_ready(name, seconds=420):
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--image", default="autolycus:single")
+    parser.add_argument("--image", default="autolycus:latest")
     parser.add_argument("--keep", action="store_true", help="retain the disposable container and test volumes")
     parser.add_argument("--live-tor", action="store_true", help="verify external Tor exits through all three proxy routes")
     options = parser.parse_args()
@@ -60,6 +60,10 @@ def main():
         docker("exec", "-i", name, "/opt/flare-python/bin/python", "-", input=browser_checks)
         poster_browser = Path(__file__).with_name("single_container_poster_browser.py").read_text()
         docker("exec", "-i", name, "/opt/flare-python/bin/python", "-", input=poster_browser)
+        playback_browser = Path(__file__).with_name("single_container_playback.py").read_text()
+        docker("exec", "-i", name, "/opt/flare-python/bin/python", "-", input=playback_browser)
+        playback_limits = Path(__file__).with_name("single_container_playback_limits.py").read_text()
+        docker("exec", "-i", name, "/opt/flare-python/bin/python", "-", input=playback_limits)
         before = docker("exec", name, "sha256sum", "/data/secrets.json", "/data/tls/server.crt", capture_output=True).stdout
         docker("restart", "-t", "90", name, capture_output=True)
         wait_ready(name)

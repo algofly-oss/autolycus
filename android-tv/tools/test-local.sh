@@ -12,3 +12,7 @@ java_bin="${JAVA_HOME:+$JAVA_HOME/bin/}java"
   "$project_dir/tools/WatchNextPolicyCheck.java" \
   "$project_dir/app/src/main/java/dev/quiet/autolycus/WatchNextPolicy.java"
 "$java_bin" -cp "$test_dir" dev.quiet.autolycus.WatchNextPolicyCheck
+"$javac_bin" -d "$test_dir" \
+  "$project_dir/tools/NativePageCacheCheck.java" \
+  "$project_dir/app/src/main/java/dev/quiet/autolycus/NativePageCache.java"
+"$java_bin" -cp "$test_dir" dev.quiet.autolycus.NativePageCacheCheck

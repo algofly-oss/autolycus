@@ -40,3 +40,9 @@ TMDB_LANGUAGE = os.environ.get("TMDB_LANGUAGE", "en-US")
 FTP_PUBLIC_HOST = os.environ.get("FTP_PUBLIC_HOST", "")
 FTP_PUBLIC_PORT = os.environ.get("FTP_PUBLIC_PORT", os.environ.get("FTP_HOST_PORT", "2121"))
 FTP_HOOK_SECRET = os.environ.get("FTP_HOOK_SECRET", "")
+
+# Match PortHub: true/yes/on/1 close public registration; sign-in is unaffected.
+_signup_setting = os.environ.get("SIGNUP_DISABLED", "false").strip().lower()
+if _signup_setting not in {"true", "yes", "on", "1", "false", "no", "off", "0"}:
+    raise RuntimeError("Invalid SIGNUP_DISABLED: use true or false")
+SIGNUP_DISABLED = _signup_setting in {"true", "yes", "on", "1"}

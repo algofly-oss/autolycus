@@ -6,7 +6,7 @@ from fastapi import APIRouter, HTTPException, Query, Request
 from ..auth.common import authenticate_user
 from pydantic import BaseModel
 from shared.factory import db
-from shared.modules.torrent_name_parser import parse_title
+from shared.modules.media_filename import public_file_title
 from datetime import datetime
 from .stream import handle_stream_file
 import traceback
@@ -41,7 +41,7 @@ def public_url_key_for_path(info_hash: str, path: str, torrent_name: str = ""):
     path_hash = hashlib.md5(f"{info_hash}/{path}".encode()).hexdigest()[:10]
 
     try:
-        title = parse_title(torrent_name + " " + os.path.basename(path))
+        title = public_file_title(path, torrent_name)
         title, ext = os.path.splitext(title)
         return path_hash, f"{title}-{path_hash}{ext}"
     except Exception:
@@ -73,7 +73,12 @@ async def ensure_public_url_record(
         path_hash = requested_key
         title = requested_key
     else:
-        path_hash, title = public_url_key_for_path(info_hash, path, torrent_name)
+        path_hash = hashlib.md5(f"{info_hash}/{path}".encode()).hexdigest()[:10]
+        existing = await db.public_urls.find_one({"user_id": user_id, "info_hash": info_hash, "path_hash": path_hash})
+        if existing and existing.get("title"):
+            title = existing["title"]
+        else:
+            _, title = public_url_key_for_path(info_hash, path, torrent_name)
 
     set_fields = {
         "path": path,
@@ -205,5 +210,5 @@ async def public_file_access(request: Request, key: str, download: str = "false"
     if not os.path.exists(path):
         raise HTTPException(status_code=404, detail="File not found")
 
-    download = download == "true" or download == "1"
+    download = download.lower() in {"true", "1"}
     return handle_stream_file(request, path, download)

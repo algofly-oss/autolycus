@@ -1,3 +1,4 @@
+mod media;
 mod supervise;
 mod tor;
 
@@ -19,6 +20,7 @@ async fn main() -> Result<()> {
             supervise::run(config, shutdown()).await
         }
         Some("tor") => tor::run().await,
+        Some("media") => media::run().await,
         _ => bail!("usage: autolycus-runtime supervise CONFIG | tor"),
     }
 }

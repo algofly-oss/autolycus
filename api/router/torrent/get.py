@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Request, HTTPException
+from bson import ObjectId
 from shared.factory import db
 from ..auth.common import authenticate_user
 from .common import MagnetDto, magnet_utils
@@ -14,7 +15,7 @@ async def get_torrent(dto: MagnetDto, request: Request):
     info_hash = magnet_utils._clean_magnet_uri(dto.magnet).split(":")[3][:40]
 
     # add torrent to db
-    torrent = await db.torrents.find_one({"info_hash": info_hash})
+    torrent = await db.torrents.find_one({"info_hash": info_hash,"user_id":ObjectId(user_id.decode())})
 
     if not torrent:
         raise HTTPException(status_code=400, detail="Torrent not found")
@@ -30,6 +31,7 @@ async def get_torrent(dto: MagnetDto, request: Request):
         "num_peers": torrent["num_peers"],
         "num_seeds": torrent["num_seeds"],
         "num_trackers": torrent["num_trackers"],
+        "tracker_health": torrent.get("tracker_health", []),
         "ok": torrent["ok"],
         "progress": torrent["progress"],
         "queue_position": torrent["queue_position"],

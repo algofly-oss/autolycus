@@ -58,14 +58,25 @@ def initialize():
         "API_DEBUG": "False", "NODE_ENV": "production", "BUILD_ENV": "prod",
         "API_SECRET_KEY": stored["API_SECRET_KEY"],
     })
-    os.environ.setdefault("CELERY_NUM_WORKERS", "2")
+    os.environ.setdefault("CELERY_NUM_WORKERS", "3")
     os.environ.setdefault("SESSION_COOKIE_NAME", "autolycus_session")
     health_config = RUN / "health.json"
     health_config.write_text(json.dumps({"mongo_uri": os.environ["MONGO_DATABASE_URI"], "database": database}))
     health_config.chmod(0o600)
 
     config_path = DATA / "jackett/Jackett/ServerConfig.json"
-    config = json.loads(config_path.read_text()) if config_path.exists() else {}
+    fresh_config = not config_path.exists()
+    config = json.loads(config_path.read_text()) if not fresh_config else {}
+    if fresh_config:
+        config.update({"ProxyType":2,"ProxyUrl":"127.0.0.1","ProxyPort":9050})
+        indexers=config_path.parent/"Indexers"
+        indexers.mkdir(parents=True,exist_ok=True)
+        if not any(indexers.glob("*.json")):
+            for source in (Path(__file__).resolve().parent/"indexers").glob("*.json"):
+                target=indexers/source.name
+                target.write_bytes(source.read_bytes())
+                os.chown(target,10001,10001)
+        os.chown(indexers,10001,10001)
     config.update({"Port": 9117, "AllowExternal": False, "APIKey": stored["JACKETT_API_KEY"],
                    "UpdateDisabled": True, "FlareSolverrUrl": "http://127.0.0.1:8191"})
     if config.get("ProxyUrl") == "tor":

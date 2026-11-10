@@ -65,7 +65,8 @@ def update_to_db(props, user_id):
         return
 
     props = props.asdict()
-    copy_if_already_exists(props.get("info_hash"), user_id)
+    if props.get("selected_files") is None:
+        copy_if_already_exists(props.get("info_hash"), user_id)
 
     if props.get("is_finished") or props.get("is_paused"):
         redis.delete(f"{user_id}/{props['info_hash']}/copied_from_existing")
@@ -102,6 +103,8 @@ def update_to_db(props, user_id):
                 try:
                     index_torrent_files_sync(str(user_id), props)
                     cache_torrent_media_metadata_sync(db, str(user_id), props)
+                    from tasks.media_previews import preview_download_tree
+                    preview_download_tree.delay(props.get("save_dir"))
                 except Exception:
                     traceback.print_exc()
 

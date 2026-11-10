@@ -9,16 +9,42 @@ import android.widget.ImageView;
 
 import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
+import java.lang.ref.WeakReference;
 import java.net.HttpURLConnection;
 import java.net.URI;
 import java.net.URL;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
+import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 
 /** Bounded artwork loading shared by native catalogue and detail surfaces. */
 final class NativeArtwork {
-    private static final ExecutorService WORKERS = Executors.newFixedThreadPool(3);
+    private static final Map<String, Request> REQUESTS = new HashMap<>();
+    private static final ThreadPoolExecutor WORKERS =
+            new ThreadPoolExecutor(
+                    3,
+                    3,
+                    0,
+                    TimeUnit.MILLISECONDS,
+                    new ArrayBlockingQueue<>(128),
+                    task ->
+                            new Thread(
+                                    () -> {
+                                        android.os.Process.setThreadPriority(
+                                                android.os.Process.THREAD_PRIORITY_BACKGROUND);
+                                        task.run();
+                                    },
+                                    "AutolycusArtwork"),
+                    (task, executor) -> {
+                        Runnable oldest = executor.getQueue().poll();
+                        if (oldest instanceof Request) ((Request) oldest).discard();
+                        if (!executor.isShutdown()) executor.execute(task);
+                        else if (task instanceof Request) ((Request) task).discard();
+                    });
     private static final Handler MAIN = new Handler(Looper.getMainLooper());
     private static final LruCache<String, Bitmap> CACHE =
             new LruCache<String, Bitmap>(24 * 1024 * 1024) {
@@ -41,6 +67,7 @@ final class NativeArtwork {
         if (address == null || address.isEmpty() || "null".equals(address)) return;
         final String url = api.absolute(address);
         final String key = url + "|" + width + "x" + height;
+        cancel(target);
         target.setTag(key);
         Bitmap ready = CACHE.get(key);
         if (ready != null) {
@@ -50,39 +77,113 @@ final class NativeArtwork {
             if (shown != null) shown.run();
             return;
         }
-        WORKERS.execute(
-                () -> {
-                    try {
-                        byte[] bytes = read(url);
-                        BitmapFactory.Options bounds = new BitmapFactory.Options();
-                        bounds.inJustDecodeBounds = true;
-                        BitmapFactory.decodeByteArray(bytes, 0, bytes.length, bounds);
-                        if (bounds.outWidth <= 0 || bounds.outHeight <= 0) return;
-                        BitmapFactory.Options options = new BitmapFactory.Options();
-                        options.inSampleSize = 1;
-                        while (bounds.outWidth / (options.inSampleSize * 2) >= Math.max(1, width)
-                                && bounds.outHeight / (options.inSampleSize * 2)
-                                        >= Math.max(1, height)) options.inSampleSize *= 2;
-                        options.inPreferredConfig = Bitmap.Config.ARGB_8888;
-                        Bitmap bitmap =
-                                BitmapFactory.decodeByteArray(bytes, 0, bytes.length, options);
-                        if (bitmap == null) return;
-                        CACHE.put(key, bitmap);
-                        MAIN.post(
-                                () -> {
-                                    if (!key.equals(target.getTag())) return;
-                                    target.animate().cancel();
-                                    boolean replacing = target.getDrawable() != null;
-                                    target.setImageBitmap(bitmap);
-                                    target.setAlpha(replacing || shown != null ? 1f : 0f);
-                                    if (shown != null) shown.run();
-                                    else if (!replacing)
-                                        target.animate().alpha(1f).setDuration(180).start();
-                                });
-                    } catch (Exception ignored) {
-                        // Missing artwork keeps its native placeholder, without repeated retries.
-                    }
-                });
+        Request request;
+        synchronized (REQUESTS) {
+            request = REQUESTS.get(key);
+            if (request != null) {
+                request.targets.add(new Target(target, shown));
+                return;
+            }
+            request = new Request(this, key, url, width, height);
+            request.targets.add(new Target(target, shown));
+            REQUESTS.put(key, request);
+        }
+        WORKERS.execute(request);
+    }
+
+    /** Detach a hidden image and remove work that has not started; running reads stay bounded. */
+    static void cancel(ImageView target) {
+        Object previous = target.getTag();
+        target.setTag(null);
+        target.animate().cancel();
+        synchronized (REQUESTS) {
+            Request request = REQUESTS.get(previous);
+            if (request == null) return;
+            request.targets.removeIf(t -> t.view.get() == null || t.view.get() == target);
+            if (request.targets.isEmpty() && !request.started && WORKERS.remove(request)) {
+                REQUESTS.remove(request.key);
+            }
+        }
+    }
+
+    private static final class Target {
+        final WeakReference<ImageView> view;
+        final Runnable shown;
+
+        Target(ImageView view, Runnable shown) {
+            this.view = new WeakReference<>(view);
+            this.shown = shown;
+        }
+    }
+
+    private static final class Request implements Runnable {
+        final NativeArtwork loader;
+        final String key, url;
+        final int width, height;
+        final List<Target> targets = new ArrayList<>();
+        boolean started;
+
+        Request(NativeArtwork loader, String key, String url, int width, int height) {
+            this.loader = loader;
+            this.key = key;
+            this.url = url;
+            this.width = width;
+            this.height = height;
+        }
+
+        void discard() {
+            synchronized (REQUESTS) {
+                if (REQUESTS.get(key) == this) REQUESTS.remove(key);
+                targets.clear();
+            }
+        }
+
+        @Override
+        public void run() {
+            synchronized (REQUESTS) {
+                started = true;
+            }
+            try {
+                byte[] bytes = loader.read(url);
+                BitmapFactory.Options bounds = new BitmapFactory.Options();
+                bounds.inJustDecodeBounds = true;
+                BitmapFactory.decodeByteArray(bytes, 0, bytes.length, bounds);
+                if (bounds.outWidth <= 0 || bounds.outHeight <= 0) return;
+                BitmapFactory.Options options = new BitmapFactory.Options();
+                options.inSampleSize = 1;
+                while (bounds.outWidth / (options.inSampleSize * 2) >= Math.max(1, width)
+                        && bounds.outHeight / (options.inSampleSize * 2) >= Math.max(1, height))
+                    options.inSampleSize *= 2;
+                options.inPreferredConfig = Bitmap.Config.ARGB_8888;
+                Bitmap bitmap = BitmapFactory.decodeByteArray(bytes, 0, bytes.length, options);
+                if (bitmap == null) return;
+                bitmap.prepareToDraw();
+                CACHE.put(key, bitmap);
+                List<Target> listeners;
+                synchronized (REQUESTS) {
+                    listeners = new ArrayList<>(targets);
+                    discard();
+                }
+                MAIN.post(
+                        () -> {
+                            for (Target listener : listeners) {
+                                ImageView target = listener.view.get();
+                                if (target == null || !key.equals(target.getTag())) continue;
+                                target.animate().cancel();
+                                boolean replacing = target.getDrawable() != null;
+                                target.setImageBitmap(bitmap);
+                                target.setAlpha(replacing || listener.shown != null ? 1f : 0f);
+                                if (listener.shown != null) listener.shown.run();
+                                else if (!replacing)
+                                    target.animate().alpha(1f).setDuration(180).start();
+                            }
+                        });
+            } catch (Exception ignored) {
+                // Missing artwork keeps its native placeholder, without repeated retries.
+            } finally {
+                discard();
+            }
+        }
     }
 
     private byte[] read(String initial) throws Exception {
