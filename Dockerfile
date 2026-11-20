@@ -68,6 +68,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
       ffmpeg aria2 p7zip-full rsync \
       chromium chromium-driver xvfb xauth python3-venv iptables redsocks privoxy && \
     mkdir -p /usr/share/licenses/debian && \
+    dpkg --compare-versions "$(dpkg-query -W -f='${Version}' nginx)" ge 1.26.3-3+deb13u11 && \
     for file in /usr/share/doc/*/copyright; do \
       if [ -f "$file" ]; then cp -L "$file" "/usr/share/licenses/debian/$(basename "$(dirname "$file")").copyright"; fi; \
     done && \
